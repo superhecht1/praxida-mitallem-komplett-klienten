@@ -1,35 +1,35 @@
 {
-  "name": "praxida-server",
-  "version": "2.0.0",
-  "description": "DSGVO-konforme KI-Assistenz für Psychotherapeut:innen mit Datei-Upload und Chat-Funktion",
+  "name": "praxida-frontend",
+  "version": "2.1.0",
   "main": "server.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "docx-parser": "^0.0.9",
-    "express": "^4.18.2",
-    "multer": "^1.4.5",
-    "node-fetch": "^3.4.0",
+    "better-sqlite3": "^12.2.0",
+    "body-parser": "^1.20.3",
+    "docx-parser": "^0.2.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.21.2",
+    "mammoth": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
     "pdf-parse": "^1.1.1",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.7",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "nodemon": "^3.0.1"
   },
   "keywords": [
     "therapie",
-    "KI",
-    "psychotherapie",
-    "file-upload",
-    "chatbot"
+    "ki",
+    "praxisverwaltung",
+    "dsgvo",
+    "kollaboration",
+    "echtzeit",
+    "websocket"
   ],
-  "author": "Dein Name",
-  "license": "MIT"
+  "description": "KI-gestützte kollaborative Praxisverwaltung für Therapeuten mit DSGVO-Compliance und Echtzeit-Zusammenarbeit"
 }
