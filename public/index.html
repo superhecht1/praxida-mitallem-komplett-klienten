@@ -2499,50 +2499,390 @@
         
     </script>
     <script>
+// Replace the existing client-related JavaScript functions in your HTML file
+
+// Global variables for client management
+let clientsData = [];
+let selectedClientId = null;
+
+// Initialize app with proper client loading
+async function initializeApp() {
+    try {
+        await loadClients();
+        updateClientBadge();
+        updateQuickClientSelect();
+        updateStats();
+    } catch (error) {
+        console.error('App initialization error:', error);
+    }
+}
+
+// Load clients from server
 async function loadClients() {
-    const res = await fetch("/api/clients");
-    const clients = await res.json();
-    const grid = document.getElementById("clientGrid");
-    grid.innerHTML = "";
-    clients.forEach(c => {
-        const card = document.createElement("div");
-        card.className = "client-card";
-        card.innerHTML = `
+    try {
+        const response = await fetch('/api/clients');
+        const data = await response.json();
+        
+        if (data.success) {
+            clientsData = data.clients;
+            renderClients();
+            console.log('Clients loaded:', clientsData.length);
+        } else {
+            console.error('Failed to load clients:', data.message);
+            showNotification('Fehler beim Laden der Klient:innen', 'error');
+        }
+    } catch (error) {
+        console.error('Load clients error:', error);
+        showNotification('Verbindungsfehler beim Laden der Klient:innen', 'error');
+    }
+}
+
+// Render clients in the grid
+function renderClients() {
+    const clientGrid = document.getElementById('clientGrid');
+    if (!clientGrid) return;
+    
+    if (clientsData.length === 0) {
+        clientGrid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">👥</div>
+                <h3>Noch keine Klient:innen</h3>
+                <p>Fügen Sie Ihre erste:n Klient:in hinzu, um zu beginnen.</p>
+                <button class="btn btn-primary" onclick="showModal('clientModal')">
+                    <span>➕</span> Erste:n Klient:in hinzufügen
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    clientGrid.innerHTML = clientsData.map(client => `
+        <div class="client-card ${selectedClientId === client.id ? 'selected' : ''}" onclick="selectClient(this, '${client.id}')">
             <div class="client-header">
-                <div class="client-initials">${c.initials}</div>
+                <div class="client-initials">${client.initials}</div>
                 <div class="client-meta">
-                    <span class="tag">${c.diagnosis}</span>
-                    <span class="tag">${c.therapy}</span>
+                    <span class="tag">${client.diagnosis}</span>
+                    <span class="tag">${client.therapy}</span>
                 </div>
             </div>
             <div class="client-stats">
-                <span>📅 Letzte Sitzung: ${c.lastSession}</span>
-                <span>🔢 Sessions: ${c.sessions}</span>
+                <span>📅 Letzte Sitzung: ${client.lastSession ? new Date(client.lastSession).toLocaleDateString('de-DE') : 'Keine'}</span>
+                <span>🔢 Sessions: ${client.sessionCount}</span>
             </div>
-        `;
-        grid.appendChild(card);
-    });
-    document.getElementById("clientsBadge").innerText = clients.length;
+            ${client.notes ? `<div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">${client.notes.substring(0, 50)}${client.notes.length > 50 ? '...' : ''}</div>` : ''}
+            <div class="client-actions" style="margin-top: 10px; display: flex; gap: 5px;">
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 5px 10px;" onclick="editClient(event, '${client.id}')">Bearbeiten</button>
+                <button class="btn btn-primary" style="font-size: 12px; padding: 5px 10px;" onclick="addSession(event, '${client.id}')">+Session</button>
+            </div>
+        </div>
+    `).join('');
 }
 
-// Client hinzufügen (Formular absenden)
-document.querySelector('#clientModal form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const client = {
-        initials: this.querySelector('input[name="initials"]').value,
-        diagnosis: this.querySelector('input[name="diagnosis"]').value,
-        therapy: this.querySelector('input[name="therapy"]').value,
-        sessions: parseInt(this.querySelector('input[name="sessions"]').value) || 0,
-        lastSession: this.querySelector('input[name="lastSession"]').value
+// Add new client
+async function addClient(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const clientData = {
+        initials: formData.get('initials'),
+        diagnosis: formData.get('diagnosis'),
+        therapy: formData.get('therapy'),
+        notes: formData.get('notes')
     };
-    await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(client)
-    });
-    loadClients();
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    try {
+        submitBtn.textContent = 'Wird gespeichert...';
+        submitBtn.disabled = true;
+        
+        const response = await fetch('/api/clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(clientData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Klient:in erfolgreich hinzugefügt', 'success');
+            hideModal('clientModal');
+            form.reset();
+            await loadClients(); // Reload to get updated list
+            updateClientBadge();
+            updateQuickClientSelect();
+        } else {
+            showNotification(result.message || 'Fehler beim Hinzufügen', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Add client error:', error);
+        showNotification('Verbindungsfehler beim Hinzufügen', 'error');
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Edit client
+function editClient(event, clientId) {
+    event.stopPropagation();
+    
+    const client = clientsData.find(c => c.id === clientId);
+    if (!client) return;
+    
+    // Pre-fill the modal with existing data
+    const modal = document.getElementById('clientModal');
+    const form = modal.querySelector('form');
+    
+    form.querySelector('input[placeholder="A.B."]').value = client.initials;
+    form.querySelector('input[placeholder*="Diagnose"]').value = client.diagnosis;
+    form.querySelector('select').value = client.therapy;
+    form.querySelector('textarea').value = client.notes || '';
+    
+    // Change modal title and button text
+    modal.querySelector('.modal-title').textContent = 'Klient:in bearbeiten';
+    modal.querySelector('button[type="submit"]').textContent = 'Aktualisieren';
+    
+    // Store client ID for update
+    form.setAttribute('data-client-id', clientId);
+    
+    showModal('clientModal');
+}
+
+// Update client
+async function updateClient(clientId, clientData) {
+    try {
+        const response = await fetch(`/api/clients/${clientId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(clientData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Klient:in erfolgreich aktualisiert', 'success');
+            await loadClients();
+            return true;
+        } else {
+            showNotification(result.message || 'Fehler beim Aktualisieren', 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Update client error:', error);
+        showNotification('Verbindungsfehler beim Aktualisieren', 'error');
+        return false;
+    }
+}
+
+// Add session to client
+async function addSession(event, clientId) {
+    event.stopPropagation();
+    
+    try {
+        const response = await fetch(`/api/clients/${clientId}/sessions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Session hinzugefügt', 'success');
+            await loadClients();
+            updateStats();
+        } else {
+            showNotification(result.message || 'Fehler beim Hinzufügen der Session', 'error');
+        }
+    } catch (error) {
+        console.error('Add session error:', error);
+        showNotification('Verbindungsfehler', 'error');
+    }
+}
+
+// Enhanced form submission handler
+function handleClientForm(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const clientId = form.getAttribute('data-client-id');
+    
+    if (clientId) {
+        // Update existing client
+        const formData = new FormData(form);
+        const clientData = {
+            initials: formData.get('initials'),
+            diagnosis: formData.get('diagnosis'), 
+            therapy: formData.get('therapy'),
+            notes: formData.get('notes')
+        };
+        
+        updateClient(clientId, clientData).then(success => {
+            if (success) {
+                resetClientModal();
+            }
+        });
+    } else {
+        // Add new client
+        addClient(event);
+    }
+}
+
+// Reset client modal to add mode
+function resetClientModal() {
+    const modal = document.getElementById('clientModal');
+    const form = modal.querySelector('form');
+    
+    modal.querySelector('.modal-title').textContent = 'Neue:n Klient:in hinzufügen';
+    form.querySelector('button[type="submit"]').textContent = 'Speichern';
+    form.removeAttribute('data-client-id');
+    form.reset();
+    
     hideModal('clientModal');
-});
+}
+
+// Client selection
+function selectClient(element, clientId) {
+    // Remove previous selection
+    document.querySelectorAll('.client-card').forEach(card => 
+        card.classList.remove('selected')
+    );
+    
+    // Add selection to clicked card
+    element.classList.add('selected');
+    selectedClientId = clientId;
+    
+    console.log('Selected client:', clientId);
+}
+
+// Export clients
+async function exportClients() {
+    try {
+        const response = await fetch('/api/clients/export/csv');
+        
+        if (response.ok) {
+            // Create download link
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `klienten_export_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showNotification('Export erfolgreich heruntergeladen', 'success');
+        } else {
+            showNotification('Fehler beim Export', 'error');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Verbindungsfehler beim Export', 'error');
+    }
+}
+
+// Update client count badge
+function updateClientBadge() {
+    const badge = document.getElementById('clientsBadge');
+    if (badge) {
+        badge.textContent = clientsData.length;
+    }
+}
+
+// Update quick client select
+function updateQuickClientSelect() {
+    const select = document.getElementById('quickClient');
+    if (select) {
+        select.innerHTML = '<option value="">Klient:in auswählen</option>';
+        clientsData.forEach(client => {
+            select.innerHTML += `<option value="${client.id}">${client.initials}</option>`;
+        });
+    }
+}
+
+// Update dashboard stats
+function updateStats() {
+    const totalSessions = clientsData.reduce((sum, client) => sum + client.sessionCount, 0);
+    
+    document.getElementById('totalClients').textContent = clientsData.length;
+    document.getElementById('totalSessions').textContent = totalSessions;
+    document.getElementById('pendingTodos').textContent = '0'; // Placeholder
+    document.getElementById('activePlans').textContent = clientsData.filter(c => c.sessionCount > 0).length;
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}
+            </span>
+            <span class="notification-message">${message}</span>
+        </div>
+    `;
+    
+    // Add styles if not already added
+    if (!document.querySelector('#notification-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'notification-styles';
+        styles.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 3000;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                padding: 15px;
+                min-width: 300px;
+                border-left: 4px solid #667eea;
+                animation: slideInRight 0.3s ease-out;
+            }
+            .notification-success { border-left-color: #4facfe; }
+            .notification-error { border-left-color: #f5576c; }
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .notification-icon { font-size: 18px; }
+            .notification-message { flex: 1; font-weight: 600; color: #333; }
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(styles);
+    }
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Enhanced modal handling for clients
+function showClientModal() {
+    resetClientModal();
+    showModal('clientModal');
+}
 </script>
 
 </body>
