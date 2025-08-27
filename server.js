@@ -6,6 +6,10 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 
+// Zusätzliche Packages für Datei-Analyse
+const pdfParse = require('pdf-parse');
+const docxParser = require('docx-parser'); // alternativ mammoth
+
 const app = express();
 
 // ======== OPENAI KEY DIREKT HIER ========
@@ -17,7 +21,7 @@ if (!OPENAI_API_KEY || OPENAI_API_KEY.trim() === "") {
     process.exit(1);
 }
 
-// Multer Configuration
+// ===== Multer Configuration =====
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadDir = 'uploads/';
@@ -29,6 +33,7 @@ const storage = multer.diskStorage({
         cb(null, uniqueName);
     }
 });
+
 const upload = multer({ 
     storage: storage,
     limits: { fileSize: 10 * 1024 * 1024 },
@@ -44,7 +49,7 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ======= LOGIN =========
+// ===== LOGIN =====
 app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
     if (username === "demo" && password === "praxida2024") {
@@ -55,19 +60,19 @@ app.post("/api/login", (req, res) => {
     } else res.status(401).json({ success: false, message: "Ungültige Anmeldedaten" });
 });
 
-// ======= CHAT ENDPOINT =========
+// ===== CHAT ENDPOINT =====
 app.post("/api/chat", async (req, res) => {
     try {
         const { message, hasAttachments = false } = req.body;
         if (!message || message.trim() === '') return res.status(400).json({ reply: "Bitte geben Sie eine Nachricht ein." });
 
         const systemPrompt = `Du bist eine erfahrene, DSGVO-konforme KI-Assistenz für Psychotherapeut:innen in Deutschland. 
-- Antworte immer auf Deutsch
-- Verwende evidenzbasierte therapeutische Ansätze
+- Antworte auf Deutsch
+- Evidenzbasierte therapeutische Ansätze
 - Beziehe dich auf deutsche Leitlinien und ICD-11
 - Betone, dass du die professionelle Einschätzung des Therapeuten nicht ersetzt
 - Sei praxisnah
-- Nutze Emojis zur Strukturierung
+- Nutze Emojis
 - Gib konkrete Handlungsempfehlungen`;
 
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -88,7 +93,6 @@ app.post("/api/chat", async (req, res) => {
         });
 
         if (!response.ok) throw new Error(`OpenAI API Error: ${response.status} ${response.statusText}`);
-
         const data = await response.json();
         const reply = data.choices[0]?.message?.content || "Keine Antwort von OpenAI erhalten.";
         res.json({ reply });
@@ -99,29 +103,42 @@ app.post("/api/chat", async (req, res) => {
     }
 });
 
-// ======= FILE UPLOAD ENDPOINT =========
+// ===== FILE UPLOAD ENDPOINT (Text, PDF, Word, Bilder) =====
 app.post("/api/upload", upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Keine Datei hochgeladen" });
 
     const file = req.file;
     const filePath = file.path;
-
     let analysisPrompt = "";
 
-    if (file.mimetype.startsWith('text/') || file.originalname.endsWith('.txt')) {
-        try {
-            const fileContent = fs.readFileSync(filePath, 'utf8');
-            analysisPrompt = `Analysiere diesen Text aus therapeutischer Sicht:\n${fileContent.substring(0, 3000)}`;
-        } catch {
-            analysisPrompt = `Textdatei "${file.originalname}" konnte nicht gelesen werden.`;
-        }
-    } else {
-        analysisPrompt = `Datei "${file.originalname}" (${file.mimetype}) hochgeladen. Gib therapeutische Hinweise.`;
-    }
-
-    let analysis = "";
-
     try {
+        if (file.mimetype.startsWith('text/') || file.originalname.endsWith('.txt')) {
+            const content = fs.readFileSync(filePath, 'utf8');
+            analysisPrompt = `Analysiere diesen Text aus therapeutischer Sicht und gib praxisnahe Empfehlungen:\n${content.substring(0, 3000)}`;
+        }
+        else if (file.mimetype === 'application/pdf') {
+            const buffer = fs.readFileSync(filePath);
+            const data = await pdfParse(buffer);
+            analysisPrompt = `Analysiere diesen PDF-Inhalt aus therapeutischer Sicht:\n${data.text.substring(0, 3000)}`;
+        }
+        else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                 file.mimetype === 'application/msword') {
+            const text = await new Promise((resolve, reject) => {
+                docxParser.parseDocx(filePath, (data) => resolve(data), (err) => reject(err));
+            });
+            analysisPrompt = `Analysiere diesen Word-Dokument Inhalt aus therapeutischer Sicht:\n${text.substring(0, 3000)}`;
+        }
+        else if (file.mimetype.startsWith('image/')) {
+            analysisPrompt = `Ein Bild "${file.originalname}" wurde hochgeladen. Gib therapeutische Hinweise, wie es in Sitzungen genutzt werden kann, auf Deutsch, strukturiert nach:
+1. Mögliche Relevanz
+2. Beobachtbare Elemente
+3. Integration in Therapie
+4. Dokumentation & Datenschutz`;
+        }
+        else {
+            analysisPrompt = `Eine Datei "${file.originalname}" (${file.mimetype}) wurde hochgeladen. Gib therapeutische Hinweise, wie man sie nutzen könnte.`;
+        }
+
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -131,42 +148,40 @@ app.post("/api/upload", upload.single('file'), async (req, res) => {
             body: JSON.stringify({
                 model: "gpt-4o-mini",
                 messages: [
-                    { role: "system", content: "Du bist ein KI-Assistent für Psychotherapeut:innen. Analysiere Inhalte strukturiert auf Deutsch." },
+                    { role: "system", content: "Du bist ein KI-Assistent für Psychotherapeut:innen. Analysiere Inhalte strukturiert auf Deutsch und gib praxisnahe Empfehlungen." },
                     { role: "user", content: analysisPrompt }
                 ],
-                max_tokens: 1200,
+                max_tokens: 1500,
                 temperature: 0.6
             })
         });
 
         const aiData = await response.json();
-        analysis = aiData.choices[0]?.message?.content || "Keine Analyse erhalten.";
+        const analysis = aiData.choices[0]?.message?.content || "Keine Analyse erhalten.";
+
+        try { fs.unlinkSync(filePath); } catch {}
+
+        res.json({
+            success: true,
+            filename: file.originalname,
+            fileType: file.mimetype,
+            size: file.size,
+            analysis
+        });
 
     } catch (err) {
-        console.warn("⚠️ Datei-Analyse Fehler:", err.message);
-        analysis = "Fehler bei der Analyse durch OpenAI.";
+        console.error("❌ Upload / Analyse Error:", err);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        res.status(500).json({ error: "Fehler bei der Datei-Analyse: " + err.message });
     }
-
-    // Cleanup
-    try { fs.unlinkSync(filePath); } catch {}
-
-    res.json({
-        success: true,
-        filename: file.originalname,
-        analysis,
-        fileType: file.mimetype,
-        size: file.size
-    });
 });
 
-// ======= CLIENT ENDPOINTS =========
-// Alle Clients abrufen
+// ===== CLIENT ENDPOINTS =====
 app.get("/api/clients", (req, res) => {
   try { res.json(db.prepare("SELECT * FROM clients").all()); } 
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Neuen Client anlegen
 app.post("/api/clients", (req, res) => {
   try {
     const { initials, diagnosis, therapy, sessions, lastSession } = req.body;
@@ -178,7 +193,6 @@ app.post("/api/clients", (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Client bearbeiten
 app.put("/api/clients/:id", (req, res) => {
   try {
     const { initials, diagnosis, therapy, sessions, lastSession } = req.body;
@@ -189,28 +203,37 @@ app.put("/api/clients/:id", (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Client löschen
 app.delete("/api/clients/:id", (req, res) => {
   try {
-    const info = db.prepare("DELETE FROM clients WHERE id=?").run(req.params.id);
+    const info = db.prepare(`DELETE FROM clients WHERE id=?`).run(req.params.id);
     res.json({ deleted: info.changes });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ======= HEALTH CHECK =========
+// ===== HEALTH CHECK =====
 app.get("/api/health", (req, res) => {
     res.json({
         status: "online",
         timestamp: new Date().toISOString(),
         version: "2.0.0",
-        services: { openai: true, uploads: fs.existsSync('uploads'), static: fs.existsSync('public') },
+        services: { openai: !!OPENAI_API_KEY, uploads: fs.existsSync('uploads'), static: fs.existsSync('public') },
         mode: "AI-powered"
     });
 });
 
-// ======= SERVER START =========
+// ===== ERROR HANDLING =====
+app.use((error, req, res, next) => {
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') 
+        return res.status(400).json({ error: 'Datei zu groß (max. 10MB)' });
+    console.error('Server Error:', error);
+    res.status(500).json({ error: error.message });
+});
+
+app.use((req, res) => res.status(404).json({ error: 'Endpoint nicht gefunden' }));
+
+// ===== START SERVER =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server gestartet auf http://localhost:${PORT}`);
+    console.log(`🚀 PRAXIDA 2.0 SERVER GESTARTET auf Port ${PORT}`);
     if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 });
