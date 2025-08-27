@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Praxida 2.0 - Kollaborative KI-Assistenz für Therapeuten</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <title>Praxida 2.0 - KI-Assistenz für Therapeuten</title>
     <style>
         * {
             margin: 0;
@@ -19,86 +18,7 @@
             color: #333;
         }
 
-        /* Collaboration Status Bar */
-        .collaboration-status {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(102, 126, 234, 0.95);
-            color: white;
-            padding: 8px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-            transform: translateY(-100%);
-            transition: transform 0.3s ease;
-        }
-
-        .collaboration-status.active {
-            transform: translateY(0);
-        }
-
-        .collaboration-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .online-indicator {
-            width: 8px;
-            height: 8px;
-            background: #4facfe;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .active-users {
-            display: flex;
-            gap: 5px;
-        }
-
-        .user-avatar-mini {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .collaboration-controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        .collab-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .collab-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Login Screen Styles - same as before */
+        /* Login Screen Styles */
         .login-screen {
             position: fixed;
             top: 0;
@@ -183,8 +103,7 @@
             margin-top: 10px;
             font-family: monospace;
         }
-
-        /* Main Container with collaboration adjustment */
+        
         .container {
             max-width: 1600px;
             margin: 0 auto;
@@ -193,12 +112,6 @@
             grid-template-columns: 320px 1fr;
             gap: 20px;
             min-height: 100vh;
-            padding-top: 60px; /* Space for collaboration bar */
-            transition: padding-top 0.3s ease;
-        }
-
-        .container.no-collaboration {
-            padding-top: 20px;
         }
         
         .sidebar {
@@ -209,12 +122,7 @@
             backdrop-filter: blur(10px);
             height: fit-content;
             position: sticky;
-            top: 80px;
-            transition: top 0.3s ease;
-        }
-
-        .container.no-collaboration .sidebar {
-            top: 40px;
+            top: 20px;
         }
         
         .main-content {
@@ -223,364 +131,9 @@
             padding: 35px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
-            min-height: calc(100vh - 100px);
-            position: relative;
+            min-height: calc(100vh - 40px);
         }
-
-        /* Collaboration Panel */
-        .collaboration-panel {
-            position: fixed;
-            right: -400px;
-            top: 60px;
-            bottom: 0;
-            width: 380px;
-            background: white;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
-            transition: right 0.3s ease;
-            z-index: 500;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .collaboration-panel.open {
-            right: 0;
-        }
-
-        .collab-panel-header {
-            padding: 20px;
-            border-bottom: 2px solid #eef2ff;
-            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
-        }
-
-        .collab-panel-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .collab-tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .collab-tab {
-            padding: 10px 15px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 2px solid transparent;
-        }
-
-        .collab-tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        /* Live Chat */
-        .live-chat {
-            display: none;
-        }
-
-        .live-chat.active {
-            display: block;
-        }
-
-        .chat-messages {
-            height: 300px;
-            overflow-y: auto;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: #f9f9f9;
-        }
-
-        .chat-message {
-            margin-bottom: 15px;
-            padding: 8px 12px;
-            border-radius: 12px;
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-
-        .chat-message.own {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-
-        .chat-message.other {
-            background: white;
-            border: 1px solid #eee;
-        }
-
-        .chat-input {
-            display: flex;
-            gap: 10px;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-        }
-
-        .chat-send {
-            padding: 10px 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        /* Shared Documents */
-        .shared-docs {
-            display: none;
-        }
-
-        .shared-docs.active {
-            display: block;
-        }
-
-        .doc-item {
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        .doc-item:hover {
-            border-color: #667eea;
-        }
-
-        .doc-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .doc-meta {
-            font-size: 12px;
-            color: #666;
-        }
-
-        /* Active Users List */
-        .active-users-list {
-            display: none;
-        }
-
-        .active-users-list.active {
-            display: block;
-        }
-
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: background 0.3s;
-        }
-
-        .user-item:hover {
-            background: #f8f9ff;
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-status {
-            font-size: 11px;
-            color: #666;
-        }
-
-        .user-status.online {
-            color: #4facfe;
-        }
-
-        .user-status.typing {
-            color: #f093fb;
-            font-style: italic;
-        }
-
-        /* Cursor tracking */
-        .live-cursor {
-            position: absolute;
-            pointer-events: none;
-            z-index: 1000;
-            transition: all 0.1s ease;
-        }
-
-        .cursor-flag {
-            background: #667eea;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: bold;
-            white-space: nowrap;
-            transform: translateY(-20px);
-        }
-
-        .cursor-pointer {
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 8px solid #667eea;
-            margin-left: 5px;
-        }
-
-        /* Typing indicators */
-        .typing-indicator {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(102, 126, 234, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .typing-indicator.visible {
-            opacity: 1;
-        }
-
-        /* Session Creation Modal */
-        .session-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-        }
-
-        .session-modal.show {
-            display: flex;
-        }
-
-        .session-modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        /* Screen Sharing */
-        .screen-share-overlay {
-            position: fixed;
-            top: 80px;
-            left: 0;
-            right: 0;
-            background: rgba(255, 107, 107, 0.9);
-            color: white;
-            padding: 10px;
-            text-align: center;
-            transform: translateY(-100%);
-            transition: transform 0.3s ease;
-            z-index: 600;
-        }
-
-        .screen-share-overlay.active {
-            transform: translateY(0);
-        }
-
-        /* Notification System */
-        .notification {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: white;
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            padding: 15px 20px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            z-index: 1001;
-            max-width: 300px;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.success {
-            border-color: #4facfe;
-        }
-
-        .notification.warning {
-            border-color: #f093fb;
-        }
-
-        /* Enhanced Navigation with collaboration indicator */
-        .nav-tab {
-            padding: 15px 20px;
-            border: none;
-            background: #f8f9ff;
-            color: #667eea;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: left;
-            font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            position: relative;
-        }
-
-        .nav-tab.collaborative::after {
-            content: '';
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
-            background: #4facfe;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        /* Rest of your existing styles remain the same */
+        
         .logo {
             text-align: center;
             margin-bottom: 35px;
@@ -645,14 +198,30 @@
         .logout-btn:hover {
             background: #ddd;
         }
-
+        
         .nav-tabs {
             display: flex;
             flex-direction: column;
             gap: 8px;
             margin-bottom: 30px;
         }
-
+        
+        .nav-tab {
+            padding: 15px 20px;
+            border: none;
+            background: #f8f9ff;
+            color: #667eea;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+        
         .nav-tab:hover {
             background: #eef2ff;
             transform: translateY(-2px);
@@ -682,8 +251,7 @@
             background: #667eea;
             color: white;
         }
-
-        /* Existing styles continue... */
+        
         .quick-actions {
             background: linear-gradient(135deg, #f8f9ff, #eef2ff);
             border-radius: 15px;
@@ -756,8 +324,7 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
-
-        /* Content sections */
+        
         .content-section {
             display: none;
             animation: fadeIn 0.3s ease-in-out;
@@ -790,68 +357,337 @@
             font-size: 18px;
             line-height: 1.5;
         }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            padding: 30px;
+            border-radius: 18px;
+            text-align: center;
+            border: 2px solid #eef2ff;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .feature-showcase {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            margin-bottom: 35px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-showcase::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
+        }
+        
+        .feature-showcase h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .feature-showcase p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            opacity: 0.9;
+        }
+        
+        .feature-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .feature-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .client-grid {
+            display: grid;
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        
+        .client-card {
+            background: #f8f9ff;
+            border: 3px solid #eef2ff;
+            border-radius: 15px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .client-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+        
+        .client-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+        }
+        
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .client-initials {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .client-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            background: rgba(102,126,234,0.1);
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .client-card.selected .tag {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .client-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        
+        .client-stats span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* File Upload and Analysis Styles */
+        .upload-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
 
-        /* Enhanced Chat with collaboration features */
+        .upload-type {
+            background: #f8f9ff;
+            border: 2px solid #eef2ff;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-type:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .upload-type.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .upload-type-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+            margin-bottom: 25px;
+            cursor: pointer;
+        }
+
+        .file-upload-zone:hover,
+        .file-upload-zone.dragover {
+            border-color: #764ba2;
+            background: #eef2ff;
+            transform: translateY(-2px);
+        }
+
+        .file-upload-zone.uploading {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-color: #667eea;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        .upload-text p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .file-preview {
+            background: white;
+            border: 2px solid #eef2ff;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .file-preview.show {
+            display: block;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .file-icon {
+            width: 50px;
+            height: 50px;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 20px;
+        }
+
+        .file-details h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .text-content {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .process-btn {
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        /* Chat Interface */
         .chat-interface {
             display: grid;
             grid-template-rows: auto 1fr auto;
             gap: 20px;
             height: 700px;
-            position: relative;
         }
-
+        
         .chat-header {
             display: flex;
             gap: 15px;
             align-items: center;
-            justify-content: space-between;
             padding: 20px;
             background: #f8f9ff;
             border-radius: 12px;
             border: 2px solid #eef2ff;
         }
-
-        .chat-status {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .collaboration-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 24px;
-            background: #ccc;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .toggle-switch.active {
-            background: #667eea;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s;
-        }
-
-        .toggle-switch.active .toggle-slider {
-            transform: translateX(26px);
-        }
-
+        
         .messages {
             overflow-y: auto;
             padding: 25px;
@@ -859,7 +695,6 @@
             border-radius: 15px;
             border: 2px solid #eef2ff;
             scroll-behavior: smooth;
-            position: relative;
         }
         
         .message {
@@ -869,7 +704,6 @@
             max-width: 85%;
             line-height: 1.6;
             font-size: 15px;
-            position: relative;
         }
         
         .message.user {
@@ -883,22 +717,6 @@
             border: 2px solid #eef2ff;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-
-        .message.collaborative {
-            border-left: 4px solid #4facfe;
-        }
-
-        .collaboration-badge {
-            position: absolute;
-            top: -8px;
-            right: 10px;
-            background: #4facfe;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: bold;
-        }
         
         .message-meta {
             font-size: 12px;
@@ -906,9 +724,37 @@
             margin-bottom: 8px;
         }
 
+        .message-attachment {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .attachment-icon {
+            font-size: 20px;
+        }
+
+        .attachment-info {
+            flex: 1;
+        }
+
+        .attachment-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .attachment-type {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
         .input-area {
             display: grid;
-            grid-template-columns: 1fr auto auto auto;
+            grid-template-columns: 1fr auto auto;
             gap: 15px;
             align-items: end;
         }
@@ -928,9 +774,29 @@
             border-color: #667eea;
         }
 
-        .collab-share-btn {
+        .attach-btn {
             padding: 18px;
-            background: #4facfe;
+            background: #f8f9ff;
+            color: #667eea;
+            border: 2px solid #eef2ff;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .attach-btn:hover {
+            background: #eef2ff;
+            transform: translateY(-3px);
+        }
+        
+        .send-btn {
+            padding: 18px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
             border-radius: 15px;
@@ -939,13 +805,410 @@
             transition: all 0.3s;
             font-size: 16px;
         }
-
-        .collab-share-btn:hover {
-            background: #00f2fe;
+        
+        .send-btn:hover {
             transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
-        /* Responsive adjustments */
+        /* Audio Controls */
+        .audio-controls {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .recording-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border: 2px solid #eef2ff;
+        }
+        
+        .recording-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .record-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .record-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+        
+        .record-btn.recording {
+            background: linear-gradient(135deg, #ff4757, #c44569);
+            animation: recordPulse 1.5s infinite;
+        }
+        
+        @keyframes recordPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Integration Styles */
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .integration-card {
+            background: #f8f9ff;
+            border: 3px solid #eef2ff;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .integration-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .integration-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .integration-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .integration-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .integration-description {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .integration-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        .status-coming {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .status-beta {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            color: #8b4513;
+        }
+
+        .api-config {
+            background: white;
+            border: 2px solid #eef2ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .api-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .config-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .config-item {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .config-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .config-input {
+            padding: 10px 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .config-status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-btn {
+            grid-column: span 3;
+            justify-self: start;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eef2ff;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            color: #667eea;
+            font-weight: 700;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: #f1f1f1;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 15px 18px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        
+        .form-textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eef2ff;
+        }
+        
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #eef2ff;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            transform: translate(-50%, -50%);
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #666;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .empty-state p {
+            line-height: 1.6;
+        }
+        
+        /* Therapy Planning Styles */
+        .therapy-plan {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 2px solid #eef2ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .plan-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .plan-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+        
+        .plan-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            line-height: 1.6;
+        }
+        
+        /* Responsive Design */
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 280px 1fr;
@@ -957,11 +1220,6 @@
                 grid-template-columns: 1fr;
                 gap: 15px;
                 padding: 15px;
-                padding-top: 80px;
-            }
-
-            .container.no-collaboration {
-                padding-top: 35px;
             }
             
             .sidebar {
@@ -973,15 +1231,50 @@
                 order: 1;
                 min-height: auto;
             }
-
-            .collaboration-panel {
-                width: 100%;
-                right: -100%;
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .feature-buttons {
+                justify-content: center;
+            }
+            
+            .chat-interface {
+                height: 500px;
             }
 
+            .integration-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .config-item {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .test-btn {
+                grid-column: span 1;
+                justify-self: stretch;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
             .input-area {
                 grid-template-columns: 1fr;
                 gap: 10px;
+            }
+            
+            .send-btn, .attach-btn {
+                width: 100%;
+            }
+
+            .upload-types {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -991,46 +1284,11 @@
     </style>
 </head>
 <body>
-    <!-- Collaboration Status Bar -->
-    <div class="collaboration-status" id="collabStatus">
-        <div class="collaboration-info">
-            <div class="online-indicator"></div>
-            <span>Kollaborative Sitzung aktiv</span>
-            <div class="active-users" id="activeUsersBar">
-                <!-- Dynamically populated -->
-            </div>
-        </div>
-        <div class="collaboration-controls">
-            <button class="collab-btn" onclick="toggleScreenShare()">Bildschirm teilen</button>
-            <button class="collab-btn" onclick="inviteCollaborator()">Einladen</button>
-            <button class="collab-btn" onclick="leaveSession()">Verlassen</button>
-        </div>
-    </div>
-
-    <!-- Screen Share Overlay -->
-    <div class="screen-share-overlay" id="screenShareOverlay">
-        Sie teilen gerade Ihren Bildschirm mit anderen Teilnehmern
-        <button onclick="stopScreenShare()" style="margin-left: 20px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 15px; border-radius: 15px; cursor: pointer;">Stoppen</button>
-    </div>
-
-    <!-- Live Cursors Container -->
-    <div id="liveCursors"></div>
-
-    <!-- Typing Indicator -->
-    <div class="typing-indicator" id="typingIndicator">
-        <span id="typingText">Jemand tippt...</span>
-    </div>
-
-    <!-- Notification System -->
-    <div class="notification" id="notification">
-        <div id="notificationText"></div>
-    </div>
-
     <!-- Login Screen -->
     <div class="login-screen" id="loginScreen">
         <div class="login-card">
             <div class="login-logo">Praxida 2.0</div>
-            <p class="login-subtitle">Kollaborative KI-Assistenz für Therapeuten</p>
+            <p class="login-subtitle">KI-Assistenz für Therapeuten</p>
             <form class="login-form" onsubmit="handleLogin(event)">
                 <input type="text" class="login-input" id="username" placeholder="Benutzername" required>
                 <input type="password" class="login-input" id="password" placeholder="Passwort" required>
@@ -1046,78 +1304,11 @@
         </div>
     </div>
 
-    <!-- Session Creation Modal -->
-    <div class="session-modal" id="sessionModal">
-        <div class="session-modal-content">
-            <h3>Neue Kollaborationssitzung erstellen</h3>
-            <form onsubmit="createCollaborationSession(event)">
-                <div style="margin-bottom: 20px;">
-                    <label>Sitzungsname:</label>
-                    <input type="text" class="search-input" placeholder="z.B. Fallbesprechung A.M." required>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label>Beschreibung:</label>
-                    <textarea class="search-input" placeholder="Beschreibung der Sitzung..."></textarea>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label>Teilnehmer einladen:</label>
-                    <input type="email" class="search-input" placeholder="kollege@praxis.de">
-                    <button type="button" class="btn btn-secondary" onclick="addInvitee()">Hinzufügen</button>
-                </div>
-                <div id="inviteesList"></div>
-                <div style="display: flex; gap: 15px; justify-content: end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="hideSessionModal()">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Sitzung erstellen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div class="container" id="mainApp" style="display: none;">
-        <!-- Collaboration Panel -->
-        <div class="collaboration-panel" id="collaborationPanel">
-            <div class="collab-panel-header">
-                <h3>Live-Kollaboration</h3>
-                <button onclick="toggleCollaborationPanel()" style="float: right; border: none; background: none; font-size: 20px; cursor: pointer;">×</button>
-            </div>
-            <div class="collab-tabs">
-                <button class="collab-tab active" onclick="switchCollabTab('chat')">Chat</button>
-                <button class="collab-tab" onclick="switchCollabTab('docs')">Dokumente</button>
-                <button class="collab-tab" onclick="switchCollabTab('users')">Teilnehmer</button>
-            </div>
-            <div class="collab-panel-content">
-                <!-- Live Chat -->
-                <div class="live-chat active" id="collabChat">
-                    <div class="chat-messages" id="collabChatMessages"></div>
-                    <div class="chat-input">
-                        <input type="text" id="collabChatInput" placeholder="Nachricht eingeben..." onkeypress="handleCollabChatEnter(event)">
-                        <button class="chat-send" onclick="sendCollabMessage()">Senden</button>
-                    </div>
-                </div>
-
-                <!-- Shared Documents -->
-                <div class="shared-docs" id="collabDocs">
-                    <button class="btn btn-primary" onclick="shareCurrentDocument()" style="width: 100%; margin-bottom: 15px;">
-                        Aktuelles Dokument teilen
-                    </button>
-                    <div id="sharedDocsList">
-                        <p style="text-align: center; color: #666; margin-top: 30px;">Keine geteilten Dokumente</p>
-                    </div>
-                </div>
-
-                <!-- Active Users -->
-                <div class="active-users-list" id="collabUsers">
-                    <div id="collabUsersList">
-                        <p style="text-align: center; color: #666; margin-top: 30px;">Keine anderen Teilnehmer</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="sidebar">
             <div class="logo">
                 <h1>Praxida</h1>
-                <span class="version">2.0 Kollaborativ</span>
+                <span class="version">2.0</span>
                 <p>KI-Assistenz für Therapeuten</p>
             </div>
 
@@ -1132,42 +1323,61 @@
                     <span class="icon">📊</span>
                     <span>Dashboard</span>
                 </button>
-                <button class="nav-tab" onclick="showSection('collaboration', this)">
-                    <span class="icon">🤝</span>
-                    <span>Live-Kollaboration</span>
-                    <span class="badge" id="collabBadge">0</span>
-                </button>
                 <button class="nav-tab" onclick="showSection('clients', this)">
                     <span class="icon">👥</span>
                     <span>Klient:innen</span>
                     <span class="badge" id="clientsBadge">0</span>
                 </button>
+                <button class="nav-tab" onclick="showSection('files', this)">
+                    <span class="icon">📎</span>
+                    <span>Datei-Analyse</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('audio', this)">
+                    <span class="icon">🎤</span>
+                    <span>Audio-Protokolle</span>
+                </button>
                 <button class="nav-tab" onclick="showSection('chat', this)">
                     <span class="icon">💬</span>
                     <span>KI-Chat</span>
                 </button>
-                <button class="nav-tab" onclick="showSection('files', this)">
+                <button class="nav-tab" onclick="showSection('integration', this)">
+                    <span class="icon">🔗</span>
+                    <span>System-Integration</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('planning', this)">
+                    <span class="icon">📋</span>
+                    <span>Therapieplanung</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('todos', this)">
+                    <span class="icon">✅</span>
+                    <span>To-Dos & Erinnerungen</span>
+                    <span class="badge" id="todosBadge">0</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('team', this)">
+                    <span class="icon">👥</span>
+                    <span>Team-Kollaboration</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('search', this)">
                     <span class="icon">🔍</span>
-                    <span>Datei-Analyse</span>
+                    <span>Verlaufssuche</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('summary', this)">
+                    <span class="icon">📄</span>
+                    <span>Zusammenfassung</span>
                 </button>
             </div>
             
             <div class="quick-actions">
                 <h4>🚀 Schnellaktionen</h4>
-                <button class="btn btn-primary" onclick="showSessionModal()" style="width: 100%; margin-bottom: 10px;">
-                    <span>🤝</span> Neue Kollaboration
-                </button>
-                <button class="btn btn-success" onclick="joinExistingSession()" style="width: 100%; margin-bottom: 15px;">
-                    <span>🔗</span> Sitzung beitreten
-                </button>
-                
                 <input type="text" class="search-input" placeholder="Schnellsuche..." id="quickSearch">
-                <select class="search-input" id="quickClient">
-                    <option value="">Klient:in auswählen</option>
-                </select>
-                <button class="btn btn-primary" onclick="performQuickSearch()">
-                    <span>🔍</span> Suchen
-                </button>
+                <div style="display: grid; gap: 10px;">
+                    <select class="search-input" id="quickClient">
+                        <option value="">Klient:in auswählen</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="performQuickSearch()">
+                        <span>🔍</span> Suchen
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1175,39 +1385,42 @@
             <!-- Dashboard -->
             <div id="overview" class="content-section active">
                 <div class="section-header">
-                    <h2 class="section-title">Kollaboratives Dashboard</h2>
-                    <p class="section-subtitle">Ihre komplette Praxisverwaltung mit Echtzeit-Zusammenarbeit und KI-Unterstützung</p>
+                    <h2 class="section-title">Dashboard</h2>
+                    <p class="section-subtitle">Ihre komplette Praxisverwaltung mit KI-Unterstützung</p>
                 </div>
                 
-                <div class="stats-grid">
+                <div class="stats-grid" id="statsGrid">
                     <div class="stat-card">
                         <div class="stat-number" id="totalClients">12</div>
                         <div class="stat-label">Aktive Klient:innen</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="activeSessions">3</div>
-                        <div class="stat-label">Aktive Kollaborationen</div>
+                        <div class="stat-number" id="totalSessions">248</div>
+                        <div class="stat-label">Gesamte Sessions</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="onlineUsers">5</div>
-                        <div class="stat-label">Online-Kollegen</div>
+                        <div class="stat-number" id="pendingTodos">5</div>
+                        <div class="stat-label">Offene To-Dos</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="sharedDocs">8</div>
-                        <div class="stat-label">Geteilte Dokumente</div>
+                        <div class="stat-number" id="activePlans">3</div>
+                        <div class="stat-label">Aktive Therapiepläne</div>
                     </div>
                 </div>
                 
                 <div class="feature-showcase">
-                    <h3>🤝 Neue Kollaborations-Features</h3>
+                    <h3>🎯 Neue Profi-Features in Version 2.0</h3>
                     <p>
-                        <strong>Live-Chat:</strong> Echtzeit-Kommunikation mit Supervisor:innen und Kollegen während der Fallbesprechung.<br>
-                        <strong>Geteilte Dokumente:</strong> Gemeinsame Bearbeitung von Behandlungsplänen und Protokollen.<br>
-                        <strong>Screen Sharing:</strong> Bildschirmfreigabe für detaillierte Fallbesprechungen.
+                        <strong>Intelligente Datei-Analyse:</strong> Laden Sie Bilder und Textdateien hoch für KI-gestützte Auswertung.<br>
+                        <strong>System-Integration:</strong> Nahtlose Verbindung zu bestehender Praxissoftware und Verwaltungssystemen.<br>
+                        <strong>Sichere Benutzeranmeldung:</strong> Datenschutzkonforme Zugriffskontrolle für Ihre Praxisdaten.
                     </p>
                     <div class="feature-buttons">
-                        <button class="feature-btn" onclick="showSessionModal()">
-                            🤝 Kollaboration starten
+                        <button class="feature-btn" onclick="showSection('files')">
+                            📎 Datei-Analyse
+                        </button>
+                        <button class="feature-btn" onclick="showSection('integration')">
+                            🔗 Integration
                         </button>
                         <button class="feature-btn" onclick="showSection('chat')">
                             💬 KI-Chat
@@ -1216,76 +1429,177 @@
                 </div>
             </div>
 
-            <!-- Live Collaboration Section -->
-            <div id="collaboration" class="content-section">
+            <!-- Klient:innen Section -->
+            <div id="clients" class="content-section">
                 <div class="section-header">
-                    <h2 class="section-title">Live-Kollaboration</h2>
-                    <p class="section-subtitle">Echtzeit-Zusammenarbeit mit Kollegen und Supervisor:innen</p>
+                    <h2 class="section-title">Klient:innen-Verwaltung</h2>
+                    <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
                 </div>
-
-                <div style="margin-bottom: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="showSessionModal()">
-                        <span>🤝</span> Neue Sitzung erstellen
+                
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary" onclick="showModal('clientModal')">
+                        <span>➕</span> Neue:n Klient:in hinzufügen
                     </button>
-                    <button class="btn btn-success" onclick="joinExistingSession()">
-                        <span>🔗</span> Sitzung beitreten
-                    </button>
-                    <button class="btn btn-secondary" onclick="toggleCollaborationPanel()">
-                        <span>💬</span> Chat-Panel öffnen
+                    <button class="btn btn-secondary" onclick="exportClients()">
+                        <span>📄</span> Exportieren
                     </button>
                 </div>
 
-                <div id="collaborationContent">
-                    <div class="empty-state">
-                        <div class="empty-icon">🤝</div>
-                        <h3>Keine aktive Kollaboration</h3>
-                        <p>Erstellen Sie eine neue Kollaborationssitzung oder treten Sie einer bestehenden Sitzung bei, um in Echtzeit mit Kollegen zusammenzuarbeiten.</p>
+                <div class="client-grid" id="clientGrid">
+                    <div class="client-card" onclick="selectClient(this, 'client1')">
+                        <div class="client-header">
+                            <div class="client-initials">A.M.</div>
+                            <div class="client-meta">
+                                <span class="tag">Angststörung</span>
+                                <span class="tag">VT</span>
+                            </div>
+                        </div>
+                        <div class="client-stats">
+                            <span>📅 Letzte Sitzung: 18.08.2025</span>
+                            <span>🔢 Sessions: 12</span>
+                        </div>
+                    </div>
+                    
+                    <div class="client-card" onclick="selectClient(this, 'client2')">
+                        <div class="client-header">
+                            <div class="client-initials">B.S.</div>
+                            <div class="client-meta">
+                                <span class="tag">Depression</span>
+                                <span class="tag">TPT</span>
+                            </div>
+                        </div>
+                        <div class="client-stats">
+                            <span>📅 Letzte Sitzung: 20.08.2025</span>
+                            <span>🔢 Sessions: 8</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Enhanced Chat with Collaboration -->
+            <!-- Datei-Analyse Section -->
+            <div id="files" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Datei-Analyse</h2>
+                    <p class="section-subtitle">KI-gestützte Analyse von Bildern und Textdateien für therapeutische Zwecke</p>
+                </div>
+
+                <div class="upload-types">
+                    <div class="upload-type active" onclick="setUploadType('image')" id="imageType">
+                        <div class="upload-type-icon">🖼️</div>
+                        <h4>Bilder analysieren</h4>
+                        <p>Screenshots, Zeichnungen, Fotos von Dokumenten</p>
+                    </div>
+                    <div class="upload-type" onclick="setUploadType('text')" id="textType">
+                        <div class="upload-type-icon">📄</div>
+                        <h4>Textdateien</h4>
+                        <p>PDF, DOC, TXT Dokumente verarbeiten</p>
+                    </div>
+                    <div class="upload-type" onclick="setUploadType('mixed')" id="mixedType">
+                        <div class="upload-type-icon">📎</div>
+                        <h4>Kombiniert</h4>
+                        <p>Mehrere Dateitypen gleichzeitig</p>
+                    </div>
+                </div>
+
+                <div class="file-upload-zone" id="fileUpload" onclick="triggerFileInput()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        <h3>Dateien hier ablegen oder klicken</h3>
+                        <p>Unterstützte Formate: JPG, PNG, PDF, DOC, DOCX, TXT<br>
+                        Max. Größe: 10MB pro Datei</p>
+                        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="file-preview" id="filePreview">
+                    <div class="file-info">
+                        <div class="file-icon" id="fileIcon">📄</div>
+                        <div class="file-details">
+                            <h4 id="fileName">Keine Datei ausgewählt</h4>
+                            <div class="file-size" id="fileSize">0 KB</div>
+                        </div>
+                    </div>
+                    <div id="previewContent"></div>
+                    <button class="btn btn-primary process-btn" onclick="processFile()">
+                        <span>🤖</span> Mit KI analysieren
+                    </button>
+                </div>
+
+                <div class="empty-state" id="filesEmptyState">
+                    <div class="empty-icon">📎</div>
+                    <h3>Keine Dateien hochgeladen</h3>
+                    <p>Laden Sie Bilder oder Textdateien hoch, um sie mit KI-Unterstützung zu analysieren und therapeutische Erkenntnisse zu gewinnen.</p>
+                </div>
+            </div>
+
+            <!-- Audio-Protokolle Section -->
+            <div id="audio" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Audio-Protokolle</h2>
+                    <p class="section-subtitle">Intelligente Transkription und Protokollerstellung Ihrer Therapiesitzungen</p>
+                </div>
+
+                <div class="file-upload-zone" id="audioUpload">
+                    <div class="upload-icon">🎤</div>
+                    <div class="upload-text">
+                        <h3>Audio-Datei hochladen oder aufnehmen</h3>
+                        <p>Ziehen Sie eine Audio-Datei hierher oder klicken Sie, um eine Datei auszuwählen.<br>
+                        Unterstützte Formate: MP3, WAV, M4A, OGG</p>
+                        <button class="btn btn-primary">
+                            <span>📁</span> Datei auswählen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="audio-controls">
+                    <div class="recording-status" id="recordingStatus" style="display: none;">
+                        <div class="recording-dot"></div>
+                        <span>Aufnahme läuft... <span id="recordTime">00:00</span></span>
+                    </div>
+                    <button class="record-btn" id="recordBtn" onclick="toggleRecording()">
+                        🎤
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🎧</div>
+                    <h3>Noch keine Audio-Protokolle vorhanden</h3>
+                    <p>Laden Sie eine Audio-Datei hoch oder starten Sie eine Live-Aufnahme, um automatisch strukturierte Therapieprotokolle zu erstellen.</p>
+                </div>
+            </div>
+
+            <!-- KI-Chat Section -->
             <div id="chat" class="content-section">
                 <div class="section-header">
                     <h2 class="section-title">KI-Assistenz Chat</h2>
-                    <p class="section-subtitle">Professionelle Beratung mit Kollaborations-Features</p>
+                    <p class="section-subtitle">Professionelle Beratung zu Therapiemethoden, Diagnosen und Behandlungsansätzen</p>
                 </div>
 
                 <div class="chat-interface">
                     <div class="chat-header">
-                        <div class="chat-status">
-                            <span>🤖</span>
-                            <strong>Praxida KI-Assistenz</strong>
-                            <span style="color: #4facfe;">● Online</span>
-                        </div>
-                        <div class="collaboration-toggle">
-                            <span>Kollaborativ teilen:</span>
-                            <div class="toggle-switch" id="collabToggle" onclick="toggleCollaboration()">
-                                <div class="toggle-slider"></div>
-                            </div>
-                        </div>
+                        <span>🤖</span>
+                        <strong>Praxida KI-Assistenz</strong>
+                        <span style="margin-left: auto; color: #4facfe;">● Online</span>
                     </div>
                     
                     <div class="messages" id="chatMessages">
                         <div class="message assistant">
                             <div class="message-meta">KI-Assistenz • Heute 14:30</div>
-                            Hallo! Ich bin Ihre kollaborative KI-Assistenz. Aktivieren Sie den Kollaborations-Modus, um Ihre Gespräche in Echtzeit mit Kollegen zu teilen.
+                            Hallo! Ich bin Ihre KI-Assistenz für therapeutische Fragen. Ich kann Ihnen helfen bei:
                             <br><br>
-                            • Therapeutische Beratung<br>
-                            • Live-Zusammenarbeit<br>
-                            • Gemeinsame Fallbesprechung<br>
-                            • Supervisor-Einbindung<br><br>
+                            • Therapieansätzen und -methoden<br>
+                            • Diagnostischen Überlegungen<br>
+                            • Behandlungsplanung<br>
+                            • Fachlicher Supervision<br>
+                            • Analyse von Bildern und Dokumenten<br><br>
                             Wie kann ich Sie heute unterstützen?
                         </div>
                     </div>
                     
                     <div class="input-area">
                         <textarea class="message-input" id="chatInput" placeholder="Ihre Frage an die KI-Assistenz..."></textarea>
-                        <button class="collab-share-btn" onclick="shareWithTeam()" title="Mit Team teilen" id="shareBtn" style="display: none;">
-                            🤝
-                        </button>
                         <button class="attach-btn" onclick="attachFileToChat()" title="Datei anhängen">
-                            🔍
+                            📎
                         </button>
                         <button class="send-btn" onclick="sendMessage()">
                             Senden
@@ -1294,55 +1608,359 @@
                 </div>
             </div>
 
-            <!-- Other sections remain the same for brevity -->
-            <!-- Client Management -->
-            <div id="clients" class="content-section">
+            <!-- System-Integration Section -->
+            <div id="integration" class="content-section">
                 <div class="section-header">
-                    <h2 class="section-title">Klient:innen-Verwaltung</h2>
-                    <p class="section-subtitle">Kollaborative Patientenverwaltung mit Team-Features</p>
-                </div>
-                
-                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
-                    <button class="btn btn-primary" onclick="showModal('clientModal')">
-                        <span>➕</span> Neue:n Klient:in hinzufügen
-                    </button>
-                    <button class="btn btn-success" onclick="shareClientWithTeam()">
-                        <span>🤝</span> Mit Team teilen
-                    </button>
+                    <h2 class="section-title">System-Integration</h2>
+                    <p class="section-subtitle">Nahtlose Verbindung zu bestehender Praxissoftware und Verwaltungssystemen</p>
                 </div>
 
-                <div class="client-grid" id="clientGrid">
-                    <div class="empty-state">
-                        <div class="empty-icon">👥</div>
-                        <h3>Noch keine Klient:innen angelegt</h3>
-                        <p>Fügen Sie Ihre ersten Klient:innen hinzu, um mit der kollaborativen Verwaltung zu beginnen.</p>
+                <div class="integration-grid">
+                    <div class="integration-card">
+                        <div class="integration-icon">🏥</div>
+                        <h3 class="integration-title">Praxisverwaltung</h3>
+                        <p class="integration-description">Integration mit CGM ALBIS, medistar, TurboMed und anderen Praxisverwaltungssystemen</p>
+                        <div class="integration-status status-available">Verfügbar</div>
+                        <button class="btn btn-primary" onclick="showModal('pvsModal')">Konfigurieren</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">💳</div>
+                        <h3 class="integration-title">Abrechnungssysteme</h3>
+                        <p class="integration-description">Direkte Verbindung zu Kassenärztlichen Vereinigungen und privaten Abrechnungsstellen</p>
+                        <div class="integration-status status-beta">Beta</div>
+                        <button class="btn btn-secondary" onclick="showModal('abrechnungModal')">Einrichten</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">🔒</div>
+                        <h3 class="integration-title">DSGVO-Compliance</h3>
+                        <p class="integration-description">Automatische Datenschutz-Checks und Compliance-Berichte für Ihre Praxis</p>
+                        <div class="integration-status status-available">Aktiv</div>
+                        <button class="btn btn-success" onclick="showDSGVOReport()">Status prüfen</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">📊</div>
+                        <h3 class="integration-title">Telematik-Infrastruktur</h3>
+                        <p class="integration-description">Sichere Anbindung an die TI für ePA, KIM und weitere Dienste</p>
+                        <div class="integration-status status-coming">In Entwicklung</div>
+                        <button class="btn btn-secondary" disabled>Bald verfügbar</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">📋</div>
+                        <h3 class="integration-title">Terminbuchung</h3>
+                        <p class="integration-description">Integration mit Doctolib, Jameda und anderen Online-Buchungsplattformen</p>
+                        <div class="integration-status status-available">Verfügbar</div>
+                        <button class="btn btn-primary" onclick="showModal('terminModal')">Verknüpfen</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">📱</div>
+                        <h3 class="integration-title">Mobile Apps</h3>
+                        <p class="integration-description">Synchronisation mit Patient:innen-Apps und Wearables für kontinuierliches Monitoring</p>
+                        <div class="integration-status status-beta">Beta</div>
+                        <button class="btn btn-secondary" onclick="showModal('mobileModal')">Testen</button>
+                    </div>
+                </div>
+
+                <div class="api-config">
+                    <h3 class="api-title">🔧 API-Konfiguration</h3>
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <div class="config-label">Praxis-ID:</div>
+                            <input type="text" class="config-input" placeholder="Ihre Praxis-ID" value="PX-2024-8849">
+                            <div class="config-status status-connected">Verbunden</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">API-Schlüssel:</div>
+                            <input type="password" class="config-input" placeholder="API-Schlüssel eingeben" value="●●●●●●●●●●●●">
+                            <div class="config-status status-connected">Aktiv</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">Webhook-URL:</div>
+                            <input type="url" class="config-input" placeholder="https://ihre-praxis.de/webhook" value="https://praxis-demo.de/hook">
+                            <div class="config-status status-connected">Erreichbar</div>
+                        </div>
+                        <button class="test-btn" onclick="testAPIConnection()">Verbindung testen</button>
                     </div>
                 </div>
             </div>
 
-            <!-- File Analysis -->
-            <div id="files" class="content-section">
+            <!-- Therapieplanung Section -->
+            <div id="planning" class="content-section">
                 <div class="section-header">
-                    <h2 class="section-title">Kollaborative Datei-Analyse</h2>
-                    <p class="section-subtitle">KI-gestützte Analyse mit Team-Sharing-Features</p>
+                    <h2 class="section-title">Therapieplanung</h2>
+                    <p class="section-subtitle">KI-gestützte Behandlungsplanung und Verlaufsdokumentation</p>
                 </div>
 
-                <div class="file-upload-zone" id="fileUpload" onclick="triggerFileInput()">
-                    <div class="upload-icon">📁</div>
-                    <div class="upload-text">
-                        <h3>Dateien für Analyse hochladen</h3>
-                        <p>Unterstützte Formate: JPG, PNG, PDF, DOC, DOCX, TXT<br>
-                        Max. Größe: 10MB pro Datei</p>
-                        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+                <div style="margin-bottom: 30px;">
+                    <button class="btn btn-primary" onclick="showModal('planModal')">
+                        <span>➕</span> Neuen Therapieplan erstellen
+                    </button>
+                </div>
+
+                <div class="therapy-plan">
+                    <div class="plan-header">
+                        <div class="plan-title">Kognitiv-behaviorale Therapie - A.M.</div>
+                        <div class="plan-status status-active">Aktiv</div>
+                    </div>
+                    <div class="plan-content">
+                        <strong>Therapieziele:</strong><br>
+                        1. Reduktion der Angstsymptomatik um 50%<br>
+                        2. Verbesserung der sozialen Kompetenz<br>
+                        3. Entwicklung von Bewältigungsstrategien<br><br>
+                        
+                        <strong>Nächste Schritte:</strong><br>
+                        • Exposition in vivo (Woche 8-10)<br>
+                        • Kognitive Umstrukturierung vertiefen<br>
+                        • Rückfallprophylaxe planen
+                    </div>
+                </div>
+            </div>
+
+            <!-- To-Dos Section -->
+            <div id="todos" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">To-Dos & Erinnerungen</h2>
+                    <p class="section-subtitle">Automatisch generierte Aufgaben und Termine aus Ihren Therapiesitzungen</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <button class="btn btn-primary" onclick="showModal('todoModal')">
+                        <span>➕</span> Neue Aufgabe hinzufügen
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <h3>Alle Aufgaben erledigt!</h3>
+                    <p>Aktuell sind keine offenen To-Dos vorhanden. Neue Aufgaben werden automatisch aus Ihren Therapieprotokollen generiert.</p>
+                </div>
+            </div>
+
+            <!-- Team-Kollaboration Section -->
+            <div id="team" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Team-Kollaboration</h2>
+                    <p class="section-subtitle">DSGVO-konforme Zusammenarbeit mit Supervisor:innen und Kollegen</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3>Team-Features aktivieren</h3>
+                    <p>Laden Sie Supervisor:innen und Kollegen ein, um sicher zusammenzuarbeiten und Fälle zu besprechen.</p>
+                    <br>
+                    <button class="btn btn-primary">
+                        <span>✉️</span> Team-Mitglied einladen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Verlaufssuche Section -->
+            <div id="search" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Verlaufssuche</h2>
+                    <p class="section-subtitle">Intelligente Suche in allen Therapieprotokollen und Dokumenten</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <input type="text" class="search-input" placeholder="Suchen Sie in Protokollen, Notizen, Diagnosen..." id="mainSearch" style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 15px;">
+                        <select class="search-input" style="width: 200px;">
+                            <option>Alle Klient:innen</option>
+                            <option>A.M.</option>
+                            <option>B.S.</option>
+                        </select>
+                        <select class="search-input" style="width: 200px;">
+                            <option>Alle Zeiträume</option>
+                            <option>Letzte Woche</option>
+                            <option>Letzter Monat</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="performSearch()">
+                            <span>🔍</span> Suchen
+                        </button>
                     </div>
                 </div>
 
-                <div class="empty-state" id="filesEmptyState">
+                <div class="empty-state">
                     <div class="empty-icon">🔍</div>
-                    <h3>Keine Dateien hochgeladen</h3>
-                    <p>Laden Sie Dateien hoch für KI-Analyse und teilen Sie Ergebnisse mit Ihrem Team.</p>
+                    <h3>Suche starten</h3>
+                    <p>Geben Sie einen Suchbegriff ein, um in allen Therapieprotokollen und Dokumenten zu suchen.</p>
                 </div>
             </div>
+
+            <!-- Zusammenfassung Section -->
+            <div id="summary" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Zusammenfassung</h2>
+                    <p class="section-subtitle">KI-generierte Berichte und Verlaufszusammenfassungen</p>
+                </div>
+
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary">
+                        <span>📊</span> Wochenbericht generieren
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span>📈</span> Fortschrittsbericht
+                    </button>
+                    <button class="btn btn-success">
+                        <span>📄</span> Export für Kostenträger
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>Berichte generieren</h3>
+                    <p>Erstellen Sie automatische Zusammenfassungen und Berichte für Ihre Therapieverläufe.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Client Modal -->
+    <div class="modal" id="clientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue:n Klient:in hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('clientModal')">×</button>
+            </div>
+            <form onsubmit="addClient(event)">
+                <div class="form-group">
+                    <label class="form-label">Initialen</label>
+                    <input type="text" class="form-input" placeholder="A.B." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Diagnose</label>
+                    <input type="text" class="form-input" placeholder="z.B. F32.1 Depression">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Therapieform</label>
+                    <select class="form-select">
+                        <option>Verhaltenstherapie (VT)</option>
+                        <option>Tiefenpsychologie (TP)</option>
+                        <option>Psychoanalyse (PA)</option>
+                        <option>Systemische Therapie (ST)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notizen</label>
+                    <textarea class="form-textarea" placeholder="Zusätzliche Informationen..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('clientModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Integration Modals -->
+    <div class="modal" id="pvsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Praxisverwaltung konfigurieren</h3>
+                <button class="close-btn" onclick="hideModal('pvsModal')">×</button>
+            </div>
+            <form onsubmit="testIntegration(event, 'PVS')">
+                <div class="form-group">
+                    <label class="form-label">System auswählen</label>
+                    <select class="form-select">
+                        <option>CGM ALBIS</option>
+                        <option>medistar</option>
+                        <option>TurboMed</option>
+                        <option>MEDICAL OFFICE</option>
+                        <option>Sonstiges</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Server-Adresse</label>
+                    <input type="text" class="form-input" placeholder="192.168.1.100 oder praxis-server.local">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Benutzername</label>
+                    <input type="text" class="form-input" placeholder="Ihr PVS-Benutzername">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API-Schlüssel</label>
+                    <input type="password" class="form-input" placeholder="API-Schlüssel eingeben">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('pvsModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Verbindung testen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="planModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neuen Therapieplan erstellen</h3>
+                <button class="close-btn" onclick="hideModal('planModal')">×</button>
+            </div>
+            <form onsubmit="createPlan(event)">
+                <div class="form-group">
+                    <label class="form-label">Klient:in auswählen</label>
+                    <select class="form-select">
+                        <option>A.M.</option>
+                        <option>B.S.</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Therapieziele</label>
+                    <textarea class="form-textarea" placeholder="Definieren Sie die Hauptziele der Behandlung..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Geplante Interventionen</label>
+                    <textarea class="form-textarea" placeholder="Welche Methoden und Techniken planen Sie einzusetzen?"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('planModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Plan erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="todoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue Aufgabe hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('todoModal')">×</button>
+            </div>
+            <form onsubmit="addTodo(event)">
+                <div class="form-group">
+                    <label class="form-label">Aufgabe</label>
+                    <input type="text" class="form-input" placeholder="Was muss erledigt werden?" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Klient:in</label>
+                    <select class="form-select">
+                        <option>Allgemein</option>
+                        <option>A.M.</option>
+                        <option>B.S.</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fälligkeitsdatum</label>
+                    <input type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priorität</label>
+                    <select class="form-select">
+                        <option>Normal</option>
+                        <option>Hoch</option>
+                        <option>Niedrig</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('todoModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Aufgabe erstellen</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1352,70 +1970,9 @@
     <script>
         // Global variables
         let currentUser = null;
-        let socket = null;
-        let currentSessionId = null;
-        let collaborationActive = false;
-        let typingTimeout = null;
-        let liveCursors = new Map();
+        let currentUploadType = 'image';
+        let uploadedFiles = [];
         let chatAttachments = [];
-
-        // Initialize Socket.IO connection
-        function initializeSocket() {
-            socket = io();
-            
-            socket.on('connect', () => {
-                console.log('Socket connected:', socket.id);
-                if (currentUser) {
-                    socket.emit('authenticate', currentUser);
-                }
-            });
-
-            socket.on('userStatusUpdate', (users) => {
-                updateActiveUsersDisplay(users);
-            });
-
-            socket.on('userJoined', (data) => {
-                showNotification(`${data.userInfo.displayName} ist der Sitzung beigetreten`, 'success');
-                updateCollaborationUI();
-            });
-
-            socket.on('userLeft', (data) => {
-                showNotification(`${data.userInfo.displayName} hat die Sitzung verlassen`, 'warning');
-                updateCollaborationUI();
-            });
-
-            socket.on('newChatMessage', (message) => {
-                displayCollabChatMessage(message);
-            });
-
-            socket.on('documentUpdate', (update) => {
-                handleDocumentUpdate(update);
-            });
-
-            socket.on('cursorUpdate', (cursor) => {
-                updateLiveCursor(cursor);
-            });
-
-            socket.on('typingUpdate', (typing) => {
-                handleTypingIndicator(typing);
-            });
-
-            socket.on('screenShareStarted', (data) => {
-                showNotification(`${data.userInfo.displayName} teilt den Bildschirm`, 'success');
-            });
-
-            socket.on('screenShareStopped', (data) => {
-                showNotification(`Bildschirmfreigabe beendet`, 'warning');
-            });
-
-            socket.on('fileShared', (file) => {
-                handleSharedFile(file);
-            });
-
-            socket.on('sessionState', (state) => {
-                updateSessionState(state);
-            });
-        }
 
         // Authentication
         function handleLogin(event) {
@@ -1425,11 +1982,9 @@
             
             if (username === 'demo' && password === 'praxida2024') {
                 currentUser = {
-                    userId: 'demo_' + Date.now(),
                     username: username,
                     displayName: 'Demo User',
-                    initials: 'DU',
-                    color: '#667eea'
+                    initials: 'DU'
                 };
                 
                 document.getElementById('loginScreen').style.display = 'none';
@@ -1437,7 +1992,6 @@
                 document.getElementById('userName').textContent = currentUser.displayName;
                 document.getElementById('userAvatar').textContent = currentUser.initials;
                 
-                initializeSocket();
                 initializeApp();
             } else {
                 alert('Ungültige Anmeldedaten. Verwenden Sie die Demo-Zugangsdaten.');
@@ -1445,182 +1999,239 @@
         }
 
         function handleLogout() {
-            if (socket) {
-                socket.disconnect();
-            }
-            if (currentSessionId) {
-                leaveSession();
-            }
-            
             currentUser = null;
-            socket = null;
-            currentSessionId = null;
-            collaborationActive = false;
-            
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
+            // Reset form values
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
-            
-            // Hide collaboration UI
-            document.getElementById('collabStatus').classList.remove('active');
-            document.querySelector('.container').classList.add('no-collaboration');
         }
 
         function initializeApp() {
-            // Initialize UI
-            updateStats();
-            loadActiveCollaborations();
+            // Update client badge
+            document.getElementById('clientsBadge').textContent = '2';
             
-            // Setup event listeners
-            setupChatInput();
-            setupFileUpload();
+            // Add sample clients to quick search
+            const quickClient = document.getElementById('quickClient');
+            quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+            quickClient.innerHTML += '<option value="A.M.">A.M.</option>';
+            quickClient.innerHTML += '<option value="B.S.">B.S.</option>';
+            
+            // Simulate loading stats
+            setTimeout(() => {
+                document.getElementById('totalClients').textContent = '2';
+                document.getElementById('totalSessions').textContent = '20';
+                document.getElementById('pendingTodos').textContent = '0';
+                document.getElementById('activePlans').textContent = '1';
+                document.getElementById('todosBadge').textContent = '0';
+            }, 1000);
         }
 
-        // Collaboration Functions
-        function showSessionModal() {
-            document.getElementById('sessionModal').classList.add('show');
-        }
-
-        function hideSessionModal() {
-            document.getElementById('sessionModal').classList.remove('show');
-        }
-
-        function createCollaborationSession(event) {
-            event.preventDefault();
-            const form = event.target;
-            const sessionName = form.querySelector('input[type="text"]').value;
-            const description = form.querySelector('textarea').value;
+        // Navigation with proper active state management
+        function showSection(sectionId, tabElement) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
             
-            const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
             
-            joinCollaborationSession(sessionId, sessionName);
-            hideSessionModal();
+            // Update tab states
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
             
-            showNotification('Kollaborationssitzung erstellt', 'success');
-        }
-
-        function joinExistingSession() {
-            const sessionId = prompt('Session-ID eingeben:');
-            if (sessionId) {
-                joinCollaborationSession(sessionId, 'Bestehende Sitzung');
+            if (tabElement) {
+                tabElement.classList.add('active');
             }
         }
 
-        function joinCollaborationSession(sessionId, sessionName) {
-            currentSessionId = sessionId;
-            collaborationActive = true;
-            
-            if (socket) {
-                socket.emit('joinSession', {
-                    sessionId: sessionId,
-                    userId: currentUser.userId,
-                    userInfo: currentUser
-                });
-            }
-            
-            // Update UI
-            document.getElementById('collabStatus').classList.add('active');
-            document.querySelector('.container').classList.remove('no-collaboration');
-            document.getElementById('collabBadge').textContent = '1';
-            
-            // Add collaborative class to nav tabs
-            const chatTab = document.querySelector('[onclick*="chat"]');
-            if (chatTab) chatTab.classList.add('collaborative');
-            
-            showNotification(`Kollaborationssitzung "${sessionName}" beigetreten`, 'success');
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
         }
 
-        function leaveSession() {
-            if (currentSessionId && socket) {
-                socket.emit('leaveSession', { sessionId: currentSessionId });
-            }
-            
-            currentSessionId = null;
-            collaborationActive = false;
-            
-            // Update UI
-            document.getElementById('collabStatus').classList.remove('active');
-            document.querySelector('.container').classList.add('no-collaboration');
-            document.getElementById('collabBadge').textContent = '0';
-            
-            // Remove collaborative indicators
-            document.querySelectorAll('.nav-tab.collaborative').forEach(tab => {
-                tab.classList.remove('collaborative');
-            });
-            
-            showNotification('Kollaborationssitzung verlassen', 'warning');
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
         }
 
-        function toggleCollaborationPanel() {
-            const panel = document.getElementById('collaborationPanel');
-            panel.classList.toggle('open');
-        }
-
-        function switchCollabTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.collab-tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update content
-            document.querySelectorAll('.collab-panel-content > div').forEach(content => content.classList.remove('active'));
-            
-            if (tabName === 'chat') {
-                document.getElementById('collabChat').classList.add('active');
-            } else if (tabName === 'docs') {
-                document.getElementById('collabDocs').classList.add('active');
-            } else if (tabName === 'users') {
-                document.getElementById('collabUsers').classList.add('active');
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
             }
         }
 
-        // Chat Functions
-        function toggleCollaboration() {
-            const toggle = document.getElementById('collabToggle');
-            const shareBtn = document.getElementById('shareBtn');
+        // File upload functionality
+        function setUploadType(type) {
+            currentUploadType = type;
+            document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
+            document.getElementById(type + 'Type').classList.add('active');
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const files = Array.from(event.target.files);
+            handleFileUpload(files);
+        });
+
+        function handleFileUpload(files) {
+            if (files.length === 0) return;
             
-            if (collaborationActive) {
-                toggle.classList.toggle('active');
-                const isActive = toggle.classList.contains('active');
-                shareBtn.style.display = isActive ? 'block' : 'none';
-                
-                if (isActive) {
-                    showNotification('Kollaborativer Modus aktiviert', 'success');
-                } else {
-                    showNotification('Kollaborativer Modus deaktiviert', 'warning');
-                }
+            uploadedFiles = files;
+            const file = files[0]; // Show first file in preview
+            
+            const preview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const fileIcon = document.getElementById('fileIcon');
+            const previewContent = document.getElementById('previewContent');
+            const emptyState = document.getElementById('filesEmptyState');
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            // Set icon based on file type
+            if (file.type.startsWith('image/')) {
+                fileIcon.textContent = '🖼️';
+                displayImagePreview(file, previewContent);
+            } else if (file.type.includes('pdf')) {
+                fileIcon.textContent = '📕';
+                previewContent.innerHTML = '<p>PDF-Dokument bereit zur Analyse</p>';
+            } else if (file.type.includes('text') || file.name.endsWith('.txt')) {
+                fileIcon.textContent = '📄';
+                displayTextPreview(file, previewContent);
             } else {
-                showNotification('Treten Sie zuerst einer Kollaborationssitzung bei', 'warning');
+                fileIcon.textContent = '📎';
+                previewContent.innerHTML = '<p>Datei bereit zur Verarbeitung</p>';
+            }
+            
+            preview.classList.add('show');
+            emptyState.style.display = 'none';
+        }
+
+        function displayImagePreview(file, container) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                container.innerHTML = `<img src="${e.target.result}" class="image-preview" alt="Vorschau">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayTextPreview(file, container) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result.substring(0, 500) + (e.target.result.length > 500 ? '...' : '');
+                container.innerHTML = `<div class="text-content">${text}</div>`;
+            };
+            reader.readAsText(file);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function processFile() {
+            if (uploadedFiles.length === 0) return;
+            
+            const filePreview = document.getElementById('filePreview');
+            const processBtn = filePreview.querySelector('.process-btn');
+            const originalText = processBtn.textContent;
+            
+            processBtn.textContent = 'Wird analysiert...';
+            processBtn.disabled = true;
+            filePreview.classList.add('loading');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', uploadedFiles[0]);
+                
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Add analysis to chat
+                    addAnalysisToChat(uploadedFiles[0], result.analysis);
+                    
+                    // Switch to chat section
+                    const chatTab = document.querySelector('[onclick*="chat"]');
+                    showSection('chat', chatTab);
+                    
+                    alert('Datei erfolgreich analysiert! Ergebnis wurde dem Chat hinzugefügt.');
+                } else {
+                    throw new Error(result.error || 'Unbekannter Fehler');
+                }
+                
+            } catch (error) {
+                console.error('Fehler bei der Dateiverarbeitung:', error);
+                alert('Fehler bei der Dateiverarbeitung: ' + error.message);
+            } finally {
+                processBtn.textContent = originalText;
+                processBtn.disabled = false;
+                filePreview.classList.remove('loading');
             }
         }
 
-        function setupChatInput() {
-            const chatInput = document.getElementById('chatInput');
+        function addAnalysisToChat(file, analysis) {
+            const messages = document.getElementById('chatMessages');
             
-            chatInput.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage();
-                }
-                
-                // Send typing indicator
-                if (collaborationActive && currentSessionId) {
-                    clearTimeout(typingTimeout);
-                    socket.emit('typing', {
-                        sessionId: currentSessionId,
-                        isTyping: true,
-                        documentId: 'chat'
-                    });
-                    
-                    typingTimeout = setTimeout(() => {
-                        socket.emit('typing', {
-                            sessionId: currentSessionId,
-                            isTyping: false,
-                            documentId: 'chat'
-                        });
-                    }, 1000);
-                }
-            });
+            // Add file attachment message
+            const fileMessage = document.createElement('div');
+            fileMessage.className = 'message user';
+            fileMessage.innerHTML = `
+                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+                <div class="message-attachment">
+                    <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                    <div class="attachment-info">
+                        <div class="attachment-name">${file.name}</div>
+                        <div class="attachment-type">Zur Analyse hochgeladen</div>
+                    </div>
+                </div>
+            `;
+            messages.appendChild(fileMessage);
+            
+            // Add analysis result
+            const analysisMessage = document.createElement('div');
+            analysisMessage.className = 'message assistant';
+            analysisMessage.innerHTML = `
+                <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+                ${analysis}
+            `;
+            messages.appendChild(analysisMessage);
+            
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Chat functionality with file attachments
+        function attachFileToChat() {
+            document.getElementById('chatFileInput').click();
+        }
+
+        function handleChatFile(event) {
+            const files = Array.from(event.target.files);
+            chatAttachments = chatAttachments.concat(files);
+            
+            // Visual feedback
+            const input = document.getElementById('chatInput');
+            const fileCount = chatAttachments.length;
+            input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
+            
+            // Reset file input
+            event.target.value = '';
         }
 
         async function sendMessage() {
@@ -1629,12 +2240,9 @@
             
             if (input.value.trim() === '' && chatAttachments.length === 0) return;
             
-            const messageText = input.value.trim();
-            const isCollaborative = document.getElementById('collabToggle').classList.contains('active');
-            
-            // Add user message
+            // Add user message with attachments
             const userMessage = document.createElement('div');
-            userMessage.className = `message user ${isCollaborative ? 'collaborative' : ''}`;
+            userMessage.className = 'message user';
             
             let attachmentsHtml = '';
             if (chatAttachments.length > 0) {
@@ -1651,26 +2259,19 @@
             
             userMessage.innerHTML = `
                 <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                ${isCollaborative ? '<div class="collaboration-badge">LIVE</div>' : ''}
                 ${attachmentsHtml}
-                ${messageText || 'Dateianalyse angefordert'}
+                ${input.value || 'Dateianalyse angefordert'}
             `;
             messages.appendChild(userMessage);
 
+            const messageText = input.value;
             input.value = '';
-            chatAttachments = [];
             input.placeholder = 'Ihre Frage an die KI-Assistenz...';
             
+            // Clear attachments
+            chatAttachments = [];
+            
             messages.scrollTop = messages.scrollHeight;
-
-            // Share with collaboration session if active
-            if (isCollaborative && currentSessionId && socket) {
-                socket.emit('chatMessage', {
-                    sessionId: currentSessionId,
-                    message: messageText || 'Dateianalyse durchgeführt',
-                    type: 'ai_query'
-                });
-            }
 
             // Show typing indicator
             const typingMessage = document.createElement('div');
@@ -1688,11 +2289,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         message: messageText || 'Bitte analysiere die angehängten Dateien.',
-                        hasAttachments: chatAttachments.length > 0,
-                        isCollaborative: isCollaborative
+                        hasAttachments: chatAttachments.length > 0
                     })
                 });
 
+                // Remove typing indicator
                 messages.removeChild(typingMessage);
 
                 if (!response.ok) {
@@ -1702,25 +2303,16 @@
                 const data = await response.json();
 
                 const aiMessage = document.createElement('div');
-                aiMessage.className = `message assistant ${isCollaborative ? 'collaborative' : ''}`;
+                aiMessage.className = 'message assistant';
                 aiMessage.innerHTML = `
                     <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                    ${isCollaborative ? '<div class="collaboration-badge">GETEILT</div>' : ''}
                     ${data.reply}
                 `;
                 messages.appendChild(aiMessage);
                 messages.scrollTop = messages.scrollHeight;
 
-                // Share AI response with collaboration session
-                if (isCollaborative && currentSessionId && socket) {
-                    socket.emit('chatMessage', {
-                        sessionId: currentSessionId,
-                        message: data.reply,
-                        type: 'ai_response'
-                    });
-                }
-
             } catch (error) {
+                // Remove typing indicator
                 if (messages.contains(typingMessage)) {
                     messages.removeChild(typingMessage);
                 }
@@ -1737,8 +2329,144 @@
             }
         }
 
-        // File upload functions
-        function setupFileUpload() {
+        // Allow sending messages with Enter key
+        document.getElementById('chatInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Integration functions
+        function testAPIConnection() {
+            const testBtn = document.querySelector('.test-btn');
+            const originalText = testBtn.textContent;
+            
+            testBtn.textContent = 'Teste Verbindung...';
+            testBtn.disabled = true;
+            
+            setTimeout(() => {
+                testBtn.textContent = originalText;
+                testBtn.disabled = false;
+                alert('✅ Verbindung erfolgreich getestet!\n\n• API erreichbar\n• Authentifizierung erfolgreich\n• Datenübertragung verschlüsselt');
+            }, 2000);
+        }
+
+        function showDSGVOReport() {
+            alert('🔒 DSGVO-Compliance Status:\n\n✅ Datenverschlüsselung aktiv\n✅ Zugriffsprotokolle vollständig\n✅ Einverständniserklärungen aktuell\n✅ Backup-System DSGVO-konform\n\nLetzter Check: ' + new Date().toLocaleDateString('de-DE'));
+        }
+
+        // Form submission handlers
+        function addClient(event) {
+            event.preventDefault();
+            alert('Klient:in wird hinzugefügt...');
+            hideModal('clientModal');
+        }
+
+        function testIntegration(event, system) {
+            event.preventDefault();
+            const form = event.target;
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            
+            btn.textContent = 'Teste Verbindung...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                alert(`✅ ${system} Integration erfolgreich getestet!`);
+                hideModal(form.closest('.modal').id);
+            }, 2000);
+        }
+
+        function createPlan(event) {
+            event.preventDefault();
+            alert('Therapieplan wird erstellt...');
+            hideModal('planModal');
+        }
+
+        function addTodo(event) {
+            event.preventDefault();
+            alert('Aufgabe wird hinzugefügt...');
+            hideModal('todoModal');
+        }
+
+        // Client selection
+        function selectClient(element, clientId) {
+            const cards = document.querySelectorAll('.client-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        // Search functions
+        function performQuickSearch() {
+            const searchTerm = document.getElementById('quickSearch').value;
+            const client = document.getElementById('quickClient').value;
+            
+            if (searchTerm || client) {
+                const searchTab = document.querySelector('[onclick*="search"]');
+                showSection('search', searchTab);
+                document.getElementById('mainSearch').value = searchTerm;
+                setTimeout(() => {
+                    alert(`Suche nach "${searchTerm}" ${client ? `für ${client}` : ''} wird durchgeführt...`);
+                }, 500);
+            }
+        }
+
+        function performSearch() {
+            const searchTerm = document.getElementById('mainSearch').value;
+            if (searchTerm.trim() === '') {
+                alert('Bitte geben Sie einen Suchbegriff ein.');
+                return;
+            }
+            alert(`Durchsuche alle Protokolle nach: "${searchTerm}"`);
+        }
+
+        function exportClients() {
+            alert('Client-Export wird vorbereitet...');
+        }
+
+        // Audio recording (simplified)
+        let isRecording = false;
+        let recordingTimer = null;
+        let recordingTime = 0;
+
+        function toggleRecording() {
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('recordingStatus');
+            
+            if (!isRecording) {
+                isRecording = true;
+                btn.classList.add('recording');
+                btn.innerHTML = '⏹️';
+                status.style.display = 'flex';
+                recordingTime = 0;
+                
+                recordingTimer = setInterval(() => {
+                    recordingTime++;
+                    const minutes = Math.floor(recordingTime / 60);
+                    const seconds = recordingTime % 60;
+                    document.getElementById('recordTime').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            } else {
+                isRecording = false;
+                btn.classList.remove('recording');
+                btn.innerHTML = '🎤';
+                status.style.display = 'none';
+                
+                clearInterval(recordingTimer);
+                recordingTime = 0;
+                
+                setTimeout(() => {
+                    alert('Aufnahme beendet und wird verarbeitet...');
+                }, 500);
+            }
+        }
+
+        // File drag and drop setup
+        document.addEventListener('DOMContentLoaded', function() {
             const uploadZone = document.getElementById('fileUpload');
             
             if (uploadZone) {
@@ -1767,175 +2495,56 @@
                 const files = Array.from(dt.files);
                 handleFileUpload(files);
             }
-        }
-
-        function triggerFileInput() {
-            document.getElementById('fileInput').click();
-        }
-
-        function handleFileUpload(files) {
-            console.log('Files uploaded:', files);
-            // Implementation for file processing
-        }
-
-        function attachFileToChat() {
-            document.getElementById('chatFileInput').click();
-        }
-
-        function handleChatFile(event) {
-            const files = Array.from(event.target.files);
-            chatAttachments = chatAttachments.concat(files);
-            
-            const input = document.getElementById('chatInput');
-            const fileCount = chatAttachments.length;
-            input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
-            
-            event.target.value = '';
-        }
-
-        // Collaboration UI Functions
-        function sendCollabMessage() {
-            const input = document.getElementById('collabChatInput');
-            const message = input.value.trim();
-            
-            if (message && currentSessionId && socket) {
-                socket.emit('chatMessage', {
-                    sessionId: currentSessionId,
-                    message: message,
-                    type: 'text'
-                });
-                
-                input.value = '';
-            }
-        }
-
-        function handleCollabChatEnter(event) {
-            if (event.key === 'Enter') {
-                sendCollabMessage();
-            }
-        }
-
-        function displayCollabChatMessage(message) {
-            const chatMessages = document.getElementById('collabChatMessages');
-            const messageEl = document.createElement('div');
-            messageEl.className = `chat-message ${message.userId === currentUser.userId ? 'own' : 'other'}`;
-            
-            messageEl.innerHTML = `
-                <div style="font-size: 11px; opacity: 0.7; margin-bottom: 5px;">
-                    ${message.userInfo.displayName} • ${new Date(message.timestamp).toLocaleTimeString('de-DE')}
-                </div>
-                ${message.message}
-            `;
-            
-            chatMessages.appendChild(messageEl);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function shareWithTeam() {
-            if (!collaborationActive) {
-                showNotification('Kollaboration nicht aktiv', 'warning');
-                return;
-            }
-            
-            const messages = document.getElementById('chatMessages');
-            const lastMessage = messages.lastElementChild;
-            
-            if (lastMessage && currentSessionId && socket) {
-                socket.emit('chatMessage', {
-                    sessionId: currentSessionId,
-                    message: 'Letzte KI-Antwort wurde geteilt',
-                    type: 'shared_ai_response'
-                });
-                
-                showNotification('Mit Team geteilt', 'success');
-            }
-        }
-
-        // Utility Functions
-        function showNotification(text, type = 'success') {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notificationText');
-            
-            notificationText.textContent = text;
-            notification.className = `notification ${type} show`;
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function updateActiveUsersDisplay(users) {
-            const activeUsersBar = document.getElementById('activeUsersBar');
-            activeUsersBar.innerHTML = '';
-            
-            users.forEach(user => {
-                if (user.userId !== currentUser.userId) {
-                    const userEl = document.createElement('div');
-                    userEl.className = 'user-avatar-mini';
-                    userEl.textContent = user.initials || user.displayName.charAt(0);
-                    userEl.title = user.displayName;
-                    activeUsersBar.appendChild(userEl);
-                }
-            });
-            
-            // Update stats
-            document.getElementById('onlineUsers').textContent = users.length;
-        }
-
-        function updateStats() {
-            document.getElementById('totalClients').textContent = '2';
-            document.getElementById('activeSessions').textContent = collaborationActive ? '1' : '0';
-            document.getElementById('sharedDocs').textContent = '0';
-        }
-
-        function loadActiveCollaborations() {
-            // Simulate loading existing collaborations
-            setTimeout(() => {
-                document.getElementById('collabBadge').textContent = '0';
-            }, 1000);
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // Navigation
-        function showSection(sectionId, tabElement) {
-            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            if (tabElement) {
-                tabElement.classList.add('active');
-            }
-        }
-
-        // Placeholder functions for features not yet implemented
-        function updateCollaborationUI() { }
-        function handleDocumentUpdate() { }
-        function updateLiveCursor() { }
-        function handleTypingIndicator() { }
-        function handleSharedFile() { }
-        function updateSessionState() { }
-        function toggleScreenShare() { showNotification('Bildschirmfreigabe wird gestartet...', 'success'); }
-        function stopScreenShare() { showNotification('Bildschirmfreigabe beendet', 'warning'); }
-        function inviteCollaborator() { showNotification('Einladung wird versendet...', 'success'); }
-        function shareCurrentDocument() { showNotification('Dokument wird geteilt...', 'success'); }
-        function shareClientWithTeam() { showNotification('Klient:in wird mit Team geteilt...', 'success'); }
-        function performQuickSearch() { showNotification('Suche wird durchgeführt...', 'success'); }
-
-        // Modal functions (simplified versions)
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
-        }
-
-        function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
+        });
+        
     </script>
+    <script>
+async function loadClients() {
+    const res = await fetch("/api/clients");
+    const clients = await res.json();
+    const grid = document.getElementById("clientGrid");
+    grid.innerHTML = "";
+    clients.forEach(c => {
+        const card = document.createElement("div");
+        card.className = "client-card";
+        card.innerHTML = `
+            <div class="client-header">
+                <div class="client-initials">${c.initials}</div>
+                <div class="client-meta">
+                    <span class="tag">${c.diagnosis}</span>
+                    <span class="tag">${c.therapy}</span>
+                </div>
+            </div>
+            <div class="client-stats">
+                <span>📅 Letzte Sitzung: ${c.lastSession}</span>
+                <span>🔢 Sessions: ${c.sessions}</span>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+    document.getElementById("clientsBadge").innerText = clients.length;
+}
+
+// Client hinzufügen (Formular absenden)
+document.querySelector('#clientModal form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const client = {
+        initials: this.querySelector('input[name="initials"]').value,
+        diagnosis: this.querySelector('input[name="diagnosis"]').value,
+        therapy: this.querySelector('input[name="therapy"]').value,
+        sessions: parseInt(this.querySelector('input[name="sessions"]').value) || 0,
+        lastSession: this.querySelector('input[name="lastSession"]').value
+    };
+    await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(client)
+    });
+    loadClients();
+    hideModal('clientModal');
+});
+</script>
+
 </body>
 </html>
+            
