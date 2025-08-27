@@ -1,0 +1,32 @@
+{
+  "name": "praxida-frontend",
+  "version": "2.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "body-parser": "^1.20.3",
+    "docx-parser": "^0.2.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.21.2",
+    "mammoth": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
+    "pdf-parse": "^1.1.1",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "therapie",
+    "ki",
+    "praxisverwaltung",
+    "dsgvo"
+  ],
+  "description": "KI-gestützte Praxisverwaltung für Therapeuten mit DSGVO-Compliance"
+}
