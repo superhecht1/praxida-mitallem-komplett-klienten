@@ -1828,23 +1828,31 @@
                 <button class="close-btn" onclick="hideModal('clientModal')">×</button>
             </div>
             <form onsubmit="addClient(event)">
-                <div class="form-group">
-                    <label class="form-label">Initialen</label>
-                    <input type="text" class="form-input" placeholder="A.B." required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Diagnose</label>
-                    <input type="text" class="form-input" placeholder="z.B. F32.1 Depression">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Therapieform</label>
-                    <select class="form-select">
-                        <option>Verhaltenstherapie (VT)</option>
-                        <option>Tiefenpsychologie (TP)</option>
-                        <option>Psychoanalyse (PA)</option>
-                        <option>Systemische Therapie (ST)</option>
-                    </select>
-                </div>
+    <div class="form-group">
+        <label class="form-label">Initialen</label>
+        <input type="text" class="form-input" name="initials" placeholder="A.B." required>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Diagnose</label>
+        <input type="text" class="form-input" name="diagnosis" placeholder="z.B. F32.1 Depression">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Therapieform</label>
+        <select class="form-select" name="therapy">
+            <option value="VT">Verhaltenstherapie (VT)</option>
+            <option value="TP">Tiefenpsychologie (TP)</option>
+            <option value="PA">Psychoanalyse (PA)</option>
+            <option value="ST">Systemische Therapie (ST)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Sessions</label>
+        <input type="number" class="form-input" name="sessions" placeholder="0" value="0">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Letzte Sitzung</label>
+        <input type="date" class="form-input" name="lastSession">
+    </div>
                 <div class="form-group">
                     <label class="form-label">Notizen</label>
                     <textarea class="form-textarea" placeholder="Zusätzliche Informationen..."></textarea>
