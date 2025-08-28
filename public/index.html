@@ -2488,40 +2488,116 @@
     </script>
     <script>
 <script>
+// Füge dies in dein index.html Script-Bereich ein (ersetze die bestehende loadClients Funktion):
+
 async function loadClients() {
     try {
         const res = await fetch("/api/clients");
         const clients = await res.json();
         const grid = document.getElementById("clientGrid");
-        grid.innerHTML = "";
+        const emptyState = document.getElementById("clientsEmptyState");
         
-        clients.forEach(client => {
-            const card = document.createElement("div");
-            card.className = "client-card";
-            card.innerHTML = `
-                <div class="client-header">
-                    <div class="client-initials">${client.initials}</div>
-                    <div class="client-meta">
-                        <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
-                        <span class="tag">${client.therapy || 'Keine Therapie'}</span>
+        if (clients.length === 0) {
+            grid.innerHTML = "";
+            emptyState.style.display = "block";
+        } else {
+            emptyState.style.display = "none";
+            grid.innerHTML = "";
+            
+            clients.forEach(client => {
+                const card = document.createElement("div");
+                card.className = "client-card";
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div class="client-initials">${client.name || 'N.N.'}</div>
+                        <div class="client-meta">
+                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                            <span class="tag">${client.notes ? client.notes.replace('Therapie: ', '') : 'Keine Therapie'}</span>
+                        </div>
                     </div>
-                </div>
-                <div class="client-stats">
-                    <span>📅 Letzte Sitzung: ${client.lastSession || 'Nicht angegeben'}</span>
-                    <span>🔢 Sessions: ${client.sessions || 0}</span>
-                </div>
-            `;
-            card.onclick = () => selectClient(card, client.id);
-            grid.appendChild(card);
-        });
+                    <div class="client-stats">
+                        <span>📅 Letzte Sitzung: ${client.last_session ? new Date(client.last_session).toLocaleDateString('de-DE') : 'Noch keine'}</span>
+                        <span>🔢 Sessions: ${client.sessions || 0}</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="event.stopPropagation(); deleteClientConfirm(${client.id})">
+                            🗑️ Löschen
+                        </button>
+                        <button class="btn btn-primary" style="padding: 8px 12px; font-size: 12px;" onclick="event.stopPropagation(); addSessionForClient(${client.id})">
+                            ➕ Session
+                        </button>
+                    </div>
+                `;
+                card.onclick = () => selectClient(card, client.id);
+                grid.appendChild(card);
+            });
+        }
         
         document.getElementById("clientsBadge").innerText = clients.length;
+        document.getElementById("totalClients").innerText = clients.length;
+        
+        // Update quick search dropdown
+        const quickClient = document.getElementById('quickClient');
+        quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+        clients.forEach(client => {
+            quickClient.innerHTML += `<option value="${client.id}">${client.name}</option>`;
+        });
         
         // Update stats
         updateStats();
         
     } catch (error) {
         console.error('Fehler beim Laden der Clients:', error);
+        alert('❌ Fehler beim Laden der Klient:innen');
+    }
+}
+
+// Add these helper functions
+async function deleteClientConfirm(clientId) {
+    if (confirm('Möchten Sie diesen Klienten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+        try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                alert('✅ Klient erfolgreich gelöscht');
+                loadClients();
+            } else {
+                alert('❌ Fehler beim Löschen des Klienten');
+            }
+        } catch (error) {
+            console.error('Fehler beim Löschen:', error);
+            alert('❌ Netzwerkfehler beim Löschen');
+        }
+    }
+}
+
+async function addSessionForClient(clientId) {
+    const sessionData = {
+        client_id: clientId,
+        date: new Date().toISOString().split('T')[0],
+        duration: 50,
+        type: 'Einzeltherapie',
+        notes: prompt('Notizen zur Session (optional):') || ''
+    };
+    
+    try {
+        const response = await fetch('/api/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sessionData)
+        });
+        
+        if (response.ok) {
+            alert('✅ Session erfolgreich hinzugefügt');
+            loadClients();
+        } else {
+            alert('❌ Fehler beim Hinzufügen der Session');
+        }
+    } catch (error) {
+        console.error('Fehler beim Hinzufügen der Session:', error);
+        alert('❌ Netzwerkfehler');
     }
 }
 
