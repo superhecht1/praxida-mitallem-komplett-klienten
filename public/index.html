@@ -1429,52 +1429,32 @@
                 </div>
             </div>
 
-            <!-- Klient:innen Section -->
-            <div id="clients" class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Klient:innen-Verwaltung</h2>
-                    <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
-                </div>
-                
-                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
-                    <button class="btn btn-primary" onclick="showModal('clientModal')">
-                        <span>➕</span> Neue:n Klient:in hinzufügen
-                    </button>
-                    <button class="btn btn-secondary" onclick="exportClients()">
-                        <span>📄</span> Exportieren
-                    </button>
-                </div>
+<!-- Klient:innen Section -->
+<div id="clients" class="content-section">
+    <div class="section-header">
+        <h2 class="section-title">Klient:innen-Verwaltung</h2>
+        <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
+    </div>
+    
+    <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+        <button class="btn btn-primary" onclick="showModal('clientModal')">
+            <span>➕</span> Neue:n Klient:in hinzufügen
+        </button>
+        <button class="btn btn-secondary" onclick="exportClients()">
+            <span>📄</span> Exportieren
+        </button>
+    </div>
 
-                <div class="client-grid" id="clientGrid">
-                    <div class="client-card" onclick="selectClient(this, 'client1')">
-                        <div class="client-header">
-                            <div class="client-initials">A.M.</div>
-                            <div class="client-meta">
-                                <span class="tag">Angststörung</span>
-                                <span class="tag">VT</span>
-                            </div>
-                        </div>
-                        <div class="client-stats">
-                            <span>📅 Letzte Sitzung: 18.08.2025</span>
-                            <span>🔢 Sessions: 12</span>
-                        </div>
-                    </div>
-                    
-                    <div class="client-card" onclick="selectClient(this, 'client2')">
-                        <div class="client-header">
-                            <div class="client-initials">B.S.</div>
-                            <div class="client-meta">
-                                <span class="tag">Depression</span>
-                                <span class="tag">TPT</span>
-                            </div>
-                        </div>
-                        <div class="client-stats">
-                            <span>📅 Letzte Sitzung: 20.08.2025</span>
-                            <span>🔢 Sessions: 8</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="client-grid" id="clientGrid">
+        <!-- Clients werden hier dynamisch geladen -->
+    </div>
+
+    <div class="empty-state" id="clientsEmptyState">
+        <div class="empty-icon">👥</div>
+        <h3>Noch keine Klient:innen hinzugefügt</h3>
+        <p>Fügen Sie Ihre ersten Klient:innen hinzu, um die Praxisverwaltung zu nutzen.</p>
+    </div>
+</div>
 
             <!-- Datei-Analyse Section -->
             <div id="files" class="content-section">
