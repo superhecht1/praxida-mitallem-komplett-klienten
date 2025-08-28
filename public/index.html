@@ -2507,49 +2507,105 @@
         
     </script>
     <script>
+<script>
 async function loadClients() {
-    const res = await fetch("/api/clients");
-    const clients = await res.json();
-    const grid = document.getElementById("clientGrid");
-    grid.innerHTML = "";
-    clients.forEach(c => {
-        const card = document.createElement("div");
-        card.className = "client-card";
-        card.innerHTML = `
-            <div class="client-header">
-                <div class="client-initials">${c.initials}</div>
-                <div class="client-meta">
-                    <span class="tag">${c.diagnosis}</span>
-                    <span class="tag">${c.therapy}</span>
+    try {
+        const res = await fetch("/api/clients");
+        const clients = await res.json();
+        const grid = document.getElementById("clientGrid");
+        grid.innerHTML = "";
+        
+        clients.forEach(client => {
+            const card = document.createElement("div");
+            card.className = "client-card";
+            card.innerHTML = `
+                <div class="client-header">
+                    <div class="client-initials">${client.initials}</div>
+                    <div class="client-meta">
+                        <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                        <span class="tag">${client.therapy || 'Keine Therapie'}</span>
+                    </div>
                 </div>
-            </div>
-            <div class="client-stats">
-                <span>📅 Letzte Sitzung: ${c.lastSession}</span>
-                <span>🔢 Sessions: ${c.sessions}</span>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-    document.getElementById("clientsBadge").innerText = clients.length;
+                <div class="client-stats">
+                    <span>📅 Letzte Sitzung: ${client.lastSession || 'Nicht angegeben'}</span>
+                    <span>🔢 Sessions: ${client.sessions || 0}</span>
+                </div>
+            `;
+            card.onclick = () => selectClient(card, client.id);
+            grid.appendChild(card);
+        });
+        
+        document.getElementById("clientsBadge").innerText = clients.length;
+        
+        // Update stats
+        updateStats();
+        
+    } catch (error) {
+        console.error('Fehler beim Laden der Clients:', error);
+    }
 }
 
-// Client hinzufügen (Formular absenden)
-document.querySelector('#clientModal form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+async function updateStats() {
+    try {
+        const res = await fetch("/api/stats");
+        const stats = await res.json();
+        
+        document.getElementById('totalClients').textContent = stats.totalClients;
+        document.getElementById('totalSessions').textContent = stats.totalSessions;
+        document.getElementById('pendingTodos').textContent = stats.pendingTodos;
+        document.getElementById('activePlans').textContent = stats.activePlans;
+    } catch (error) {
+        console.error('Fehler beim Laden der Statistiken:', error);
+    }
+}
+
+// Form submission handler
+async function addClient(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
     const client = {
-        initials: this.querySelector('input[name="initials"]').value,
-        diagnosis: this.querySelector('input[name="diagnosis"]').value,
-        therapy: this.querySelector('input[name="therapy"]').value,
-        sessions: parseInt(this.querySelector('input[name="sessions"]').value) || 0,
-        lastSession: this.querySelector('input[name="lastSession"]').value
+        initials: formData.get('initials'),
+        diagnosis: formData.get('diagnosis'),
+        therapy: formData.get('therapy'),
+        sessions: parseInt(formData.get('sessions')) || 0,
+        lastSession: formData.get('lastSession') || new Date().toISOString().split('T')[0]
     };
-    await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(client)
-    });
-    loadClients();
-    hideModal('clientModal');
+    
+    try {
+        const response = await fetch("/api/clients", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(client)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ Klient:in erfolgreich hinzugefügt!');
+            loadClients(); // Reload the client list
+            hideModal('clientModal');
+            form.reset(); // Clear form
+        } else {
+            alert('❌ Fehler: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Fehler beim Hinzufügen des Clients:', error);
+        alert('❌ Netzwerkfehler beim Hinzufügen des Clients');
+    }
+}
+
+// Load clients when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Load clients after successful login
+    const originalInitializeApp = initializeApp;
+    initializeApp = function() {
+        originalInitializeApp();
+        loadClients();
+    };
 });
 </script>
 
