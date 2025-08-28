@@ -1,52 +1,61 @@
+
+// db.js
+const Database = require("better-sqlite3");
 const path = require("path");
-const sqlite3 = require("sqlite3").verbose();
 
-const dbPath = path.join(__dirname, "data.db");
+// SQLite Datei im Projektordner
+const dbPath = path.join(__dirname, "database.sqlite");
+const db = new Database(dbPath);
 
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error("❌ Fehler beim Öffnen der Datenbank:", err.message);
-  } else {
-    console.log("✅ SQLite Datenbank verbunden:", dbPath);
-  }
-});
+// Beispiel: Tabelle anlegen, falls nicht existiert
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    diagnosis TEXT,
+    sessions INTEGER DEFAULT 0,
+    last_session DATE
+  )
+`).run();
 
-// Tabelle Clients erstellen, falls sie nicht existiert
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS clients (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      initials TEXT NOT NULL,
-      diagnosis TEXT,
-      therapy TEXT,
-      sessions INTEGER DEFAULT 0,
-      lastSession TEXT
-    )
-  `, (err) => {
-    if (err) {
-      console.error("❌ Fehler beim Erstellen der Tabelle:", err.message);
-    } else {
-      console.log("✅ Tabelle 'clients' bereit");
-    }
-  });
+// Beispiel-Funktionen
+function addClient(name, diagnosis, sessions = 0, lastSession = null) {
+  const stmt = db.prepare(`
+    INSERT INTO clients (name, diagnosis, sessions, last_session)
+    VALUES (?, ?, ?, ?)
+  `);
+  return stmt.run(name, diagnosis, sessions, lastSession);
+}
 
-  // Beispiel-Daten einfügen, falls Tabelle leer ist
-  db.get("SELECT COUNT(*) as count FROM clients", (err, row) => {
-    if (!err && row.count === 0) {
-      console.log("📝 Füge Beispiel-Clients hinzu...");
-      
-      const insertStmt = db.prepare(`
-        INSERT INTO clients (initials, diagnosis, therapy, sessions, lastSession) 
-        VALUES (?, ?, ?, ?, ?)
-      `);
-      
-      insertStmt.run("A.M.", "Angststörung", "VT", 12, "18.08.2025");
-      insertStmt.run("B.S.", "Depression", "TP", 8, "20.08.2025");
-      insertStmt.finalize();
-      
-      console.log("✅ Beispiel-Clients hinzugefügt");
-    }
-  });
-});
+function getClients() {
+  const stmt = db.prepare("SELECT * FROM clients ORDER BY id DESC");
+  return stmt.all();
+}
 
-module.exports = db;
+function getClientById(id) {
+  const stmt = db.prepare("SELECT * FROM clients WHERE id = ?");
+  return stmt.get(id);
+}
+
+function deleteClient(id) {
+  const stmt = db.prepare("DELETE FROM clients WHERE id = ?");
+  return stmt.run(id);
+}
+
+function updateClientSessions(id, sessions, lastSession = null) {
+  const stmt = db.prepare(`
+    UPDATE clients
+    SET sessions = ?, last_session = ?
+    WHERE id = ?
+  `);
+  return stmt.run(sessions, lastSession, id);
+}
+
+module.exports = {
+  db,
+  addClient,
+  getClients,
+  getClientById,
+  deleteClient,
+  updateClientSessions
+};
