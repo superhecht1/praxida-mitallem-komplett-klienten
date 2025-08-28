@@ -54,22 +54,22 @@ app.post("/api/clients", (req, res) => {
   const { initials, diagnosis, therapy, sessions = 0, lastSession } = req.body;
   
   // Validierung
-  if (!initials || !diagnosis || !therapy) {
+  if (!initials) {
     return res.status(400).json({ 
       success: false, 
-      error: "Initialen, Diagnose und Therapieform sind erforderlich" 
+      error: "Initialen sind erforderlich" 
     });
   }
 
-  const stmt = db.prepare(`
+  const finalLastSession = lastSession || new Date().toLocaleDateString('de-DE');
+
+  db.run(`
     INSERT INTO clients (initials, diagnosis, therapy, sessions, lastSession) 
     VALUES (?, ?, ?, ?, ?)
-  `);
-
-  stmt.run([initials, diagnosis, therapy, sessions, lastSession || new Date().toLocaleDateString('de-DE')], function(err) {
+  `, [initials, diagnosis || '', therapy || '', sessions, finalLastSession], function(err) {
     if (err) {
       console.error("❌ Fehler beim Hinzufügen des Clients:", err);
-      res.status(500).json({ success: false, error: "Datenbankfehler" });
+      res.status(500).json({ success: false, error: "Datenbankfehler: " + err.message });
     } else {
       console.log("✅ Client hinzugefügt mit ID:", this.lastID);
       res.json({ 
@@ -79,8 +79,6 @@ app.post("/api/clients", (req, res) => {
       });
     }
   });
-  
-  stmt.finalize();
 });
 
 // Client Update
@@ -88,13 +86,11 @@ app.put("/api/clients/:id", (req, res) => {
   const { id } = req.params;
   const { initials, diagnosis, therapy, sessions, lastSession } = req.body;
   
-  const stmt = db.prepare(`
+  db.run(`
     UPDATE clients 
     SET initials = ?, diagnosis = ?, therapy = ?, sessions = ?, lastSession = ?
     WHERE id = ?
-  `);
-
-  stmt.run([initials, diagnosis, therapy, sessions, lastSession, id], function(err) {
+  `, [initials, diagnosis, therapy, sessions, lastSession, id], function(err) {
     if (err) {
       console.error("❌ Fehler beim Aktualisieren des Clients:", err);
       res.status(500).json({ success: false, error: "Datenbankfehler" });
@@ -103,17 +99,13 @@ app.put("/api/clients/:id", (req, res) => {
       res.json({ success: true, message: "Client erfolgreich aktualisiert" });
     }
   });
-  
-  stmt.finalize();
 });
 
 // Client löschen
 app.delete("/api/clients/:id", (req, res) => {
   const { id } = req.params;
   
-  const stmt = db.prepare("DELETE FROM clients WHERE id = ?");
-  
-  stmt.run(id, function(err) {
+  db.run("DELETE FROM clients WHERE id = ?", [id], function(err) {
     if (err) {
       console.error("❌ Fehler beim Löschen des Clients:", err);
       res.status(500).json({ success: false, error: "Datenbankfehler" });
@@ -122,8 +114,6 @@ app.delete("/api/clients/:id", (req, res) => {
       res.json({ success: true, message: "Client erfolgreich gelöscht" });
     }
   });
-  
-  stmt.finalize();
 });
 
 // Datei-Upload und Analyse
