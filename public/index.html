@@ -1,4 +1,759 @@
-<!DOCTYPE html>
+</div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3>Team-Features aktivieren</h3>
+                    <p>Laden Sie Supervisor:innen und Kollegen ein, um sicher zusammenzuarbeiten und Fälle zu besprechen.</p>
+                    <br>
+                    <button class="btn btn-primary">
+                        <span>✉️</span> Team-Mitglied einladen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Verlaufssuche Section -->
+            <div id="search" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Verlaufssuche</h2>
+                    <p class="section-subtitle">Intelligente Suche in allen Therapieprotokollen und Dokumenten</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <input type="text" class="search-input" placeholder="Suchen Sie in Protokollen, Notizen, Diagnosen..." id="mainSearch" style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 15px;">
+                        <select class="search-input" style="width: 200px;">
+                            <option>Alle Klient:innen</option>
+                            <option>A.M.</option>
+                            <option>B.S.</option>
+                        </select>
+                        <select class="search-input" style="width: 200px;">
+                            <option>Alle Zeiträume</option>
+                            <option>Letzte Woche</option>
+                            <option>Letzter Monat</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="performSearch()">
+                            <span>🔍</span> Suchen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>Suche starten</h3>
+                    <p>Geben Sie einen Suchbegriff ein, um in allen Therapieprotokollen und Dokumenten zu suchen.</p>
+                </div>
+            </div>
+
+            <!-- Zusammenfassung Section -->
+            <div id="summary" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Zusammenfassung</h2>
+                    <p class="section-subtitle">KI-generierte Berichte und Verlaufszusammenfassungen</p>
+                </div>
+
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary">
+                        <span>📊</span> Wochenbericht generieren
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span>📈</span> Fortschrittsbericht
+                    </button>
+                    <button class="btn btn-success">
+                        <span>📄</span> Export für Kostenträger
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>Berichte generieren</h3>
+                    <p>Erstellen Sie automatische Zusammenfassungen und Berichte für Ihre Therapieverläufe.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Client Modal -->
+    <div class="modal" id="clientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue:n Klient:in hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('clientModal')">×</button>
+            </div>
+            <form onsubmit="addClient(event)">
+                <div class="form-group">
+                    <label class="form-label">Initialen/Name *</label>
+                    <input type="text" class="form-input" name="name" placeholder="A.B. oder vollständiger Name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">E-Mail</label>
+                    <input type="email" class="form-input" name="email" placeholder="patient@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Telefon</label>
+                    <input type="tel" class="form-input" name="phone" placeholder="+49 123 456789">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Diagnose</label>
+                    <input type="text" class="form-input" name="diagnosis" placeholder="z.B. F32.1 Depression">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notizen</label>
+                    <textarea class="form-textarea" name="notes" placeholder="Zusätzliche Informationen, Therapieform, etc."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('clientModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Integration Modals -->
+    <div class="modal" id="pvsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Praxisverwaltung konfigurieren</h3>
+                <button class="close-btn" onclick="hideModal('pvsModal')">×</button>
+            </div>
+            <form onsubmit="testIntegration(event, 'PVS')">
+                <div class="form-group">
+                    <label class="form-label">System auswählen</label>
+                    <select class="form-select">
+                        <option>CGM ALBIS</option>
+                        <option>medistar</option>
+                        <option>TurboMed</option>
+                        <option>MEDICAL OFFICE</option>
+                        <option>Sonstiges</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Server-Adresse</label>
+                    <input type="text" class="form-input" placeholder="192.168.1.100 oder praxis-server.local">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Benutzername</label>
+                    <input type="text" class="form-input" placeholder="Ihr PVS-Benutzername">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API-Schlüssel</label>
+                    <input type="password" class="form-input" placeholder="API-Schlüssel eingeben">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('pvsModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Verbindung testen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="planModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neuen Therapieplan erstellen</h3>
+                <button class="close-btn" onclick="hideModal('planModal')">×</button>
+            </div>
+            <form onsubmit="createPlan(event)">
+                <div class="form-group">
+                    <label class="form-label">Klient:in auswählen</label>
+                    <select class="form-select">
+                        <option>A.M.</option>
+                        <option>B.S.</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Therapieziele</label>
+                    <textarea class="form-textarea" placeholder="Definieren Sie die Hauptziele der Behandlung..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Geplante Interventionen</label>
+                    <textarea class="form-textarea" placeholder="Welche Methoden und Techniken planen Sie einzusetzen?"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('planModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Plan erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="todoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue Aufgabe hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('todoModal')">×</button>
+            </div>
+            <form onsubmit="addTodo(event)">
+                <div class="form-group">
+                    <label class="form-label">Aufgabe</label>
+                    <input type="text" class="form-input" placeholder="Was muss erledigt werden?" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Klient:in</label>
+                    <select class="form-select">
+                        <option>Allgemein</option>
+                        <option>A.M.</option>
+                        <option>B.S.</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fälligkeitsdatum</label>
+                    <input type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priorität</label>
+                    <select class="form-select">
+                        <option>Normal</option>
+                        <option>Hoch</option>
+                        <option>Niedrig</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('todoModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Aufgabe erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let clients = [];
+        let currentUploadType = 'image';
+        let uploadedFiles = [];
+        let chatAttachments = [];
+        
+        // Audio recording
+        let isRecording = false;
+        let recordingTimer = null;
+        let recordingTime = 0;
+
+        // Authentication
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'demo' && password === 'praxida2024') {
+                currentUser = {
+                    username: username,
+                    displayName: 'Demo User',
+                    initials: 'DU'
+                };
+                
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userName').textContent = currentUser.displayName;
+                document.getElementById('userAvatar').textContent = currentUser.initials;
+                
+                initializeApp();
+            } else {
+                alert('Ungültige Anmeldedaten. Verwenden Sie die Demo-Zugangsdaten.');
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            // Reset form values
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function initializeApp() {
+            console.log('🚀 Initialisiere App...');
+            loadClients();
+            loadStats();
+        }
+
+        // Load clients from server
+        async function loadClients() {
+            console.log('📥 Lade Klient:innen...');
+            
+            try {
+                const response = await fetch('/api/clients');
+                
+                if (!response.ok) {
+                    console.log('⚠️ Server nicht erreichbar - verwende Demo-Daten');
+                    loadDemoClients();
+                    return;
+                }
+                
+                clients = await response.json();
+                console.log('✅ Klient:innen geladen:', clients.length);
+                
+                renderClients();
+                updateClientStats();
+                updateQuickSearch();
+                
+            } catch (error) {
+                console.log('⚠️ Fehler beim Laden - verwende Demo-Daten:', error.message);
+                loadDemoClients();
+            }
+        }
+
+        // Load demo clients when server is not available
+        function loadDemoClients() {
+            clients = [
+                {
+                    id: 1,
+                    name: 'A.M.',
+                    email: 'patient1@demo.com',
+                    diagnosis: 'F32.1 Depression',
+                    notes: 'Verhaltenstherapie',
+                    sessions: 8,
+                    last_session: '2024-08-25',
+                    created_at: '2024-08-01'
+                },
+                {
+                    id: 2,
+                    name: 'B.S.',
+                    email: 'patient2@demo.com',
+                    diagnosis: 'F41.1 Angststörung',
+                    notes: 'Tiefenpsychologie',
+                    sessions: 12,
+                    last_session: '2024-08-28',
+                    created_at: '2024-07-15'
+                }
+            ];
+            
+            console.log('✅ Demo-Daten geladen:', clients.length);
+            renderClients();
+            updateClientStats();
+            updateQuickSearch();
+        }
+
+        // Render clients in the grid
+        function renderClients() {
+            const grid = document.getElementById('clientGrid');
+            const emptyState = document.getElementById('clientsEmptyState');
+            
+            if (clients.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                grid.innerHTML = '';
+                
+                clients.forEach(client => {
+                    const card = document.createElement('div');
+                    card.className = 'client-card';
+                    card.innerHTML = `
+                        <div class="client-header">
+                            <div class="client-initials">${client.name || 'N.N.'}</div>
+                            <div class="client-meta">
+                                <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                                <span class="tag">${getTherapyFromNotes(client.notes) || 'Standard'}</span>
+                            </div>
+                        </div>
+                        <div class="client-stats">
+                            <span>📅 Letzte Sitzung: ${formatDate(client.last_session)}</span>
+                            <span>🔢 Sessions: ${client.sessions || 0}</span>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="event.stopPropagation(); deleteClientConfirm(${client.id})">
+                                🗑️ Löschen
+                            </button>
+                            <button class="btn btn-primary" style="padding: 8px 12px; font-size: 12px;" onclick="event.stopPropagation(); addSessionForClient(${client.id})">
+                                ➕ Session
+                            </button>
+                        </div>
+                    `;
+                    card.onclick = () => selectClient(card, client.id);
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        // Update client statistics
+        function updateClientStats() {
+            const totalClients = clients.length;
+            const totalSessions = clients.reduce((sum, client) => sum + (client.sessions || 0), 0);
+            
+            document.getElementById('clientsBadge').textContent = totalClients;
+            document.getElementById('totalClients').textContent = totalClients;
+            document.getElementById('totalSessions').textContent = totalSessions;
+        }
+
+        // Update quick search dropdown
+        function updateQuickSearch() {
+            const quickClient = document.getElementById('quickClient');
+            quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+            
+            clients.forEach(client => {
+                quickClient.innerHTML += `<option value="${client.id}">${client.name}</option>`;
+            });
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalClients').textContent = stats.totalClients;
+                    document.getElementById('totalSessions').textContent = stats.totalSessions;
+                    document.getElementById('pendingTodos').textContent = stats.pendingTodos;
+                    document.getElementById('activePlans').textContent = stats.activePlans;
+                }
+            } catch (error) {
+                // Use client-based stats if server unavailable
+                updateClientStats();
+                document.getElementById('pendingTodos').textContent = '0';
+                document.getElementById('activePlans').textContent = clients.length > 0 ? '1' : '0';
+            }
+        }
+
+        // Add new client
+        async function addClient(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clientData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                diagnosis: formData.get('diagnosis'),
+                notes: formData.get('notes')
+            };
+            
+            if (!clientData.name) {
+                alert('❌ Name/Initialen sind erforderlich!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        showNotification('✅ Klient:in erfolgreich hinzugefügt!', 'success');
+                        loadClients();
+                        hideModal('clientModal');
+                        form.reset();
+                    } else {
+                        showNotification('❌ Fehler: ' + result.error, 'error');
+                    }
+                } else {
+                    throw new Error('Server-Fehler');
+                }
+                
+            } catch (error) {
+                console.log('⚠️ Server nicht erreichbar - füge zu Demo-Daten hinzu');
+                
+                // Add to demo data
+                const newClient = {
+                    id: Date.now(),
+                    name: clientData.name,
+                    email: clientData.email,
+                    phone: clientData.phone,
+                    diagnosis: clientData.diagnosis,
+                    notes: clientData.notes,
+                    sessions: 0,
+                    last_session: null,
+                    created_at: new Date().toISOString()
+                };
+                
+                clients.push(newClient);
+                renderClients();
+                updateClientStats();
+                updateQuickSearch();
+                
+                showNotification('✅ Klient:in zu Demo-Daten hinzugefügt!', 'success');
+                hideModal('clientModal');
+                form.reset();
+            }
+        }
+
+        // Delete client with confirmation
+        async function deleteClientConfirm(clientId) {
+            const client = clients.find(c => c.id === clientId);
+            if (!client) return;
+            
+            if (confirm(`Möchten Sie ${client.name} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
+                try {
+                    const response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        showNotification('✅ Klient erfolgreich gelöscht', 'success');
+                        loadClients();
+                    } else {
+                        throw new Error('Server-Fehler');
+                    }
+                } catch (error) {
+                    console.log('⚠️ Server nicht erreichbar - lösche aus Demo-Daten');
+                    
+                    // Remove from demo data
+                    clients = clients.filter(c => c.id !== clientId);
+                    renderClients();
+                    updateClientStats();
+                    updateQuickSearch();
+                    
+                    showNotification('✅ Klient aus Demo-Daten gelöscht', 'success');
+                }
+            }
+        }
+
+        // Add session for client
+        async function addSessionForClient(clientId) {
+            const sessionNotes = prompt('Notizen zur Session (optional):') || '';
+            const sessionData = {
+                client_id: clientId,
+                date: new Date().toISOString().split('T')[0],
+                duration: 50,
+                type: 'Einzeltherapie',
+                notes: sessionNotes
+            };
+            
+            try {
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sessionData)
+                });
+                
+                if (response.ok) {
+                    showNotification('✅ Session erfolgreich hinzugefügt', 'success');
+                    loadClients();
+                } else {
+                    throw new Error('Server-Fehler');
+                }
+            } catch (error) {
+                console.log('⚠️ Server nicht erreichbar - füge zu Demo-Daten hinzu');
+                
+                // Update demo data
+                const client = clients.find(c => c.id === clientId);
+                if (client) {
+                    client.sessions = (client.sessions || 0) + 1;
+                    client.last_session = new Date().toISOString().split('T')[0];
+                    
+                    renderClients();
+                    updateClientStats();
+                    
+                    showNotification('✅ Session zu Demo-Daten hinzugefügt', 'success');
+                }
+            }
+        }
+
+        // Helper functions
+        function getTherapyFromNotes(notes) {
+            if (!notes) return 'Standard';
+            if (notes.includes('Verhaltens')) return 'VT';
+            if (notes.includes('Tiefen')) return 'TP';
+            if (notes.includes('System')) return 'ST';
+            return 'Standard';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Noch keine';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('de-DE');
+        }
+
+        function selectClient(card, clientId) {
+            // Remove selection from all cards
+            document.querySelectorAll('.client-card').forEach(c => c.classList.remove('selected'));
+            // Add selection to clicked card
+            card.classList.add('selected');
+            console.log('Client selected:', clientId);
+        }
+
+        // Navigation with proper active state management
+        function showSection(sectionId, tabElement) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update tab states
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+
+        // File upload functionality
+        function setUploadType(type) {
+            currentUploadType = type;
+            document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
+            document.getElementById(type + 'Type').classList.add('active');
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        // File handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(event) {
+                    const files = Array.from(event.target.files);
+                    handleFileUpload(files);
+                });
+            }
+        });
+
+        function handleFileUpload(files) {
+            if (files.length === 0) return;
+            
+            uploadedFiles = files;
+            const file = files[0];
+            
+            const preview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const fileIcon = document.getElementById('fileIcon');
+            const previewContent = document.getElementById('previewContent');
+            const emptyState = document.getElementById('filesEmptyState');
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            // Set icon based on file type
+            if (file.type.startsWith('image/')) {
+                fileIcon.textContent = '🖼️';
+                displayImagePreview(file, previewContent);
+            } else if (file.type.includes('pdf')) {
+                fileIcon.textContent = '📕';
+                previewContent.innerHTML = '<p>PDF-Dokument bereit zur Analyse</p>';
+            } else if (file.type.includes('text') || file.name.endsWith('.txt')) {
+                fileIcon.textContent = '📄';
+                displayTextPreview(file, previewContent);
+            } else {
+                fileIcon.textContent = '📎';
+                previewContent.innerHTML = '<p>Datei bereit zur Verarbeitung</p>';
+            }
+            
+            preview.classList.add('show');
+            emptyState.style.display = 'none';
+        }
+
+        function displayImagePreview(file, container) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                container.innerHTML = `<img src="${e.target.result}" class="image-preview" alt="Vorschau">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayTextPreview(file, container) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result.substring(0, 500) + (e.target.result.length > 500 ? '...' : '');
+                container.innerHTML = `<div class="text-content">${text}</div>`;
+            };
+            reader.readAsText(file);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function processFile() {
+            if (uploadedFiles.length === 0) return;
+            
+            const filePreview = document.getElementById('filePreview');
+            const processBtn = filePreview.querySelector('.process-btn');
+            const originalText = processBtn.textContent;
+            
+            processBtn.textContent = 'Wird analysiert...';
+            processBtn.disabled = true;
+            filePreview.classList.add('loading');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', uploadedFiles[0]);
+                
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Add analysis to chat
+                    addAnalysisToChat(uploadedFiles[0], result.analysis);
+                    
+                    // Switch to chat section
+                    const chatTab = document.querySelector('[onclick*="chat"]');
+                    showSection('chat', chatTab);
+                    
+                    showNotification('Datei erfolgreich analysiert! Ergebnis wurde dem Chat hinzugefügt.', 'success');
+                } else {
+                    throw new Error(result.error || 'Unbekannter Fehler');
+                }
+                
+            } catch (error) {
+                console.error('Fehler bei der Dateiverarbeitung:', error);
+                showNotification('Fehler bei der Dateiverarbeitung: ' + error.message, 'error');
+            } finally {
+                processBtn.textContent = originalText;
+                processBtn.disabled = false;
+                filePreview.classList.remove('loading');
+            }
+        }
+
+        function addAnalysisToChat(file, analysis) {
+            const messages = document.getElementById('chatMessages');
+            
+            // Add file attachment message
+            const fileMessage = document.createElement('div');
+            fileMessage.className = 'message user';
+            fileMessage.innerHTML = `
+                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+                <div class="message-attachment">
+                    <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                    <div class="attachment-info">
+                        <div class="attachment-name">${file.name}</div>
+                        <div class="attachment-type">Zur Analyse hochgeladen</div>
+                    </div>
+                </div>
+            `;
+            <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -1391,19 +2146,19 @@
                 
                 <div class="stats-grid" id="statsGrid">
                     <div class="stat-card">
-                        <div class="stat-number" id="totalClients">12</div>
+                        <div class="stat-number" id="totalClients">0</div>
                         <div class="stat-label">Aktive Klient:innen</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="totalSessions">248</div>
+                        <div class="stat-number" id="totalSessions">0</div>
                         <div class="stat-label">Gesamte Sessions</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="pendingTodos">5</div>
+                        <div class="stat-number" id="pendingTodos">0</div>
                         <div class="stat-label">Offene To-Dos</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="activePlans">3</div>
+                        <div class="stat-number" id="activePlans">0</div>
                         <div class="stat-label">Aktive Therapiepläne</div>
                     </div>
                 </div>
@@ -1416,45 +2171,45 @@
                         <strong>Sichere Benutzeranmeldung:</strong> Datenschutzkonforme Zugriffskontrolle für Ihre Praxisdaten.
                     </p>
                     <div class="feature-buttons">
-                        <button class="feature-btn" onclick="showSection('files')">
+                        <button class="feature-btn" onclick="showSection('files', document.querySelector('[onclick*=\"files\"]'))">
                             📎 Datei-Analyse
                         </button>
-                        <button class="feature-btn" onclick="showSection('integration')">
+                        <button class="feature-btn" onclick="showSection('integration', document.querySelector('[onclick*=\"integration\"]'))">
                             🔗 Integration
                         </button>
-                        <button class="feature-btn" onclick="showSection('chat')">
+                        <button class="feature-btn" onclick="showSection('chat', document.querySelector('[onclick*=\"chat\"]'))">
                             💬 KI-Chat
                         </button>
                     </div>
                 </div>
             </div>
 
-<!-- Klient:innen Section -->
-<div id="clients" class="content-section">
-    <div class="section-header">
-        <h2 class="section-title">Klient:innen-Verwaltung</h2>
-        <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
-    </div>
-    
-    <div style="margin-bottom: 30px; display: flex; gap: 15px;">
-        <button class="btn btn-primary" onclick="showModal('clientModal')">
-            <span>➕</span> Neue:n Klient:in hinzufügen
-        </button>
-        <button class="btn btn-secondary" onclick="exportClients()">
-            <span>📄</span> Exportieren
-        </button>
-    </div>
+            <!-- Klient:innen Section -->
+            <div id="clients" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Klient:innen-Verwaltung</h2>
+                    <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
+                </div>
+                
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary" onclick="showModal('clientModal')">
+                        <span>➕</span> Neue:n Klient:in hinzufügen
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportClients()">
+                        <span>📄</span> Exportieren
+                    </button>
+                </div>
 
-    <div class="client-grid" id="clientGrid">
-        <!-- Clients werden hier dynamisch geladen -->
-    </div>
+                <div class="client-grid" id="clientGrid">
+                    <!-- Clients werden hier dynamisch geladen -->
+                </div>
 
-    <div class="empty-state" id="clientsEmptyState">
-        <div class="empty-icon">👥</div>
-        <h3>Noch keine Klient:innen hinzugefügt</h3>
-        <p>Fügen Sie Ihre ersten Klient:innen hinzu, um die Praxisverwaltung zu nutzen.</p>
-    </div>
-</div>
+                <div class="empty-state" id="clientsEmptyState">
+                    <div class="empty-icon">👥</div>
+                    <h3>Noch keine Klient:innen hinzugefügt</h3>
+                    <p>Fügen Sie Ihre ersten Klient:innen hinzu, um die Praxisverwaltung zu nutzen.</p>
+                </div>
+            </div>
 
             <!-- Datei-Analyse Section -->
             <div id="files" class="content-section">
@@ -1725,946 +2480,3 @@
                 <div class="section-header">
                     <h2 class="section-title">Team-Kollaboration</h2>
                     <p class="section-subtitle">DSGVO-konforme Zusammenarbeit mit Supervisor:innen und Kollegen</p>
-                </div>
-
-                <div class="empty-state">
-                    <div class="empty-icon">👥</div>
-                    <h3>Team-Features aktivieren</h3>
-                    <p>Laden Sie Supervisor:innen und Kollegen ein, um sicher zusammenzuarbeiten und Fälle zu besprechen.</p>
-                    <br>
-                    <button class="btn btn-primary">
-                        <span>✉️</span> Team-Mitglied einladen
-                    </button>
-                </div>
-            </div>
-
-            <!-- Verlaufssuche Section -->
-            <div id="search" class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Verlaufssuche</h2>
-                    <p class="section-subtitle">Intelligente Suche in allen Therapieprotokollen und Dokumenten</p>
-                </div>
-
-                <div style="margin-bottom: 30px;">
-                    <input type="text" class="search-input" placeholder="Suchen Sie in Protokollen, Notizen, Diagnosen..." id="mainSearch" style="margin-bottom: 15px;">
-                    <div style="display: flex; gap: 15px;">
-                        <select class="search-input" style="width: 200px;">
-                            <option>Alle Klient:innen</option>
-                            <option>A.M.</option>
-                            <option>B.S.</option>
-                        </select>
-                        <select class="search-input" style="width: 200px;">
-                            <option>Alle Zeiträume</option>
-                            <option>Letzte Woche</option>
-                            <option>Letzter Monat</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="performSearch()">
-                            <span>🔍</span> Suchen
-                        </button>
-                    </div>
-                </div>
-
-                <div class="empty-state">
-                    <div class="empty-icon">🔍</div>
-                    <h3>Suche starten</h3>
-                    <p>Geben Sie einen Suchbegriff ein, um in allen Therapieprotokollen und Dokumenten zu suchen.</p>
-                </div>
-            </div>
-
-            <!-- Zusammenfassung Section -->
-            <div id="summary" class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Zusammenfassung</h2>
-                    <p class="section-subtitle">KI-generierte Berichte und Verlaufszusammenfassungen</p>
-                </div>
-
-                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
-                    <button class="btn btn-primary">
-                        <span>📊</span> Wochenbericht generieren
-                    </button>
-                    <button class="btn btn-secondary">
-                        <span>📈</span> Fortschrittsbericht
-                    </button>
-                    <button class="btn btn-success">
-                        <span>📄</span> Export für Kostenträger
-                    </button>
-                </div>
-
-                <div class="empty-state">
-                    <div class="empty-icon">📋</div>
-                    <h3>Berichte generieren</h3>
-                    <p>Erstellen Sie automatische Zusammenfassungen und Berichte für Ihre Therapieverläufe.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modals -->
-    <!-- Client Modal -->
-    <div class="modal" id="clientModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Neue:n Klient:in hinzufügen</h3>
-                <button class="close-btn" onclick="hideModal('clientModal')">×</button>
-            </div>
-            <form onsubmit="addClient(event)">
-    <div class="form-group">
-        <label class="form-label">Initialen</label>
-        <input type="text" class="form-input" name="initials" placeholder="A.B." required>
-    </div>
-    <div class="form-group">
-        <label class="form-label">Diagnose</label>
-        <input type="text" class="form-input" name="diagnosis" placeholder="z.B. F32.1 Depression">
-    </div>
-    <div class="form-group">
-        <label class="form-label">Therapieform</label>
-        <select class="form-select" name="therapy">
-            <option value="VT">Verhaltenstherapie (VT)</option>
-            <option value="TP">Tiefenpsychologie (TP)</option>
-            <option value="PA">Psychoanalyse (PA)</option>
-            <option value="ST">Systemische Therapie (ST)</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label class="form-label">Sessions</label>
-        <input type="number" class="form-input" name="sessions" placeholder="0" value="0">
-    </div>
-    <div class="form-group">
-        <label class="form-label">Letzte Sitzung</label>
-        <input type="date" class="form-input" name="lastSession">
-    </div>
-                <div class="form-group">
-                    <label class="form-label">Notizen</label>
-                    <textarea class="form-textarea" placeholder="Zusätzliche Informationen..."></textarea>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('clientModal')">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Speichern</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Integration Modals -->
-    <div class="modal" id="pvsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Praxisverwaltung konfigurieren</h3>
-                <button class="close-btn" onclick="hideModal('pvsModal')">×</button>
-            </div>
-            <form onsubmit="testIntegration(event, 'PVS')">
-                <div class="form-group">
-                    <label class="form-label">System auswählen</label>
-                    <select class="form-select">
-                        <option>CGM ALBIS</option>
-                        <option>medistar</option>
-                        <option>TurboMed</option>
-                        <option>MEDICAL OFFICE</option>
-                        <option>Sonstiges</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Server-Adresse</label>
-                    <input type="text" class="form-input" placeholder="192.168.1.100 oder praxis-server.local">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Benutzername</label>
-                    <input type="text" class="form-input" placeholder="Ihr PVS-Benutzername">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">API-Schlüssel</label>
-                    <input type="password" class="form-input" placeholder="API-Schlüssel eingeben">
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('pvsModal')">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Verbindung testen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="modal" id="planModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Neuen Therapieplan erstellen</h3>
-                <button class="close-btn" onclick="hideModal('planModal')">×</button>
-            </div>
-            <form onsubmit="createPlan(event)">
-                <div class="form-group">
-                    <label class="form-label">Klient:in auswählen</label>
-                    <select class="form-select">
-                        <option>A.M.</option>
-                        <option>B.S.</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Therapieziele</label>
-                    <textarea class="form-textarea" placeholder="Definieren Sie die Hauptziele der Behandlung..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Geplante Interventionen</label>
-                    <textarea class="form-textarea" placeholder="Welche Methoden und Techniken planen Sie einzusetzen?"></textarea>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('planModal')">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Plan erstellen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="modal" id="todoModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Neue Aufgabe hinzufügen</h3>
-                <button class="close-btn" onclick="hideModal('todoModal')">×</button>
-            </div>
-            <form onsubmit="addTodo(event)">
-                <div class="form-group">
-                    <label class="form-label">Aufgabe</label>
-                    <input type="text" class="form-input" placeholder="Was muss erledigt werden?" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Klient:in</label>
-                    <select class="form-select">
-                        <option>Allgemein</option>
-                        <option>A.M.</option>
-                        <option>B.S.</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Fälligkeitsdatum</label>
-                    <input type="date" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Priorität</label>
-                    <select class="form-select">
-                        <option>Normal</option>
-                        <option>Hoch</option>
-                        <option>Niedrig</option>
-                    </select>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('todoModal')">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Aufgabe erstellen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Hidden file input for chat attachments -->
-    <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
-
-    <script>
-        // Global variables
-        let currentUser = null;
-        let currentUploadType = 'image';
-        let uploadedFiles = [];
-        let chatAttachments = [];
-
-        // Authentication
-        function handleLogin(event) {
-            event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'demo' && password === 'praxida2024') {
-                currentUser = {
-                    username: username,
-                    displayName: 'Demo User',
-                    initials: 'DU'
-                };
-                
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                document.getElementById('userName').textContent = currentUser.displayName;
-                document.getElementById('userAvatar').textContent = currentUser.initials;
-                
-                initializeApp();
-            } else {
-                alert('Ungültige Anmeldedaten. Verwenden Sie die Demo-Zugangsdaten.');
-            }
-        }
-
-        function handleLogout() {
-            currentUser = null;
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('mainApp').style.display = 'none';
-            // Reset form values
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-
-        function initializeApp() {
-            // Update client badge
-            document.getElementById('clientsBadge').textContent = '2';
-            
-            // Add sample clients to quick search
-            const quickClient = document.getElementById('quickClient');
-            quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
-            quickClient.innerHTML += '<option value="A.M.">A.M.</option>';
-            quickClient.innerHTML += '<option value="B.S.">B.S.</option>';
-            
-            // Simulate loading stats
-            setTimeout(() => {
-                document.getElementById('totalClients').textContent = '2';
-                document.getElementById('totalSessions').textContent = '20';
-                document.getElementById('pendingTodos').textContent = '0';
-                document.getElementById('activePlans').textContent = '1';
-                document.getElementById('todosBadge').textContent = '0';
-            }, 1000);
-        }
-
-        // Navigation with proper active state management
-        function showSection(sectionId, tabElement) {
-            // Hide all sections
-            const sections = document.querySelectorAll('.content-section');
-            sections.forEach(section => section.classList.remove('active'));
-            
-            // Show selected section
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Update tab states
-            const tabs = document.querySelectorAll('.nav-tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            
-            if (tabElement) {
-                tabElement.classList.add('active');
-            }
-        }
-
-        // Modal functions
-        function showModal(modalId) {
-            document.getElementById(modalId).classList.add('show');
-        }
-
-        function hideModal(modalId) {
-            document.getElementById(modalId).classList.remove('show');
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('show');
-            }
-        }
-
-        // File upload functionality
-        function setUploadType(type) {
-            currentUploadType = type;
-            document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
-            document.getElementById(type + 'Type').classList.add('active');
-        }
-
-        function triggerFileInput() {
-            document.getElementById('fileInput').click();
-        }
-
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const files = Array.from(event.target.files);
-            handleFileUpload(files);
-        });
-
-        function handleFileUpload(files) {
-            if (files.length === 0) return;
-            
-            uploadedFiles = files;
-            const file = files[0]; // Show first file in preview
-            
-            const preview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-            const fileSize = document.getElementById('fileSize');
-            const fileIcon = document.getElementById('fileIcon');
-            const previewContent = document.getElementById('previewContent');
-            const emptyState = document.getElementById('filesEmptyState');
-            
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            
-            // Set icon based on file type
-            if (file.type.startsWith('image/')) {
-                fileIcon.textContent = '🖼️';
-                displayImagePreview(file, previewContent);
-            } else if (file.type.includes('pdf')) {
-                fileIcon.textContent = '📕';
-                previewContent.innerHTML = '<p>PDF-Dokument bereit zur Analyse</p>';
-            } else if (file.type.includes('text') || file.name.endsWith('.txt')) {
-                fileIcon.textContent = '📄';
-                displayTextPreview(file, previewContent);
-            } else {
-                fileIcon.textContent = '📎';
-                previewContent.innerHTML = '<p>Datei bereit zur Verarbeitung</p>';
-            }
-            
-            preview.classList.add('show');
-            emptyState.style.display = 'none';
-        }
-
-        function displayImagePreview(file, container) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                container.innerHTML = `<img src="${e.target.result}" class="image-preview" alt="Vorschau">`;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function displayTextPreview(file, container) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result.substring(0, 500) + (e.target.result.length > 500 ? '...' : '');
-                container.innerHTML = `<div class="text-content">${text}</div>`;
-            };
-            reader.readAsText(file);
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        async function processFile() {
-            if (uploadedFiles.length === 0) return;
-            
-            const filePreview = document.getElementById('filePreview');
-            const processBtn = filePreview.querySelector('.process-btn');
-            const originalText = processBtn.textContent;
-            
-            processBtn.textContent = 'Wird analysiert...';
-            processBtn.disabled = true;
-            filePreview.classList.add('loading');
-            
-            try {
-                const formData = new FormData();
-                formData.append('file', uploadedFiles[0]);
-                
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Add analysis to chat
-                    addAnalysisToChat(uploadedFiles[0], result.analysis);
-                    
-                    // Switch to chat section
-                    const chatTab = document.querySelector('[onclick*="chat"]');
-                    showSection('chat', chatTab);
-                    
-                    alert('Datei erfolgreich analysiert! Ergebnis wurde dem Chat hinzugefügt.');
-                } else {
-                    throw new Error(result.error || 'Unbekannter Fehler');
-                }
-                
-            } catch (error) {
-                console.error('Fehler bei der Dateiverarbeitung:', error);
-                alert('Fehler bei der Dateiverarbeitung: ' + error.message);
-            } finally {
-                processBtn.textContent = originalText;
-                processBtn.disabled = false;
-                filePreview.classList.remove('loading');
-            }
-        }
-
-        function addAnalysisToChat(file, analysis) {
-            const messages = document.getElementById('chatMessages');
-            
-            // Add file attachment message
-            const fileMessage = document.createElement('div');
-            fileMessage.className = 'message user';
-            fileMessage.innerHTML = `
-                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                <div class="message-attachment">
-                    <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                    <div class="attachment-info">
-                        <div class="attachment-name">${file.name}</div>
-                        <div class="attachment-type">Zur Analyse hochgeladen</div>
-                    </div>
-                </div>
-            `;
-            messages.appendChild(fileMessage);
-            
-            // Add analysis result
-            const analysisMessage = document.createElement('div');
-            analysisMessage.className = 'message assistant';
-            analysisMessage.innerHTML = `
-                <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                ${analysis}
-            `;
-            messages.appendChild(analysisMessage);
-            
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        // Chat functionality with file attachments
-        function attachFileToChat() {
-            document.getElementById('chatFileInput').click();
-        }
-
-        function handleChatFile(event) {
-            const files = Array.from(event.target.files);
-            chatAttachments = chatAttachments.concat(files);
-            
-            // Visual feedback
-            const input = document.getElementById('chatInput');
-            const fileCount = chatAttachments.length;
-            input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
-            
-            // Reset file input
-            event.target.value = '';
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const messages = document.getElementById('chatMessages');
-            
-            if (input.value.trim() === '' && chatAttachments.length === 0) return;
-            
-            // Add user message with attachments
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user';
-            
-            let attachmentsHtml = '';
-            if (chatAttachments.length > 0) {
-                attachmentsHtml = chatAttachments.map(file => `
-                    <div class="message-attachment">
-                        <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                        <div class="attachment-info">
-                            <div class="attachment-name">${file.name}</div>
-                            <div class="attachment-type">${formatFileSize(file.size)}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            userMessage.innerHTML = `
-                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                ${attachmentsHtml}
-                ${input.value || 'Dateianalyse angefordert'}
-            `;
-            messages.appendChild(userMessage);
-
-            const messageText = input.value;
-            input.value = '';
-            input.placeholder = 'Ihre Frage an die KI-Assistenz...';
-            
-            // Clear attachments
-            chatAttachments = [];
-            
-            messages.scrollTop = messages.scrollHeight;
-
-            // Show typing indicator
-            const typingMessage = document.createElement('div');
-            typingMessage.className = 'message assistant';
-            typingMessage.innerHTML = `
-                <div class="message-meta">KI-Assistenz • tippt...</div>
-                <em>Antwort wird generiert...</em>
-            `;
-            messages.appendChild(typingMessage);
-            messages.scrollTop = messages.scrollHeight;
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message: messageText || 'Bitte analysiere die angehängten Dateien.',
-                        hasAttachments: chatAttachments.length > 0
-                    })
-                });
-
-                // Remove typing indicator
-                messages.removeChild(typingMessage);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'message assistant';
-                aiMessage.innerHTML = `
-                    <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                    ${data.reply}
-                `;
-                messages.appendChild(aiMessage);
-                messages.scrollTop = messages.scrollHeight;
-
-            } catch (error) {
-                // Remove typing indicator
-                if (messages.contains(typingMessage)) {
-                    messages.removeChild(typingMessage);
-                }
-                
-                console.error('Chat error:', error);
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'message assistant';
-                errorMessage.innerHTML = `
-                    <div class="message-meta">System • Fehler</div>
-                    <em>Verbindung zur KI fehlgeschlagen. Bitte versuchen Sie es erneut.</em>
-                `;
-                messages.appendChild(errorMessage);
-                messages.scrollTop = messages.scrollHeight;
-            }
-        }
-
-        // Allow sending messages with Enter key
-        document.getElementById('chatInput').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // Integration functions
-        function testAPIConnection() {
-            const testBtn = document.querySelector('.test-btn');
-            const originalText = testBtn.textContent;
-            
-            testBtn.textContent = 'Teste Verbindung...';
-            testBtn.disabled = true;
-            
-            setTimeout(() => {
-                testBtn.textContent = originalText;
-                testBtn.disabled = false;
-                alert('✅ Verbindung erfolgreich getestet!\n\n• API erreichbar\n• Authentifizierung erfolgreich\n• Datenübertragung verschlüsselt');
-            }, 2000);
-        }
-
-        function showDSGVOReport() {
-            alert('🔒 DSGVO-Compliance Status:\n\n✅ Datenverschlüsselung aktiv\n✅ Zugriffsprotokolle vollständig\n✅ Einverständniserklärungen aktuell\n✅ Backup-System DSGVO-konform\n\nLetzter Check: ' + new Date().toLocaleDateString('de-DE'));
-        }
-
-        // Form submission handlers
-        function addClient(event) {
-            event.preventDefault();
-            alert('Klient:in wird hinzugefügt...');
-            hideModal('clientModal');
-        }
-
-        function testIntegration(event, system) {
-            event.preventDefault();
-            const form = event.target;
-            const btn = form.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            
-            btn.textContent = 'Teste Verbindung...';
-            btn.disabled = true;
-            
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.disabled = false;
-                alert(`✅ ${system} Integration erfolgreich getestet!`);
-                hideModal(form.closest('.modal').id);
-            }, 2000);
-        }
-
-        function createPlan(event) {
-            event.preventDefault();
-            alert('Therapieplan wird erstellt...');
-            hideModal('planModal');
-        }
-
-        function addTodo(event) {
-            event.preventDefault();
-            alert('Aufgabe wird hinzugefügt...');
-            hideModal('todoModal');
-        }
-
-        // Client selection
-        function selectClient(element, clientId) {
-            const cards = document.querySelectorAll('.client-card');
-            cards.forEach(card => card.classList.remove('selected'));
-            element.classList.add('selected');
-        }
-
-        // Search functions
-        function performQuickSearch() {
-            const searchTerm = document.getElementById('quickSearch').value;
-            const client = document.getElementById('quickClient').value;
-            
-            if (searchTerm || client) {
-                const searchTab = document.querySelector('[onclick*="search"]');
-                showSection('search', searchTab);
-                document.getElementById('mainSearch').value = searchTerm;
-                setTimeout(() => {
-                    alert(`Suche nach "${searchTerm}" ${client ? `für ${client}` : ''} wird durchgeführt...`);
-                }, 500);
-            }
-        }
-
-        function performSearch() {
-            const searchTerm = document.getElementById('mainSearch').value;
-            if (searchTerm.trim() === '') {
-                alert('Bitte geben Sie einen Suchbegriff ein.');
-                return;
-            }
-            alert(`Durchsuche alle Protokolle nach: "${searchTerm}"`);
-        }
-
-        function exportClients() {
-            alert('Client-Export wird vorbereitet...');
-        }
-
-        // Audio recording (simplified)
-        let isRecording = false;
-        let recordingTimer = null;
-        let recordingTime = 0;
-
-        function toggleRecording() {
-            const btn = document.getElementById('recordBtn');
-            const status = document.getElementById('recordingStatus');
-            
-            if (!isRecording) {
-                isRecording = true;
-                btn.classList.add('recording');
-                btn.innerHTML = '⏹️';
-                status.style.display = 'flex';
-                recordingTime = 0;
-                
-                recordingTimer = setInterval(() => {
-                    recordingTime++;
-                    const minutes = Math.floor(recordingTime / 60);
-                    const seconds = recordingTime % 60;
-                    document.getElementById('recordTime').textContent = 
-                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }, 1000);
-            } else {
-                isRecording = false;
-                btn.classList.remove('recording');
-                btn.innerHTML = '🎤';
-                status.style.display = 'none';
-                
-                clearInterval(recordingTimer);
-                recordingTime = 0;
-                
-                setTimeout(() => {
-                    alert('Aufnahme beendet und wird verarbeitet...');
-                }, 500);
-            }
-        }
-
-        // File drag and drop setup
-        document.addEventListener('DOMContentLoaded', function() {
-            const uploadZone = document.getElementById('fileUpload');
-            
-            if (uploadZone) {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    uploadZone.addEventListener(eventName, preventDefaults, false);
-                });
-
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
-                });
-
-                ['dragleave', 'drop'].forEach(eventName => {
-                    uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
-                });
-
-                uploadZone.addEventListener('drop', handleDrop, false);
-            }
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = Array.from(dt.files);
-                handleFileUpload(files);
-            }
-        });
-        
-    </script>
-    <script>
-<script>
-// Füge dies in dein index.html Script-Bereich ein (ersetze die bestehende loadClients Funktion):
-
-async function loadClients() {
-    try {
-        const res = await fetch("/api/clients");
-        const clients = await res.json();
-        const grid = document.getElementById("clientGrid");
-        const emptyState = document.getElementById("clientsEmptyState");
-        
-        if (clients.length === 0) {
-            grid.innerHTML = "";
-            emptyState.style.display = "block";
-        } else {
-            emptyState.style.display = "none";
-            grid.innerHTML = "";
-            
-            clients.forEach(client => {
-                const card = document.createElement("div");
-                card.className = "client-card";
-                card.innerHTML = `
-                    <div class="client-header">
-                        <div class="client-initials">${client.name || 'N.N.'}</div>
-                        <div class="client-meta">
-                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
-                            <span class="tag">${client.notes ? client.notes.replace('Therapie: ', '') : 'Keine Therapie'}</span>
-                        </div>
-                    </div>
-                    <div class="client-stats">
-                        <span>📅 Letzte Sitzung: ${client.last_session ? new Date(client.last_session).toLocaleDateString('de-DE') : 'Noch keine'}</span>
-                        <span>🔢 Sessions: ${client.sessions || 0}</span>
-                    </div>
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="event.stopPropagation(); deleteClientConfirm(${client.id})">
-                            🗑️ Löschen
-                        </button>
-                        <button class="btn btn-primary" style="padding: 8px 12px; font-size: 12px;" onclick="event.stopPropagation(); addSessionForClient(${client.id})">
-                            ➕ Session
-                        </button>
-                    </div>
-                `;
-                card.onclick = () => selectClient(card, client.id);
-                grid.appendChild(card);
-            });
-        }
-        
-        document.getElementById("clientsBadge").innerText = clients.length;
-        document.getElementById("totalClients").innerText = clients.length;
-        
-        // Update quick search dropdown
-        const quickClient = document.getElementById('quickClient');
-        quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
-        clients.forEach(client => {
-            quickClient.innerHTML += `<option value="${client.id}">${client.name}</option>`;
-        });
-        
-        // Update stats
-        updateStats();
-        
-    } catch (error) {
-        console.error('Fehler beim Laden der Clients:', error);
-        alert('❌ Fehler beim Laden der Klient:innen');
-    }
-}
-
-// Add these helper functions
-async function deleteClientConfirm(clientId) {
-    if (confirm('Möchten Sie diesen Klienten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
-        try {
-            const response = await fetch(`/api/clients/${clientId}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                alert('✅ Klient erfolgreich gelöscht');
-                loadClients();
-            } else {
-                alert('❌ Fehler beim Löschen des Klienten');
-            }
-        } catch (error) {
-            console.error('Fehler beim Löschen:', error);
-            alert('❌ Netzwerkfehler beim Löschen');
-        }
-    }
-}
-
-async function addSessionForClient(clientId) {
-    const sessionData = {
-        client_id: clientId,
-        date: new Date().toISOString().split('T')[0],
-        duration: 50,
-        type: 'Einzeltherapie',
-        notes: prompt('Notizen zur Session (optional):') || ''
-    };
-    
-    try {
-        const response = await fetch('/api/sessions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sessionData)
-        });
-        
-        if (response.ok) {
-            alert('✅ Session erfolgreich hinzugefügt');
-            loadClients();
-        } else {
-            alert('❌ Fehler beim Hinzufügen der Session');
-        }
-    } catch (error) {
-        console.error('Fehler beim Hinzufügen der Session:', error);
-        alert('❌ Netzwerkfehler');
-    }
-}
-
-async function updateStats() {
-    try {
-        const res = await fetch("/api/stats");
-        const stats = await res.json();
-        
-        document.getElementById('totalClients').textContent = stats.totalClients;
-        document.getElementById('totalSessions').textContent = stats.totalSessions;
-        document.getElementById('pendingTodos').textContent = stats.pendingTodos;
-        document.getElementById('activePlans').textContent = stats.activePlans;
-    } catch (error) {
-        console.error('Fehler beim Laden der Statistiken:', error);
-    }
-}
-
-// Form submission handler
-async function addClient(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    const client = {
-        initials: formData.get('initials'),
-        diagnosis: formData.get('diagnosis'),
-        therapy: formData.get('therapy'),
-        sessions: parseInt(formData.get('sessions')) || 0,
-        lastSession: formData.get('lastSession') || new Date().toISOString().split('T')[0]
-    };
-    
-    try {
-        const response = await fetch("/api/clients", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(client)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert('✅ Klient:in erfolgreich hinzugefügt!');
-            loadClients(); // Reload the client list
-            hideModal('clientModal');
-            form.reset(); // Clear form
-        } else {
-            alert('❌ Fehler: ' + result.error);
-        }
-        
-    } catch (error) {
-        console.error('Fehler beim Hinzufügen des Clients:', error);
-        alert('❌ Netzwerkfehler beim Hinzufügen des Clients');
-    }
-}
-
-// Load clients when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Load clients after successful login
-    const originalInitializeApp = initializeApp;
-    initializeApp = function() {
-        originalInitializeApp();
-        loadClients();
-    };
-});
-</script>
-
-</body>
-</html>
-            
