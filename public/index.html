@@ -2385,8 +2385,8 @@
             }
         });
 </script>
-    <script>
-// Separate Script-Sektion für Client-Management
+<script>
+// Client-Management Funktionen
 
 async function loadClients() {
     try {
@@ -2486,6 +2486,7 @@ async function deleteClientConfirm(clientId) {
     }
 }
 
+// Override der ursprünglichen addClient Funktion
 async function addClient(event) {
     event.preventDefault();
     
@@ -2562,6 +2563,123 @@ async function loadStats() {
     } catch (error) {
         console.error('Fehler beim Laden der Statistiken:', error);
     }
+}
+
+// Chat-Funktionalität wiederherstellen
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (input.value.trim() === '' && chatAttachments.length === 0) return;
+    
+    // Add user message with attachments
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (chatAttachments.length > 0) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${input.value || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
+
+    const messageText = input.value;
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    
+    // Clear attachments
+    chatAttachments = [];
+    
+    messages.scrollTop = messages.scrollHeight;
+
+    // Show typing indicator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • tippt...</div>
+        <em>Antwort wird generiert...</em>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                message: messageText || 'Bitte analysiere die angehängten Dateien.',
+                hasAttachments: chatAttachments.length > 0
+            })
+        });
+
+        messages.removeChild(typingMessage);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${data.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        if (messages.contains(typingMessage)) {
+            messages.removeChild(typingMessage);
+        }
+        
+        console.error('Chat error:', error);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message assistant';
+        errorMessage.innerHTML = `
+            <div class="message-meta">System • Fehler</div>
+            <em>Verbindung zur KI fehlgeschlagen. Bitte versuchen Sie es erneut.</em>
+        `;
+        messages.appendChild(errorMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function attachFileToChat() {
+    document.getElementById('chatFileInput').click();
+}
+
+function handleChatFile(event) {
+    const files = Array.from(event.target.files);
+    chatAttachments = chatAttachments.concat(files);
+    
+    const input = document.getElementById('chatInput');
+    const fileCount = chatAttachments.length;
+    input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
+    
+    event.target.value = '';
 }
 </script>
 </body>
