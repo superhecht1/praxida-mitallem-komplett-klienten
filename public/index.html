@@ -2385,5 +2385,184 @@
             }
         });
 </script>
+    <script>
+// Separate Script-Sektion für Client-Management
+
+async function loadClients() {
+    try {
+        const response = await fetch('/api/clients');
+        if (response.ok) {
+            const clients = await response.json();
+            displayClients(clients);
+            updateQuickSearch(clients);
+            document.getElementById('clientsBadge').textContent = clients.length;
+        } else {
+            console.error('Fehler beim Laden der Klienten');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+function displayClients(clients) {
+    const grid = document.getElementById('clientGrid');
+    grid.innerHTML = '';
+    
+    clients.forEach(client => {
+        const card = document.createElement('div');
+        card.className = 'client-card';
+        
+        card.innerHTML = `
+            <div class="client-header">
+                <div class="client-initials">${client.name}</div>
+                <div class="client-meta">
+                    <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                    <span class="tag">Sitzungen: ${client.sessions}</span>
+                </div>
+            </div>
+            <div class="client-stats">
+                <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                <span>🔢 Sessions: ${client.sessions}</span>
+            </div>
+            <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(102, 126, 234, 0.1); padding-top: 15px;">
+                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="editClient(${client.id}); event.stopPropagation();">
+                    ✏️ Bearbeiten
+                </button>
+                <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="deleteClientConfirm(${client.id}); event.stopPropagation();">
+                    🗑️ Löschen
+                </button>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+    });
+}
+
+async function editClient(clientId) {
+    try {
+        const response = await fetch(`/api/clients/${clientId}`);
+        if (response.ok) {
+            const client = await response.json();
+            
+            const form = document.querySelector('#clientModal form');
+            form.querySelector('input[name="initials"]').value = client.name || '';
+            form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
+            form.querySelector('textarea[name="notes"]').value = client.notes || '';
+            
+            document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Aktualisieren';
+            
+            form.dataset.mode = 'edit';
+            form.dataset.clientId = clientId;
+            
+            showModal('clientModal');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        alert('❌ Fehler beim Laden der Daten');
+    }
+}
+
+async function deleteClientConfirm(clientId) {
+    const confirmed = confirm('⚠️ Klient:in wirklich löschen?\n\nAlle Daten werden gelöscht!');
+    
+    if (confirmed) {
+        try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                await loadClients();
+                await loadStats();
+                alert('✅ Klient:in gelöscht');
+            } else {
+                alert('❌ Fehler beim Löschen');
+            }
+        } catch (error) {
+            alert('❌ Verbindungsfehler');
+        }
+    }
+}
+
+async function addClient(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const clientData = {
+        initials: formData.get('initials'),
+        diagnosis: formData.get('diagnosis'),
+        therapy: formData.get('therapy'),
+        notes: formData.get('notes')
+    };
+
+    const isEditMode = form.dataset.mode === 'edit';
+    const clientId = form.dataset.clientId;
+
+    try {
+        let response;
+        
+        if (isEditMode) {
+            response = await fetch(`/api/clients/${clientId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: clientData.initials,
+                    diagnosis: clientData.diagnosis,
+                    notes: clientData.notes
+                })
+            });
+        } else {
+            response = await fetch('/api/clients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clientData)
+            });
+        }
+
+        if (response.ok) {
+            await loadClients();
+            await loadStats();
+            hideModal('clientModal');
+            alert(`✅ Klient:in ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+        } else {
+            alert('❌ Fehler beim Speichern');
+        }
+    } catch (error) {
+        alert('❌ Verbindungsfehler');
+    }
+}
+
+function updateQuickSearch(clients) {
+    const quickClient = document.getElementById('quickClient');
+    quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+    
+    clients.forEach(client => {
+        const option = document.createElement('option');
+        option.value = client.id;
+        option.textContent = client.name;
+        quickClient.appendChild(option);
+    });
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats');
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('totalClients').textContent = stats.totalClients;
+            document.getElementById('totalSessions').textContent = stats.totalSessions;
+            document.getElementById('pendingTodos').textContent = stats.pendingTodos;
+            document.getElementById('activePlans').textContent = stats.activePlans;
+            document.getElementById('todosBadge').textContent = stats.pendingTodos;
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Statistiken:', error);
+    }
+}
+</script>
 </body>
 </html>
