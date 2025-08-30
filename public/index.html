@@ -2059,32 +2059,46 @@
             }
         }
 
-        function displayClients(clients) {
-            const grid = document.getElementById('clientGrid');
-            grid.innerHTML = '';
-            
-            clients.forEach(client => {
-                const card = document.createElement('div');
-                card.className = 'client-card';
-                card.onclick = () => selectClient(card, client.id);
-                
-                card.innerHTML = `
-                    <div class="client-header">
-                        <div class="client-initials">${client.name}</div>
-                        <div class="client-meta">
-                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
-                            <span class="tag">Sitzungen: ${client.sessions}</span>
-                        </div>
-                    </div>
-                    <div class="client-stats">
-                        <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
-                        <span>🔢 Sessions: ${client.sessions}</span>
-                    </div>
-                `;
-                
-                grid.appendChild(card);
-            });
-        }
+function displayClients(clients) {
+    const grid = document.getElementById('clientGrid');
+    grid.innerHTML = '';
+    
+    clients.forEach(client => {
+        const card = document.createElement('div');
+        card.className = 'client-card';
+        
+        card.innerHTML = `
+            <div class="client-header">
+                <div class="client-initials">${client.name}</div>
+                <div class="client-meta">
+                    <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                    <span class="tag">Sitzungen: ${client.sessions}</span>
+                </div>
+            </div>
+            <div class="client-stats">
+                <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                <span>🔢 Sessions: ${client.sessions}</span>
+            </div>
+            <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="editClient(${client.id})">
+                    ✏️ Bearbeiten
+                </button>
+                <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px;" onclick="deleteClient(${client.id})">
+                    🗑️ Löschen
+                </button>
+            </div>
+        `;
+        
+        // Click handler für Card-Auswahl (aber nicht für Buttons)
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.client-actions')) {
+                selectClient(card, client.id);
+            }
+        });
+        
+        grid.appendChild(card);
+    });
+}
 
         function updateQuickSearch(clients) {
             const quickClient = document.getElementById('quickClient');
