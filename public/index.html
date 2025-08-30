@@ -2129,43 +2129,64 @@ function displayClients(clients) {
         }
 
         // Client Modal Form Handler
-        async function addClient(event) {
-            event.preventDefault();
-            
-            const form = event.target;
-            const formData = new FormData(form);
-            
-            const clientData = {
-                initials: formData.get('initials') || form.querySelector('input[placeholder*="A.B."]').value,
-                diagnosis: formData.get('diagnosis') || form.querySelector('input[placeholder*="Depression"]').value,
-                therapy: formData.get('therapy') || form.querySelector('select').value,
-                notes: formData.get('notes') || form.querySelector('textarea').value
-            };
+async function addClient(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const clientData = {
+        initials: formData.get('initials'),
+        diagnosis: formData.get('diagnosis'),
+        therapy: formData.get('therapy'),
+        notes: formData.get('notes')
+    };
 
-            try {
-                const response = await fetch('/api/clients', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(clientData)
-                });
+    // Prüfen ob Edit-Modus oder Neu-Modus
+    const isEditMode = form.dataset.mode === 'edit';
+    const clientId = form.dataset.clientId;
 
-                if (response.ok) {
-                    await loadClients();
-                    await loadStats();
-                    hideModal('clientModal');
-                    form.reset();
-                    alert('✅ Klient:in erfolgreich hinzugefügt!');
-                } else {
-                    const error = await response.json();
-                    alert('❌ Fehler: ' + error.error);
-                }
-            } catch (error) {
-                console.error('Fehler beim Hinzufügen:', error);
-                alert('❌ Verbindungsfehler');
-            }
+    try {
+        let response;
+        
+        if (isEditMode) {
+            // Update bestehender Client
+            response = await fetch(`/api/clients/${clientId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: clientData.initials,
+                    diagnosis: clientData.diagnosis,
+                    notes: `Therapie: ${clientData.therapy}. ${clientData.notes}`
+                })
+            });
+        } else {
+            // Neuer Client
+            response = await fetch('/api/clients', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(clientData)
+            });
         }
+
+        if (response.ok) {
+            await loadClients();
+            await loadStats();
+            hideModal('clientModal');
+            alert(`✅ Klient:in erfolgreich ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+        } else {
+            const error = await response.json();
+            alert('❌ Fehler: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        alert('❌ Verbindungsfehler');
+    }
+}
 
         function selectClient(element, clientId) {
             const cards = document.querySelectorAll('.client-card');
