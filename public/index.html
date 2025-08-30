@@ -2304,6 +2304,98 @@ document.querySelector('#clientModal form').addEventListener('submit', async fun
     loadClients();
     hideModal('clientModal');
 });
+        // Client bearbeiten
+async function editClient(clientId) {
+    try {
+        const response = await fetch(`/api/clients/${clientId}`);
+        if (response.ok) {
+            const client = await response.json();
+            
+            // Modal mit bestehenden Daten füllen
+            const form = document.querySelector('#clientModal form');
+            form.querySelector('input[name="initials"]').value = client.name || '';
+            form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
+            form.querySelector('select[name="therapy"]').value = extractTherapyFromNotes(client.notes);
+            form.querySelector('textarea[name="notes"]').value = client.notes || '';
+            
+            // Modal-Titel ändern
+            document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
+            
+            // Submit-Button Text ändern
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Aktualisieren';
+            
+            // Form für Update-Modus markieren
+            form.dataset.mode = 'edit';
+            form.dataset.clientId = clientId;
+            
+            showModal('clientModal');
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Client-Daten:', error);
+        alert('❌ Fehler beim Laden der Klient:in-Daten');
+    }
+}
+
+// Client löschen
+async function deleteClient(clientId) {
+    const confirmed = confirm('⚠️ Sind Sie sicher, dass Sie diese:n Klient:in löschen möchten?\n\nAlle zugehörigen Daten werden unwiderruflich gelöscht!');
+    
+    if (confirmed) {
+        try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                await loadClients();
+                await loadStats();
+                alert('✅ Klient:in erfolgreich gelöscht');
+            } else {
+                const error = await response.json();
+                alert('❌ Fehler beim Löschen: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Fehler beim Löschen:', error);
+            alert('❌ Verbindungsfehler beim Löschen');
+        }
+    }
+}
+
+// Hilfsfunktion um Therapieform aus Notizen zu extrahieren
+function extractTherapyFromNotes(notes) {
+    if (!notes) return 'Verhaltenstherapie (VT)';
+    
+    if (notes.includes('TP') || notes.includes('Tiefenpsychologie')) {
+        return 'Tiefenpsychologie (TP)';
+    } else if (notes.includes('PA') || notes.includes('Psychoanalyse')) {
+        return 'Psychoanalyse (PA)';
+    } else if (notes.includes('ST') || notes.includes('Systemische')) {
+        return 'Systemische Therapie (ST)';
+    }
+    
+    return 'Verhaltenstherapie (VT)';
+}
+
+// Modal reset beim Schließen
+function hideModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+    
+    if (modalId === 'clientModal') {
+        // Form zurücksetzen
+        const form = document.querySelector('#clientModal form');
+        form.reset();
+        form.dataset.mode = '';
+        form.dataset.clientId = '';
+        
+        // Modal-Titel zurücksetzen
+        document.querySelector('#clientModal .modal-title').textContent = 'Neue:n Klient:in hinzufügen';
+        
+        // Submit-Button Text zurücksetzen
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.textContent = 'Speichern';
+    }
+}
 </script>
 
 </body>
