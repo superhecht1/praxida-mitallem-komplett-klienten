@@ -1984,7 +1984,7 @@
     <!-- Hidden file input for chat attachments -->
     <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
 
-   <script>
+<script>
         // Global variables
         let currentUser = null;
         let currentUploadType = 'image';
@@ -2050,6 +2050,21 @@
 
         function hideModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
+            
+            if (modalId === 'clientModal') {
+                // Form zurücksetzen
+                const form = document.querySelector('#clientModal form');
+                form.reset();
+                form.dataset.mode = '';
+                form.dataset.clientId = '';
+                
+                // Modal-Titel zurücksetzen
+                document.querySelector('#clientModal .modal-title').textContent = 'Neue:n Klient:in hinzufügen';
+                
+                // Submit-Button Text zurücksetzen
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Speichern';
+            }
         }
 
         window.onclick = function(event) {
@@ -2076,46 +2091,119 @@
             }
         }
 
-function displayClients(clients) {
-    const grid = document.getElementById('clientGrid');
-    grid.innerHTML = '';
-    
-    clients.forEach(client => {
-        const card = document.createElement('div');
-        card.className = 'client-card';
-        
-        card.innerHTML = `
-            <div class="client-header">
-                <div class="client-initials">${client.name}</div>
-                <div class="client-meta">
-                    <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
-                    <span class="tag">Sitzungen: ${client.sessions}</span>
-                </div>
-            </div>
-            <div class="client-stats">
-                <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
-                <span>🔢 Sessions: ${client.sessions}</span>
-            </div>
-            <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px;">
-                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="editClient(${client.id})">
-                    ✏️ Bearbeiten
-                </button>
-                <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px;" onclick="deleteClient(${client.id})">
-                    🗑️ Löschen
-                </button>
-            </div>
-        `;
-        
-        // Click handler für Card-Auswahl (aber nicht für Buttons)
-        card.addEventListener('click', (e) => {
-            if (!e.target.closest('.client-actions')) {
-                selectClient(card, client.id);
+        function displayClients(clients) {
+            const grid = document.getElementById('clientGrid');
+            grid.innerHTML = '';
+            
+            clients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div class="client-initials">${client.name}</div>
+                        <div class="client-meta">
+                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                            <span class="tag">Sitzungen: ${client.sessions}</span>
+                        </div>
+                    </div>
+                    <div class="client-stats">
+                        <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                        <span>🔢 Sessions: ${client.sessions}</span>
+                    </div>
+                    <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(102, 126, 234, 0.1); padding-top: 15px;">
+                        <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="editClient(${client.id}); event.stopPropagation();">
+                            ✏️ Bearbeiten
+                        </button>
+                        <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="deleteClientConfirm(${client.id}); event.stopPropagation();">
+                            🗑️ Löschen
+                        </button>
+                    </div>
+                `;
+                
+                // Click handler für Card-Auswahl
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.client-actions')) {
+                        selectClient(card, client.id);
+                    }
+                });
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Client bearbeiten
+        async function editClient(clientId) {
+            try {
+                const response = await fetch(`/api/clients/${clientId}`);
+                if (response.ok) {
+                    const client = await response.json();
+                    
+                    // Modal mit bestehenden Daten füllen
+                    const form = document.querySelector('#clientModal form');
+                    form.querySelector('input[name="initials"]').value = client.name || '';
+                    form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
+                    form.querySelector('select[name="therapy"]').value = extractTherapyFromNotes(client.notes);
+                    form.querySelector('textarea[name="notes"]').value = client.notes || '';
+                    
+                    // Modal-Titel ändern
+                    document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
+                    
+                    // Submit-Button Text ändern
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    submitBtn.textContent = 'Aktualisieren';
+                    
+                    // Form für Update-Modus markieren
+                    form.dataset.mode = 'edit';
+                    form.dataset.clientId = clientId;
+                    
+                    showModal('clientModal');
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Client-Daten:', error);
+                alert('❌ Fehler beim Laden der Klient:in-Daten');
             }
-        });
-        
-        grid.appendChild(card);
-    });
-}
+        }
+
+        // Client löschen mit Bestätigung
+        async function deleteClientConfirm(clientId) {
+            const confirmed = confirm('⚠️ Sind Sie sicher, dass Sie diese:n Klient:in löschen möchten?\n\nAlle zugehörigen Daten werden unwiderruflich gelöscht!');
+            
+            if (confirmed) {
+                try {
+                    const response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        await loadClients();
+                        await loadStats();
+                        alert('✅ Klient:in erfolgreich gelöscht');
+                    } else {
+                        const error = await response.json();
+                        alert('❌ Fehler beim Löschen: ' + error.error);
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Löschen:', error);
+                    alert('❌ Verbindungsfehler beim Löschen');
+                }
+            }
+        }
+
+        // Hilfsfunktion um Therapieform aus Notizen zu extrahieren
+        function extractTherapyFromNotes(notes) {
+            if (!notes) return 'Verhaltenstherapie (VT)';
+            
+            if (notes.includes('TP') || notes.includes('Tiefenpsychologie')) {
+                return 'Tiefenpsychologie (TP)';
+            } else if (notes.includes('PA') || notes.includes('Psychoanalyse')) {
+                return 'Psychoanalyse (PA)';
+            } else if (notes.includes('ST') || notes.includes('Systemische')) {
+                return 'Systemische Therapie (ST)';
+            }
+            
+            return 'Verhaltenstherapie (VT)';
+        }
 
         function updateQuickSearch(clients) {
             const quickClient = document.getElementById('quickClient');
@@ -2146,64 +2234,64 @@ function displayClients(clients) {
         }
 
         // Client Modal Form Handler
-async function addClient(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    const clientData = {
-        initials: formData.get('initials'),
-        diagnosis: formData.get('diagnosis'),
-        therapy: formData.get('therapy'),
-        notes: formData.get('notes')
-    };
+        async function addClient(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clientData = {
+                initials: formData.get('initials'),
+                diagnosis: formData.get('diagnosis'),
+                therapy: formData.get('therapy'),
+                notes: formData.get('notes')
+            };
 
-    // Prüfen ob Edit-Modus oder Neu-Modus
-    const isEditMode = form.dataset.mode === 'edit';
-    const clientId = form.dataset.clientId;
+            // Prüfen ob Edit-Modus oder Neu-Modus
+            const isEditMode = form.dataset.mode === 'edit';
+            const clientId = form.dataset.clientId;
 
-    try {
-        let response;
-        
-        if (isEditMode) {
-            // Update bestehender Client
-            response = await fetch(`/api/clients/${clientId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: clientData.initials,
-                    diagnosis: clientData.diagnosis,
-                    notes: `Therapie: ${clientData.therapy}. ${clientData.notes}`
-                })
-            });
-        } else {
-            // Neuer Client
-            response = await fetch('/api/clients', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(clientData)
-            });
+            try {
+                let response;
+                
+                if (isEditMode) {
+                    // Update bestehender Client
+                    response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: clientData.initials,
+                            diagnosis: clientData.diagnosis,
+                            notes: `Therapie: ${clientData.therapy}. ${clientData.notes}`
+                        })
+                    });
+                } else {
+                    // Neuer Client
+                    response = await fetch('/api/clients', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(clientData)
+                    });
+                }
+
+                if (response.ok) {
+                    await loadClients();
+                    await loadStats();
+                    hideModal('clientModal');
+                    alert(`✅ Klient:in erfolgreich ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+                } else {
+                    const error = await response.json();
+                    alert('❌ Fehler: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                alert('❌ Verbindungsfehler');
+            }
         }
-
-        if (response.ok) {
-            await loadClients();
-            await loadStats();
-            hideModal('clientModal');
-            alert(`✅ Klient:in erfolgreich ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
-        } else {
-            const error = await response.json();
-            alert('❌ Fehler: ' + error.error);
-        }
-    } catch (error) {
-        console.error('Fehler:', error);
-        alert('❌ Verbindungsfehler');
-    }
-}
 
         function selectClient(element, clientId) {
             const cards = document.querySelectorAll('.client-card');
@@ -2223,7 +2311,7 @@ async function addClient(event) {
             }
         }
 
-        // Andere Funktionen (vereinfacht)
+        // Dummy-Funktionen für andere Features
         function setUploadType(type) {
             currentUploadType = type;
             document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
@@ -2297,144 +2385,5 @@ async function addClient(event) {
             }
         });
 </script>
-    <script>
-async function loadClients() {
-    const res = await fetch("/api/clients");
-    const clients = await res.json();
-    const grid = document.getElementById("clientGrid");
-    grid.innerHTML = "";
-    clients.forEach(c => {
-        const card = document.createElement("div");
-        card.className = "client-card";
-        card.innerHTML = `
-            <div class="client-header">
-                <div class="client-initials">${c.initials}</div>
-                <div class="client-meta">
-                    <span class="tag">${c.diagnosis}</span>
-                    <span class="tag">${c.therapy}</span>
-                </div>
-            </div>
-            <div class="client-stats">
-                <span>📅 Letzte Sitzung: ${c.lastSession}</span>
-                <span>🔢 Sessions: ${c.sessions}</span>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-    document.getElementById("clientsBadge").innerText = clients.length;
-}
-
-// Client hinzufügen (Formular absenden)
-document.querySelector('#clientModal form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const client = {
-        initials: this.querySelector('input[name="initials"]').value,
-        diagnosis: this.querySelector('input[name="diagnosis"]').value,
-        therapy: this.querySelector('input[name="therapy"]').value,
-        sessions: parseInt(this.querySelector('input[name="sessions"]').value) || 0,
-        lastSession: this.querySelector('input[name="lastSession"]').value
-    };
-    await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(client)
-    });
-    loadClients();
-    hideModal('clientModal');
-});
-        // Client bearbeiten
-async function editClient(clientId) {
-    try {
-        const response = await fetch(`/api/clients/${clientId}`);
-        if (response.ok) {
-            const client = await response.json();
-            
-            // Modal mit bestehenden Daten füllen
-            const form = document.querySelector('#clientModal form');
-            form.querySelector('input[name="initials"]').value = client.name || '';
-            form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
-            form.querySelector('select[name="therapy"]').value = extractTherapyFromNotes(client.notes);
-            form.querySelector('textarea[name="notes"]').value = client.notes || '';
-            
-            // Modal-Titel ändern
-            document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
-            
-            // Submit-Button Text ändern
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.textContent = 'Aktualisieren';
-            
-            // Form für Update-Modus markieren
-            form.dataset.mode = 'edit';
-            form.dataset.clientId = clientId;
-            
-            showModal('clientModal');
-        }
-    } catch (error) {
-        console.error('Fehler beim Laden der Client-Daten:', error);
-        alert('❌ Fehler beim Laden der Klient:in-Daten');
-    }
-}
-
-// Client löschen
-async function deleteClient(clientId) {
-    const confirmed = confirm('⚠️ Sind Sie sicher, dass Sie diese:n Klient:in löschen möchten?\n\nAlle zugehörigen Daten werden unwiderruflich gelöscht!');
-    
-    if (confirmed) {
-        try {
-            const response = await fetch(`/api/clients/${clientId}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                await loadClients();
-                await loadStats();
-                alert('✅ Klient:in erfolgreich gelöscht');
-            } else {
-                const error = await response.json();
-                alert('❌ Fehler beim Löschen: ' + error.error);
-            }
-        } catch (error) {
-            console.error('Fehler beim Löschen:', error);
-            alert('❌ Verbindungsfehler beim Löschen');
-        }
-    }
-}
-
-// Hilfsfunktion um Therapieform aus Notizen zu extrahieren
-function extractTherapyFromNotes(notes) {
-    if (!notes) return 'Verhaltenstherapie (VT)';
-    
-    if (notes.includes('TP') || notes.includes('Tiefenpsychologie')) {
-        return 'Tiefenpsychologie (TP)';
-    } else if (notes.includes('PA') || notes.includes('Psychoanalyse')) {
-        return 'Psychoanalyse (PA)';
-    } else if (notes.includes('ST') || notes.includes('Systemische')) {
-        return 'Systemische Therapie (ST)';
-    }
-    
-    return 'Verhaltenstherapie (VT)';
-}
-
-// Modal reset beim Schließen
-function hideModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
-    
-    if (modalId === 'clientModal') {
-        // Form zurücksetzen
-        const form = document.querySelector('#clientModal form');
-        form.reset();
-        form.dataset.mode = '';
-        form.dataset.clientId = '';
-        
-        // Modal-Titel zurücksetzen
-        document.querySelector('#clientModal .modal-title').textContent = 'Neue:n Klient:in hinzufügen';
-        
-        // Submit-Button Text zurücksetzen
-        const submitBtn = form.querySelector('button[type="submit"]');
-        submitBtn.textContent = 'Speichern';
-    }
-}
-</script>
-
 </body>
 </html>
