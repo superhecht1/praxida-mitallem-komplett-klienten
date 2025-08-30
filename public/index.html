@@ -1967,7 +1967,7 @@
     <!-- Hidden file input for chat attachments -->
     <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
 
-    <script>
+   <script>
         // Global variables
         let currentUser = null;
         let currentUploadType = 'image';
@@ -2002,41 +2002,22 @@
             currentUser = null;
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
-            // Reset form values
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
         }
 
-        function initializeApp() {
-            // Update client badge
-            document.getElementById('clientsBadge').textContent = '2';
-            
-            // Add sample clients to quick search
-            const quickClient = document.getElementById('quickClient');
-            quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
-            quickClient.innerHTML += '<option value="A.M.">A.M.</option>';
-            quickClient.innerHTML += '<option value="B.S.">B.S.</option>';
-            
-            // Simulate loading stats
-            setTimeout(() => {
-                document.getElementById('totalClients').textContent = '2';
-                document.getElementById('totalSessions').textContent = '20';
-                document.getElementById('pendingTodos').textContent = '0';
-                document.getElementById('activePlans').textContent = '1';
-                document.getElementById('todosBadge').textContent = '0';
-            }, 1000);
+        async function initializeApp() {
+            await loadClients();
+            await loadStats();
         }
 
-        // Navigation with proper active state management
+        // Navigation
         function showSection(sectionId, tabElement) {
-            // Hide all sections
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => section.classList.remove('active'));
             
-            // Show selected section
             document.getElementById(sectionId).classList.add('active');
             
-            // Update tab states
             const tabs = document.querySelectorAll('.nav-tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             
@@ -2054,14 +2035,143 @@
             document.getElementById(modalId).classList.remove('show');
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('show');
             }
         }
 
-        // File upload functionality
+        // --- KLIENTEN-FUNKTIONALITÄT --- //
+
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/clients');
+                if (response.ok) {
+                    const clients = await response.json();
+                    displayClients(clients);
+                    updateQuickSearch(clients);
+                    document.getElementById('clientsBadge').textContent = clients.length;
+                } else {
+                    console.error('Fehler beim Laden der Klienten');
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+            }
+        }
+
+        function displayClients(clients) {
+            const grid = document.getElementById('clientGrid');
+            grid.innerHTML = '';
+            
+            clients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                card.onclick = () => selectClient(card, client.id);
+                
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div class="client-initials">${client.name}</div>
+                        <div class="client-meta">
+                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                            <span class="tag">Sitzungen: ${client.sessions}</span>
+                        </div>
+                    </div>
+                    <div class="client-stats">
+                        <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                        <span>🔢 Sessions: ${client.sessions}</span>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function updateQuickSearch(clients) {
+            const quickClient = document.getElementById('quickClient');
+            quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+            
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                quickClient.appendChild(option);
+            });
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalClients').textContent = stats.totalClients;
+                    document.getElementById('totalSessions').textContent = stats.totalSessions;
+                    document.getElementById('pendingTodos').textContent = stats.pendingTodos;
+                    document.getElementById('activePlans').textContent = stats.activePlans;
+                    document.getElementById('todosBadge').textContent = stats.pendingTodos;
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Statistiken:', error);
+            }
+        }
+
+        // Client Modal Form Handler
+        async function addClient(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clientData = {
+                initials: formData.get('initials') || form.querySelector('input[placeholder*="A.B."]').value,
+                diagnosis: formData.get('diagnosis') || form.querySelector('input[placeholder*="Depression"]').value,
+                therapy: formData.get('therapy') || form.querySelector('select').value,
+                notes: formData.get('notes') || form.querySelector('textarea').value
+            };
+
+            try {
+                const response = await fetch('/api/clients', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(clientData)
+                });
+
+                if (response.ok) {
+                    await loadClients();
+                    await loadStats();
+                    hideModal('clientModal');
+                    form.reset();
+                    alert('✅ Klient:in erfolgreich hinzugefügt!');
+                } else {
+                    const error = await response.json();
+                    alert('❌ Fehler: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Fehler beim Hinzufügen:', error);
+                alert('❌ Verbindungsfehler');
+            }
+        }
+
+        function selectClient(element, clientId) {
+            const cards = document.querySelectorAll('.client-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        async function exportClients() {
+            try {
+                const response = await fetch('/api/clients');
+                if (response.ok) {
+                    const clients = await response.json();
+                    alert(`📄 Export vorbereitet:\n\n${clients.length} Klient:innen gefunden\n\nDaten werden heruntergeladen...`);
+                }
+            } catch (error) {
+                alert('❌ Export-Fehler');
+            }
+        }
+
+        // Andere Funktionen (vereinfacht)
         function setUploadType(type) {
             currentUploadType = type;
             document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
@@ -2072,432 +2182,69 @@
             document.getElementById('fileInput').click();
         }
 
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const files = Array.from(event.target.files);
-            handleFileUpload(files);
-        });
-
-        function handleFileUpload(files) {
-            if (files.length === 0) return;
-            
-            uploadedFiles = files;
-            const file = files[0]; // Show first file in preview
-            
-            const preview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-            const fileSize = document.getElementById('fileSize');
-            const fileIcon = document.getElementById('fileIcon');
-            const previewContent = document.getElementById('previewContent');
-            const emptyState = document.getElementById('filesEmptyState');
-            
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            
-            // Set icon based on file type
-            if (file.type.startsWith('image/')) {
-                fileIcon.textContent = '🖼️';
-                displayImagePreview(file, previewContent);
-            } else if (file.type.includes('pdf')) {
-                fileIcon.textContent = '📕';
-                previewContent.innerHTML = '<p>PDF-Dokument bereit zur Analyse</p>';
-            } else if (file.type.includes('text') || file.name.endsWith('.txt')) {
-                fileIcon.textContent = '📄';
-                displayTextPreview(file, previewContent);
-            } else {
-                fileIcon.textContent = '📎';
-                previewContent.innerHTML = '<p>Datei bereit zur Verarbeitung</p>';
-            }
-            
-            preview.classList.add('show');
-            emptyState.style.display = 'none';
+        function processFile() {
+            alert('Datei-Verarbeitung (Demo-Modus)');
         }
 
-        function displayImagePreview(file, container) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                container.innerHTML = `<img src="${e.target.result}" class="image-preview" alt="Vorschau">`;
-            };
-            reader.readAsDataURL(file);
+        function sendMessage() {
+            alert('Chat-Nachricht (Demo-Modus)');
         }
 
-        function displayTextPreview(file, container) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result.substring(0, 500) + (e.target.result.length > 500 ? '...' : '');
-                container.innerHTML = `<div class="text-content">${text}</div>`;
-            };
-            reader.readAsText(file);
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        async function processFile() {
-            if (uploadedFiles.length === 0) return;
-            
-            const filePreview = document.getElementById('filePreview');
-            const processBtn = filePreview.querySelector('.process-btn');
-            const originalText = processBtn.textContent;
-            
-            processBtn.textContent = 'Wird analysiert...';
-            processBtn.disabled = true;
-            filePreview.classList.add('loading');
-            
-            try {
-                const formData = new FormData();
-                formData.append('file', uploadedFiles[0]);
-                
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Add analysis to chat
-                    addAnalysisToChat(uploadedFiles[0], result.analysis);
-                    
-                    // Switch to chat section
-                    const chatTab = document.querySelector('[onclick*="chat"]');
-                    showSection('chat', chatTab);
-                    
-                    alert('Datei erfolgreich analysiert! Ergebnis wurde dem Chat hinzugefügt.');
-                } else {
-                    throw new Error(result.error || 'Unbekannter Fehler');
-                }
-                
-            } catch (error) {
-                console.error('Fehler bei der Dateiverarbeitung:', error);
-                alert('Fehler bei der Dateiverarbeitung: ' + error.message);
-            } finally {
-                processBtn.textContent = originalText;
-                processBtn.disabled = false;
-                filePreview.classList.remove('loading');
-            }
-        }
-
-        function addAnalysisToChat(file, analysis) {
-            const messages = document.getElementById('chatMessages');
-            
-            // Add file attachment message
-            const fileMessage = document.createElement('div');
-            fileMessage.className = 'message user';
-            fileMessage.innerHTML = `
-                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                <div class="message-attachment">
-                    <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                    <div class="attachment-info">
-                        <div class="attachment-name">${file.name}</div>
-                        <div class="attachment-type">Zur Analyse hochgeladen</div>
-                    </div>
-                </div>
-            `;
-            messages.appendChild(fileMessage);
-            
-            // Add analysis result
-            const analysisMessage = document.createElement('div');
-            analysisMessage.className = 'message assistant';
-            analysisMessage.innerHTML = `
-                <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                ${analysis}
-            `;
-            messages.appendChild(analysisMessage);
-            
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        // Chat functionality with file attachments
         function attachFileToChat() {
-            document.getElementById('chatFileInput').click();
+            alert('Datei-Anhang (Demo-Modus)');
         }
 
-        function handleChatFile(event) {
-            const files = Array.from(event.target.files);
-            chatAttachments = chatAttachments.concat(files);
-            
-            // Visual feedback
-            const input = document.getElementById('chatInput');
-            const fileCount = chatAttachments.length;
-            input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
-            
-            // Reset file input
-            event.target.value = '';
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const messages = document.getElementById('chatMessages');
-            
-            if (input.value.trim() === '' && chatAttachments.length === 0) return;
-            
-            // Add user message with attachments
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user';
-            
-            let attachmentsHtml = '';
-            if (chatAttachments.length > 0) {
-                attachmentsHtml = chatAttachments.map(file => `
-                    <div class="message-attachment">
-                        <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                        <div class="attachment-info">
-                            <div class="attachment-name">${file.name}</div>
-                            <div class="attachment-type">${formatFileSize(file.size)}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            userMessage.innerHTML = `
-                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                ${attachmentsHtml}
-                ${input.value || 'Dateianalyse angefordert'}
-            `;
-            messages.appendChild(userMessage);
-
-            const messageText = input.value;
-            input.value = '';
-            input.placeholder = 'Ihre Frage an die KI-Assistenz...';
-            
-            // Clear attachments
-            chatAttachments = [];
-            
-            messages.scrollTop = messages.scrollHeight;
-
-            // Show typing indicator
-            const typingMessage = document.createElement('div');
-            typingMessage.className = 'message assistant';
-            typingMessage.innerHTML = `
-                <div class="message-meta">KI-Assistenz • tippt...</div>
-                <em>Antwort wird generiert...</em>
-            `;
-            messages.appendChild(typingMessage);
-            messages.scrollTop = messages.scrollHeight;
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message: messageText || 'Bitte analysiere die angehängten Dateien.',
-                        hasAttachments: chatAttachments.length > 0
-                    })
-                });
-
-                // Remove typing indicator
-                messages.removeChild(typingMessage);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'message assistant';
-                aiMessage.innerHTML = `
-                    <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                    ${data.reply}
-                `;
-                messages.appendChild(aiMessage);
-                messages.scrollTop = messages.scrollHeight;
-
-            } catch (error) {
-                // Remove typing indicator
-                if (messages.contains(typingMessage)) {
-                    messages.removeChild(typingMessage);
-                }
-                
-                console.error('Chat error:', error);
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'message assistant';
-                errorMessage.innerHTML = `
-                    <div class="message-meta">System • Fehler</div>
-                    <em>Verbindung zur KI fehlgeschlagen. Bitte versuchen Sie es erneut.</em>
-                `;
-                messages.appendChild(errorMessage);
-                messages.scrollTop = messages.scrollHeight;
-            }
-        }
-
-        // Allow sending messages with Enter key
-        document.getElementById('chatInput').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // Integration functions
         function testAPIConnection() {
-            const testBtn = document.querySelector('.test-btn');
-            const originalText = testBtn.textContent;
-            
-            testBtn.textContent = 'Teste Verbindung...';
-            testBtn.disabled = true;
-            
-            setTimeout(() => {
-                testBtn.textContent = originalText;
-                testBtn.disabled = false;
-                alert('✅ Verbindung erfolgreich getestet!\n\n• API erreichbar\n• Authentifizierung erfolgreich\n• Datenübertragung verschlüsselt');
-            }, 2000);
+            alert('✅ API-Verbindung getestet (Demo)');
         }
 
         function showDSGVOReport() {
-            alert('🔒 DSGVO-Compliance Status:\n\n✅ Datenverschlüsselung aktiv\n✅ Zugriffsprotokolle vollständig\n✅ Einverständniserklärungen aktuell\n✅ Backup-System DSGVO-konform\n\nLetzter Check: ' + new Date().toLocaleDateString('de-DE'));
-        }
-
-        // Form submission handlers
-        function addClient(event) {
-            event.preventDefault();
-            alert('Klient:in wird hinzugefügt...');
-            hideModal('clientModal');
-        }
-
-        function testIntegration(event, system) {
-            event.preventDefault();
-            const form = event.target;
-            const btn = form.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            
-            btn.textContent = 'Teste Verbindung...';
-            btn.disabled = true;
-            
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.disabled = false;
-                alert(`✅ ${system} Integration erfolgreich getestet!`);
-                hideModal(form.closest('.modal').id);
-            }, 2000);
+            alert('🔒 DSGVO-Status: Alle Systeme sicher (Demo)');
         }
 
         function createPlan(event) {
             event.preventDefault();
-            alert('Therapieplan wird erstellt...');
+            alert('Therapieplan erstellt (Demo)');
             hideModal('planModal');
         }
 
         function addTodo(event) {
             event.preventDefault();
-            alert('Aufgabe wird hinzugefügt...');
+            alert('To-Do hinzugefügt (Demo)');
             hideModal('todoModal');
         }
 
-        // Client selection
-        function selectClient(element, clientId) {
-            const cards = document.querySelectorAll('.client-card');
-            cards.forEach(card => card.classList.remove('selected'));
-            element.classList.add('selected');
+        function testIntegration(event, system) {
+            event.preventDefault();
+            alert(`✅ ${system} Integration getestet (Demo)`);
+            hideModal(event.target.closest('.modal').id);
         }
 
-        // Search functions
         function performQuickSearch() {
-            const searchTerm = document.getElementById('quickSearch').value;
-            const client = document.getElementById('quickClient').value;
-            
-            if (searchTerm || client) {
-                const searchTab = document.querySelector('[onclick*="search"]');
-                showSection('search', searchTab);
-                document.getElementById('mainSearch').value = searchTerm;
-                setTimeout(() => {
-                    alert(`Suche nach "${searchTerm}" ${client ? `für ${client}` : ''} wird durchgeführt...`);
-                }, 500);
-            }
+            alert('Schnellsuche (Demo-Modus)');
         }
 
         function performSearch() {
-            const searchTerm = document.getElementById('mainSearch').value;
-            if (searchTerm.trim() === '') {
-                alert('Bitte geben Sie einen Suchbegriff ein.');
-                return;
-            }
-            alert(`Durchsuche alle Protokolle nach: "${searchTerm}"`);
+            alert('Suche wird durchgeführt (Demo)');
         }
-
-        function exportClients() {
-            alert('Client-Export wird vorbereitet...');
-        }
-
-        // Audio recording (simplified)
-        let isRecording = false;
-        let recordingTimer = null;
-        let recordingTime = 0;
 
         function toggleRecording() {
-            const btn = document.getElementById('recordBtn');
-            const status = document.getElementById('recordingStatus');
-            
-            if (!isRecording) {
-                isRecording = true;
-                btn.classList.add('recording');
-                btn.innerHTML = '⏹️';
-                status.style.display = 'flex';
-                recordingTime = 0;
-                
-                recordingTimer = setInterval(() => {
-                    recordingTime++;
-                    const minutes = Math.floor(recordingTime / 60);
-                    const seconds = recordingTime % 60;
-                    document.getElementById('recordTime').textContent = 
-                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }, 1000);
-            } else {
-                isRecording = false;
-                btn.classList.remove('recording');
-                btn.innerHTML = '🎤';
-                status.style.display = 'none';
-                
-                clearInterval(recordingTimer);
-                recordingTime = 0;
-                
-                setTimeout(() => {
-                    alert('Aufnahme beendet und wird verarbeitet...');
-                }, 500);
-            }
+            alert('Audio-Aufnahme (Demo-Modus)');
         }
 
-        // File drag and drop setup
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', function() {
-            const uploadZone = document.getElementById('fileUpload');
-            
-            if (uploadZone) {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    uploadZone.addEventListener(eventName, preventDefaults, false);
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        sendMessage();
+                    }
                 });
-
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
-                });
-
-                ['dragleave', 'drop'].forEach(eventName => {
-                    uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
-                });
-
-                uploadZone.addEventListener('drop', handleDrop, false);
-            }
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = Array.from(dt.files);
-                handleFileUpload(files);
             }
         });
-        
-    </script>
+</script>
     <script>
 async function loadClients() {
     const res = await fetch("/api/clients");
