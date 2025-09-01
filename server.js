@@ -150,7 +150,100 @@ app.delete("/api/clients/:id", (req, res) => {
     res.status(500).json({ error: "Fehler beim Löschen des Clients" });
   }
 });
+// --- TODOS API ROUTES --- //
 
+// Get all todos or todos for specific client
+app.get("/api/todos", (req, res) => {
+  try {
+    const clientId = req.query.client_id;
+    const todos = getTodos(clientId);
+    console.log(`✅ Loaded ${todos.length} todos`);
+    res.json(todos);
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen der Todos:", err);
+    res.status(500).json({ error: "Fehler beim Abrufen der Todos" });
+  }
+});
+
+// Add new todo
+app.post("/api/todos", (req, res) => {
+  try {
+    const todoData = {
+      client_id: req.body.client_id || null,
+      title: req.body.title,
+      description: req.body.description,
+      due_date: req.body.due_date,
+      priority: req.body.priority || 'Normal'
+    };
+
+    if (!todoData.title) {
+      return res.status(400).json({ error: "Titel ist erforderlich" });
+    }
+
+    const result = addTodo(todoData);
+    console.log(`✅ Todo hinzugefügt: ${todoData.title}`);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    console.error("❌ Fehler beim Hinzufügen eines Todos:", err);
+    res.status(500).json({ error: "Fehler beim Hinzufügen des Todos" });
+  }
+});
+
+// Update todo
+app.put("/api/todos/:id", (req, res) => {
+  try {
+    const updates = req.body;
+    delete updates.id;
+    
+    const result = updateTodo(req.params.id, updates);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Todo nicht gefunden" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Fehler beim Aktualisieren des Todos:", err);
+    res.status(500).json({ error: "Fehler beim Aktualisieren des Todos" });
+  }
+});
+
+// Complete todo
+app.post("/api/todos/:id/complete", (req, res) => {
+  try {
+    const result = completeTodo(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Todo nicht gefunden" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Fehler beim Abschließen des Todos:", err);
+    res.status(500).json({ error: "Fehler beim Abschließen des Todos" });
+  }
+});
+
+// Delete todo
+app.delete("/api/todos/:id", (req, res) => {
+  try {
+    const result = deleteTodo(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Todo nicht gefunden" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Fehler beim Löschen des Todos:", err);
+    res.status(500).json({ error: "Fehler beim Löschen des Todos" });
+  }
+});
+
+// Get todo statistics
+app.get("/api/todos/stats", (req, res) => {
+  try {
+    const stats = getTodosStats();
+    res.json(stats);
+  } catch (err) {
+    console.error("❌ Fehler bei Todo-Statistiken:", err);
+    res.status(500).json({ pending: 0, overdue: 0, today: 0 });
+  }
+});
 // --- SESSIONS API ROUTES --- //
 
 // Add session for client
