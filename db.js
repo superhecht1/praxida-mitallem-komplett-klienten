@@ -569,4 +569,47 @@ module.exports = {
   completeTodo,
   getTodosStats
 };
+// --- Ergänzungen --- //
+
+// Statistik
+function getStatistics() {
+  const totalClients = db.prepare("SELECT COUNT(*) AS count FROM clients").get().count;
+  const totalSessions = db.prepare("SELECT COUNT(*) AS count FROM sessions").get().count;
+  const sessionsThisMonth = db.prepare(`
+    SELECT COUNT(*) AS count FROM sessions 
+    WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+  `).get().count;
+
+  return { totalClients, totalSessions, sessionsThisMonth };
+}
+
+// Todos
+function getTodosStats() {
+  const pending = db.prepare("SELECT COUNT(*) AS count FROM todos WHERE completed = 0").get().count;
+  const overdue = db.prepare("SELECT COUNT(*) AS count FROM todos WHERE due_date < date('now') AND completed = 0").get().count;
+  const today = db.prepare("SELECT COUNT(*) AS count FROM todos WHERE due_date = date('now')").get().count;
+  return { pending, overdue, today };
+}
+
+// --- Export sicherstellen --- //
+module.exports = {
+  addClient,
+  getClients,
+  getClientById,
+  deleteClient,
+  updateClient,
+  addSession,
+  getSessionsByClient,
+  addDocument,
+  getDocumentsByClient,
+  addChatMessage,
+  getChatHistory,
+  getStatistics,
+  addTodo,
+  getTodos,
+  updateTodo,
+  deleteTodo,
+  completeTodo,
+  getTodosStats
+};
 
