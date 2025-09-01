@@ -65,7 +65,13 @@ const {
   getDocumentsByClient,
   addChatMessage,
   getChatHistory,
-  getStatistics
+  getStatistics,
+  addTodo,
+  getTodos,
+  updateTodo,
+  deleteTodo,
+  completeTodo,
+  getTodosStats
 } = require("./db");
 
 // --- CLIENTS API ROUTES --- //
