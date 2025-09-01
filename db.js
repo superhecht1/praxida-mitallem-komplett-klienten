@@ -32,6 +32,23 @@ try {
 }
 
 function initializeTables() {
+  // To-Dos Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date TEXT,
+      priority TEXT DEFAULT 'Normal',
+      completed INTEGER DEFAULT 0,
+      reminder_sent INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      completed_at TEXT,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    )
+  `).run();
+  
   // Clients/Patienten Tabelle
   db.prepare(`
     CREATE TABLE IF NOT EXISTS clients (
@@ -390,6 +407,119 @@ process.on('SIGINT', () => {
   }
   process.exit(0);
 });
+// --- TODO FUNKTIONEN --- //
+function addTodo(todoData) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO todos (client_id, title, description, due_date, priority, created_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    
+    const result = stmt.run(
+      todoData.client_id || null,
+      todoData.title,
+      todoData.description || null,
+      todoData.due_date || null,
+      todoData.priority || 'Normal'
+    );
+    
+    console.log("✅ Todo hinzugefügt:", todoData.title);
+    return result;
+  } catch (error) {
+    console.error("❌ Fehler beim Hinzufügen des Todos:", error);
+    throw error;
+  }
+}
+
+function getTodos(clientId = null) {
+  try {
+    let stmt;
+    if (clientId) {
+      stmt = db.prepare(`
+        SELECT t.*, c.name as client_name 
+        FROM todos t 
+        LEFT JOIN clients c ON t.client_id = c.id 
+        WHERE t.client_id = ?
+        ORDER BY t.due_date ASC, t.priority DESC, t.created_at DESC
+      `);
+      return stmt.all(clientId);
+    } else {
+      stmt = db.prepare(`
+        SELECT t.*, c.name as client_name 
+        FROM todos t 
+        LEFT JOIN clients c ON t.client_id = c.id 
+        ORDER BY t.completed ASC, t.due_date ASC, t.priority DESC, t.created_at DESC
+      `);
+      return stmt.all();
+    }
+  } catch (error) {
+    console.error("❌ Fehler beim Abrufen der Todos:", error);
+    return [];
+  }
+}
+
+function updateTodo(id, updates) {
+  try {
+    const fields = Object.keys(updates).filter(key => key !== 'id');
+    const setClause = fields.map(key => `${key} = ?`).join(', ');
+    const values = fields.map(key => updates[key]);
+    values.push(id);
+    
+    const stmt = db.prepare(`
+      UPDATE todos 
+      SET ${setClause}
+      WHERE id = ?
+    `);
+    
+    return stmt.run(...values);
+  } catch (error) {
+    console.error("❌ Fehler beim Aktualisieren des Todos:", error);
+    throw error;
+  }
+}
+
+function deleteTodo(id) {
+  try {
+    const stmt = db.prepare("DELETE FROM todos WHERE id = ?");
+    return stmt.run(id);
+  } catch (error) {
+    console.error("❌ Fehler beim Löschen des Todos:", error);
+    throw error;
+  }
+}
+
+function completeTodo(id) {
+  try {
+    const stmt = db.prepare(`
+      UPDATE todos 
+      SET completed = 1, completed_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(id);
+  } catch (error) {
+    console.error("❌ Fehler beim Abschließen des Todos:", error);
+    throw error;
+  }
+}
+
+function getTodosStats() {
+  try {
+    const pending = db.prepare("SELECT COUNT(*) as count FROM todos WHERE completed = 0").get().count;
+    const overdue = db.prepare(`
+      SELECT COUNT(*) as count FROM todos 
+      WHERE completed = 0 AND due_date < date('now')
+    `).get().count;
+    const today = db.prepare(`
+      SELECT COUNT(*) as count FROM todos 
+      WHERE completed = 0 AND due_date = date('now')
+    `).get().count;
+    
+    return { pending, overdue, today };
+  } catch (error) {
+    console.error("❌ Fehler bei Todo-Statistiken:", error);
+    return { pending: 0, overdue: 0, today: 0 };
+  }
+}
 
 module.exports = {
   db,
@@ -411,4 +541,32 @@ module.exports = {
   getChatHistory,
   // Statistics
   getStatistics
+  module.exports = {
+  db,
+  // Client functions
+  addClient,
+  getClients,
+  getClientById,
+  updateClient,
+  deleteClient,
+  // Session functions
+  addSession,
+  getSessionsByClient,
+  getSessionById,
+  // Document functions
+  addDocument,
+  getDocumentsByClient,
+  // Chat functions
+  addChatMessage,
+  getChatHistory,
+  // Statistics
+  getStatistics,
+  // Todo functions
+  addTodo,
+  getTodos,
+  updateTodo,
+  deleteTodo,
+  completeTodo,
+  getTodosStats
 };
+
