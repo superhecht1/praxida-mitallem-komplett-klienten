@@ -1738,11 +1738,49 @@
             </div>
 
             <!-- To-Dos Section -->
-            <div id="todos" class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">To-Dos & Erinnerungen</h2>
-                    <p class="section-subtitle">Automatisch generierte Aufgaben und Termine aus Ihren Therapiesitzungen</p>
-                </div>
+<div id="todos" class="content-section">
+    <div class="section-header">
+        <h2 class="section-title">To-Dos & Erinnerungen</h2>
+        <p class="section-subtitle">Aufgaben und Termine aus Ihren Therapiesitzungen</p>
+    </div>
+
+    <div style="margin-bottom: 30px; display: flex; gap: 15px; align-items: center;">
+        <button class="btn btn-primary" onclick="showModal('todoModal')">
+            <span>➕</span> Neue Aufgabe hinzufügen
+        </button>
+        <select class="search-input" style="width: 200px;" id="todoFilter" onchange="filterTodos()">
+            <option value="all">Alle Aufgaben</option>
+            <option value="pending">Offen</option>
+            <option value="completed">Erledigt</option>
+            <option value="overdue">Überfällig</option>
+        </select>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom: 30px;">
+        <div class="stat-card">
+            <div class="stat-number" id="pendingTodosCount">0</div>
+            <div class="stat-label">Offene Aufgaben</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="overdueTodosCount">0</div>
+            <div class="stat-label">Überfällig</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="todayTodosCount">0</div>
+            <div class="stat-label">Heute fällig</div>
+        </div>
+    </div>
+
+    <div class="client-grid" id="todoGrid">
+        <!-- Todos werden hier geladen -->
+    </div>
+
+    <div class="empty-state" id="todosEmptyState">
+        <div class="empty-icon">✅</div>
+        <h3>Keine Aufgaben vorhanden</h3>
+        <p>Erstellen Sie neue Aufgaben oder Erinnerungen für Ihre Therapiepraxis.</p>
+    </div>
+</div>
 
                 <div style="margin-bottom: 30px;">
                     <button class="btn btn-primary" onclick="showModal('todoModal')">
@@ -1942,44 +1980,46 @@
         </div>
     </div>
 
-    <div class="modal" id="todoModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Neue Aufgabe hinzufügen</h3>
-                <button class="close-btn" onclick="hideModal('todoModal')">×</button>
-            </div>
-            <form onsubmit="addTodo(event)">
-                <div class="form-group">
-                    <label class="form-label">Aufgabe</label>
-                    <input type="text" class="form-input" placeholder="Was muss erledigt werden?" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Klient:in</label>
-                    <select class="form-select">
-                        <option>Allgemein</option>
-                        <option>A.M.</option>
-                        <option>B.S.</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Fälligkeitsdatum</label>
-                    <input type="date" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Priorität</label>
-                    <select class="form-select">
-                        <option>Normal</option>
-                        <option>Hoch</option>
-                        <option>Niedrig</option>
-                    </select>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('todoModal')">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Aufgabe erstellen</button>
-                </div>
-            </form>
+<div class="modal" id="todoModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Neue Aufgabe hinzufügen</h3>
+            <button class="close-btn" onclick="hideModal('todoModal')">×</button>
         </div>
+        <form onsubmit="addTodo(event)">
+            <div class="form-group">
+                <label class="form-label">Aufgabe</label>
+                <input type="text" class="form-input" name="title" placeholder="Was muss erledigt werden?" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Beschreibung</label>
+                <textarea class="form-textarea" name="description" placeholder="Zusätzliche Details..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Klient:in</label>
+                <select class="form-select" name="client_id" id="todoClientSelect">
+                    <option value="">Allgemein</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fälligkeitsdatum</label>
+                <input type="date" class="form-input" name="due_date">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Priorität</label>
+                <select class="form-select" name="priority">
+                    <option value="Normal">Normal</option>
+                    <option value="Hoch">Hoch</option>
+                    <option value="Niedrig">Niedrig</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('todoModal')">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Aufgabe erstellen</button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- Hidden file input for chat attachments -->
     <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
@@ -2681,6 +2721,296 @@ function handleChatFile(event) {
     
     event.target.value = '';
 }
+// --- TODO FUNKTIONALITÄT --- //
+
+async function loadTodos() {
+    try {
+        const response = await fetch('/api/todos');
+        if (response.ok) {
+            const todos = await response.json();
+            displayTodos(todos);
+            await loadTodoStats();
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Todos:', error);
+    }
+}
+
+function displayTodos(todos) {
+    const grid = document.getElementById('todoGrid');
+    const emptyState = document.getElementById('todosEmptyState');
+    
+    if (todos.length === 0) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+    
+    grid.style.display = 'grid';
+    emptyState.style.display = 'none';
+    grid.innerHTML = '';
+    
+    todos.forEach(todo => {
+        const card = document.createElement('div');
+        card.className = 'client-card';
+        
+        if (todo.completed) {
+            card.style.opacity = '0.6';
+        }
+        
+        const isOverdue = todo.due_date && new Date(todo.due_date) < new Date() && !todo.completed;
+        const isToday = todo.due_date && todo.due_date === new Date().toISOString().split('T')[0];
+        
+        let priorityColor = '#667eea';
+        if (todo.priority === 'Hoch') priorityColor = '#ff4757';
+        else if (todo.priority === 'Niedrig') priorityColor = '#5f27cd';
+        
+        card.innerHTML = `
+            <div class="client-header">
+                <div class="client-initials" style="background: ${priorityColor}; color: white; padding: 8px; border-radius: 8px; font-size: 14px;">
+                    ${todo.priority === 'Hoch' ? '🔴' : todo.priority === 'Niedrig' ? '🔵' : '🟡'}
+                </div>
+                <div class="client-meta">
+                    <span class="tag">${todo.client_name || 'Allgemein'}</span>
+                    ${isOverdue ? '<span class="tag" style="background: #ff4757; color: white;">Überfällig</span>' : ''}
+                    ${isToday ? '<span class="tag" style="background: #ffa502; color: white;">Heute</span>' : ''}
+                    ${todo.completed ? '<span class="tag" style="background: #2ed573; color: white;">Erledigt</span>' : ''}
+                </div>
+            </div>
+            <div style="margin: 15px 0;">
+                <h4 style="color: ${todo.completed ? '#666' : '#333'}; margin-bottom: 8px; ${todo.completed ? 'text-decoration: line-through;' : ''}">${todo.title}</h4>
+                ${todo.description ? `<p style="color: #666; font-size: 14px; margin-bottom: 10px;">${todo.description}</p>` : ''}
+                <div class="client-stats">
+                    ${todo.due_date ? `<span>📅 Fällig: ${formatDate(todo.due_date)}</span>` : '<span>📅 Kein Datum</span>'}
+                    <span>⏰ Erstellt: ${formatDate(todo.created_at.split(' ')[0])}</span>
+                </div>
+            </div>
+            <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(102, 126, 234, 0.1); padding-top: 15px;">
+                ${!todo.completed ? `
+                    <button class="btn btn-success" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="completeTodoItem(${todo.id}); event.stopPropagation();">
+                        ✅ Erledigen
+                    </button>
+                ` : ''}
+                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="editTodo(${todo.id}); event.stopPropagation();">
+                    ✏️ Bearbeiten
+                </button>
+                <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="deleteTodoConfirm(${todo.id}); event.stopPropagation();">
+                    🗑️ Löschen
+                </button>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+    });
+}
+
+async function addTodo(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const todoData = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        client_id: formData.get('client_id') || null,
+        due_date: formData.get('due_date') || null,
+        priority: formData.get('priority')
+    };
+
+    const isEditMode = form.dataset.mode === 'edit';
+    const todoId = form.dataset.todoId;
+
+    try {
+        let response;
+        
+        if (isEditMode) {
+            response = await fetch(`/api/todos/${todoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(todoData)
+            });
+        } else {
+            response = await fetch('/api/todos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(todoData)
+            });
+        }
+
+        if (response.ok) {
+            await loadTodos();
+            await loadStats();
+            hideModal('todoModal');
+            alert(`✅ Aufgabe ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+        } else {
+            alert('❌ Fehler beim Speichern');
+        }
+    } catch (error) {
+        alert('❌ Verbindungsfehler');
+    }
+}
+
+async function editTodo(todoId) {
+    try {
+        const response = await fetch('/api/todos');
+        if (response.ok) {
+            const todos = await response.json();
+            const todo = todos.find(t => t.id === todoId);
+            
+            if (todo) {
+                const form = document.querySelector('#todoModal form');
+                form.querySelector('input[name="title"]').value = todo.title || '';
+                form.querySelector('textarea[name="description"]').value = todo.description || '';
+                form.querySelector('select[name="client_id"]').value = todo.client_id || '';
+                form.querySelector('input[name="due_date"]').value = todo.due_date || '';
+                form.querySelector('select[name="priority"]').value = todo.priority || 'Normal';
+                
+                document.querySelector('#todoModal .modal-title').textContent = 'Aufgabe bearbeiten';
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Aktualisieren';
+                
+                form.dataset.mode = 'edit';
+                form.dataset.todoId = todoId;
+                
+                showModal('todoModal');
+            }
+        }
+    } catch (error) {
+        alert('❌ Fehler beim Laden der Aufgabe');
+    }
+}
+
+async function completeTodoItem(todoId) {
+    try {
+        const response = await fetch(`/api/todos/${todoId}/complete`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            await loadTodos();
+            await loadStats();
+            alert('✅ Aufgabe als erledigt markiert!');
+        } else {
+            alert('❌ Fehler beim Abschließen der Aufgabe');
+        }
+    } catch (error) {
+        alert('❌ Verbindungsfehler');
+    }
+}
+
+async function deleteTodoConfirm(todoId) {
+    const confirmed = confirm('⚠️ Aufgabe wirklich löschen?');
+    
+    if (confirmed) {
+        try {
+            const response = await fetch(`/api/todos/${todoId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                await loadTodos();
+                await loadStats();
+                alert('✅ Aufgabe gelöscht');
+            } else {
+                alert('❌ Fehler beim Löschen');
+            }
+        } catch (error) {
+            alert('❌ Verbindungsfehler');
+        }
+    }
+}
+
+async function loadTodoStats() {
+    try {
+        const response = await fetch('/api/todos/stats');
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('pendingTodosCount').textContent = stats.pending;
+            document.getElementById('overdueTodosCount').textContent = stats.overdue;
+            document.getElementById('todayTodosCount').textContent = stats.today;
+            document.getElementById('todosBadge').textContent = stats.pending;
+        }
+    } catch (error) {
+        console.error('Fehler bei Todo-Statistiken:', error);
+    }
+}
+
+function filterTodos() {
+    const filter = document.getElementById('todoFilter').value;
+    // TODO: Implementieren Sie die Filterlogik
+    loadTodos(); // Für jetzt laden wir einfach alle neu
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'Kein Datum';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('de-DE');
+}
+
+// Todo Modal beim Öffnen vorbereiten
+function showModal(modalId) {
+    document.getElementById(modalId).classList.add('show');
+    
+    if (modalId === 'todoModal') {
+        // Client-Select mit aktuellen Clients füllen
+        updateTodoClientSelect();
+    }
+}
+
+async function updateTodoClientSelect() {
+    try {
+        const response = await fetch('/api/clients');
+        if (response.ok) {
+            const clients = await response.json();
+            const select = document.getElementById('todoClientSelect');
+            select.innerHTML = '<option value="">Allgemein</option>';
+            
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Clients für Todo:', error);
+    }
+}
+
+// hideModal erweitern für Todo-Reset
+const originalHideModal = hideModal;
+function hideModal(modalId) {
+    originalHideModal(modalId);
+    
+    if (modalId === 'todoModal') {
+        const form = document.querySelector('#todoModal form');
+        form.reset();
+        form.dataset.mode = '';
+        form.dataset.todoId = '';
+        
+        document.querySelector('#todoModal .modal-title').textContent = 'Neue Aufgabe hinzufügen';
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.textContent = 'Aufgabe erstellen';
+    }
+}
+
+// initializeApp erweitern
+const originalInitializeApp = initializeApp;
+async function initializeApp() {
+    await originalInitializeApp();
+    await loadTodos();
+}
+
+// Navigation erweitern - Todos laden wenn Section geöffnet wird
+const originalShowSection = showSection;
+function showSection(sectionId, tabElement) {
+    originalShowSection(sectionId, tabElement);
+    
+    if (sectionId === 'todos') {
+        loadTodos();
+    }
+}    
 </script>
 </body>
 </html>
