@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxida 2.0 - KI-Assistenz für Therapeuten</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: calc(100vh - 40px);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        
+        .logo h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .logo .version {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .logo p {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .user-info {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            margin: 0 auto 15px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-tab {
+            padding: 16px 22px;
+            border: none;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            color: #667eea;
+            border-radius: 15px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .nav-tab:hover {
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+            border-color: transparent;
+        }
+        
+        .nav-tab .icon {
+            font-size: 18px;
+        }
+        
+        .nav-tab .badge {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            margin-left: auto;
+            font-weight: 700;
+        }
+        
+        .nav-tab:not(.active) .badge {
+            background: #667eea;
+            color: white;
+        }
+        
+        .quick-actions {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .quick-actions h4 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            padding: 14px 26px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f1f1f1, #e8e8e8);
+            color: #666;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .content-section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        .section-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #eef2ff;
+        }
+        
+        .section-title {
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-subtitle {
+            color: #666;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .stat-number {
+            font-size: 42px;
+            font-weight: 900;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .feature-showcase {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            border-radius: 25px;
+            margin-bottom: 35px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        }
+        
+        .feature-showcase::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+        }
+        
+        .feature-showcase h3 {
+            font-size: 26px;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+        
+        .feature-showcase p {
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 25px;
+            opacity: 0.95;
+        }
+        
+        .feature-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .feature-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 14px 26px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .client-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .client-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 3px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .client-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25);
+        }
+        
+        .client-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.4);
+        }
+        
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .client-initials {
+            font-size: 22px;
+            font-weight: 800;
+        }
+        
+        .client-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            background: rgba(102,126,234,0.15);
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .client-card.selected .tag {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+        
+        .client-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+        
+        .client-stats span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .client-actions {
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+            padding-top: 15px;
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .client-card.selected .client-actions {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .client-actions .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        /* File Upload and Analysis Styles */
+        .upload-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-type {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-type:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-type.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-type-icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 18px;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            transition: all 0.3s;
+            margin-bottom: 25px;
+            cursor: pointer;
+        }
+
+        .file-upload-zone:hover,
+        .file-upload-zone.dragover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            transform: translateY(-2px);
+        }
+
+        .file-upload-zone.uploading {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-color: #667eea;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 52px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .upload-text p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .file-preview {
+            background: white;
+            border: 2px solid #eef2ff;
+            border-radius: 18px;
+            padding: 25px;
+            margin: 20px 0;
+            display: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .file-preview.show {
+            display: block;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .file-icon {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 22px;
+        }
+
+        .file-details h4 {
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin: 15px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .text-content {
+            background: #f8f9ff;
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .process-btn {
+            width: 100%;
+            margin-top: 18px;
+        }
+        
+        /* Chat Interface */
+        .chat-interface {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+            height: 700px;
+        }
+        
+        .chat-header {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            padding: 22px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .messages {
+            overflow-y: auto;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 18px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            scroll-behavior: smooth;
+        }
+        
+        .message {
+            margin-bottom: 25px;
+            padding: 22px;
+            border-radius: 20px;
+            max-width: 85%;
+            line-height: 1.7;
+            font-size: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.assistant {
+            background: white;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .message-meta {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .message-attachment {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .attachment-icon {
+            font-size: 22px;
+        }
+
+        .attachment-info {
+            flex: 1;
+        }
+
+        .attachment-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .attachment-type {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .input-area {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .message-input {
+            padding: 20px 22px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 65px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .message-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .attach-btn {
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            color: #667eea;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .attach-btn:hover {
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            transform: translateY(-3px);
+        }
+        
+        .send-btn {
+            padding: 20px 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .send-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Audio Controls */
+        .audio-controls {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .recording-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .recording-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .record-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            font-size: 26px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+        
+        .record-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
+        }
+        
+        .record-btn.recording {
+            background: linear-gradient(135deg, #ff4757, #c44569);
+            animation: recordPulse 1.5s infinite;
+        }
+        
+        @keyframes recordPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 45px;
+            border-radius: 25px;
+            max-width: 650px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #eef2ff;
+        }
+        
+        .modal-title {
+            font-size: 26px;
+            color: #667eea;
+            font-weight: 800;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: #f1f1f1;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        
+        .form-textarea {
+            height: 130px;
+            resize: vertical;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 3px solid #eef2ff;
+        }
+        
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 45px;
+            height: 45px;
+            border: 4px solid #eef2ff;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 70px 30px;
+            color: #666;
+        }
+        
+        .empty-icon {
+            font-size: 72px;
+            margin-bottom: 25px;
+            opacity: 0.6;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 18px;
+            color: #333;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .empty-state p {
+            line-height: 1.7;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 280px 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .sidebar {
+                position: static;
+                order: 2;
+            }
+            
+            .main-content {
+                order: 1;
+                min-height: auto;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .feature-buttons {
+                justify-content: center;
+            }
+            
+            .chat-interface {
+                height: 500px;
+            }
+
+            .upload-types {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-area {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .send-btn, .attach-btn {
+                width: 100%;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Analysis Results */
+        .analysis-result {
+            background: white;
+            border: 2px solid #eef2ff;
+            border-radius: 18px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .analysis-result h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .ai-analysis {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .file-analysis-fallback {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .analysis-error {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            border-radius: 15px;
+            padding: 20px;
+            color: #856404;
+        }
+
+        .chat-response {
+            line-height: 1.6;
+        }
+
+        .chat-response h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .chat-response ul {
+            margin: 10px 0 10px 20px;
+        }
+
+        .chat-response li {
+            margin-bottom: 8px;
+        }
+
+        .feature-info, .api-info, .current-status, .suggestions, .help-sections {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .help-section {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .quick-tips {
+            background: rgba(79, 172, 254, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .upgrade-hint {
+            background: rgba(240, 147, 251, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid rgba(240, 147, 251, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainApp">
+        <div class="sidebar">
+            <div class="logo">
+                <h1>Praxida</h1>
+                <span class="version">2.0</span>
+                <p>KI-Assistenz für Therapeuten</p>
+            </div>
+
+            <div class="user-info">
+                <div class="user-avatar">TH</div>
+                <div class="user-name">Therapeut:in</div>
+            </div>
+            
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showSection('overview', this)">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('clients', this)">
+                    <span class="icon">👥</span>
+                    <span>Klient:innen</span>
+                    <span class="badge" id="clientsBadge">0</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('files', this)">
+                    <span class="icon">🔎</span>
+                    <span>Datei-Analyse</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('audio', this)">
+                    <span class="icon">🎤</span>
+                    <span>Audio-Protokolle</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('chat', this)">
+                    <span class="icon">💬</span>
+                    <span>KI-Chat</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('integration', this)">
+                    <span class="icon">🔗</span>
+                    <span>System-Integration</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('planning', this)">
+                    <span class="icon">📋</span>
+                    <span>Therapieplanung</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('todos', this)">
+                    <span class="icon">✅</span>
+                    <span>To-Dos & Erinnerungen</span>
+                    <span class="badge" id="todosBadge">0</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('team', this)">
+                    <span class="icon">👥</span>
+                    <span>Team-Kollaboration</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('search', this)">
+                    <span class="icon">🔍</span>
+                    <span>Verlaufssuche</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('summary', this)">
+                    <span class="icon">📄</span>
+                    <span>Zusammenfassung</span>
+                </button>
+            </div>
+            
+            <div class="quick-actions">
+                <h4>🚀 Schnellaktionen</h4>
+                <input type="text" class="search-input" placeholder="Schnellsuche..." id="quickSearch">
+                <div style="display: grid; gap: 10px;">
+                    <select class="search-input" id="quickClient">
+                        <option value="">Klient:in auswählen</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="performQuickSearch()">
+                        <span>🔍</span> Suchen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Dashboard -->
+            <div id="overview" class="content-section active">
+                <div class="section-header">
+                    <h2 class="section-title">Dashboard</h2>
+                    <p class="section-subtitle">Ihre komplette Praxisverwaltung mit KI-Unterstützung</p>
+                </div>
+                
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalClients">0</div>
+                        <div class="stat-label">Aktive Klient:innen</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSessions">0</div>
+                        <div class="stat-label">Gesamte Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingTodos">0</div>
+                        <div class="stat-label">Offene To-Dos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activePlans">0</div>
+                        <div class="stat-label">Aktive Therapiepläne</div>
+                    </div>
+                </div>
+                
+                <div class="feature-showcase">
+                    <h3>🎯 Neue Profi-Features in Version 2.0</h3>
+                    <p>
+                        <strong>Intelligente Datei-Analyse:</strong> Laden Sie Bilder und Textdateien hoch für KI-gestützte Auswertung.<br>
+                        <strong>System-Integration:</strong> Nahtlose Verbindung zu bestehender Praxissoftware und Verwaltungssystemen.<br>
+                        <strong>Optimierte Benutzeroberfläche:</strong> Modernes, benutzerfreundliches Design für effizienteres Arbeiten.
+                    </p>
+                    <div class="feature-buttons">
+                        <button class="feature-btn" onclick="showSection('files', document.querySelector('[onclick*=\"files\"]'))">
+                            🔎 Datei-Analyse
+                        </button>
+                        <button class="feature-btn" onclick="showSection('integration', document.querySelector('[onclick*=\"integration\"]'))">
+                            🔗 Integration
+                        </button>
+                        <button class="feature-btn" onclick="showSection('chat', document.querySelector('[onclick*=\"chat\"]'))">
+                            💬 KI-Chat
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Klient:innen Section -->
+            <div id="clients" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Klient:innen-Verwaltung</h2>
+                    <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
+                </div>
+                
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary" onclick="showModal('clientModal')">
+                        <span>➕</span> Neue:n Klient:in hinzufügen
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportClients()">
+                        <span>📄</span> Exportieren
+                    </button>
+                </div>
+
+                <div class="client-grid" id="clientGrid">
+                    <!-- Clients will be loaded here -->
+                </div>
+
+                <div class="empty-state" id="clientsEmptyState" style="display: none;">
+                    <div class="empty-icon">👥</div>
+                    <h3>Noch keine Klient:innen</h3>
+                    <p>Fügen Sie Ihre ersten Patient:innen hinzu, um mit der Verwaltung zu beginnen.</p>
+                </div>
+            </div>
+
+            <!-- Datei-Analyse Section -->
+            <div id="files" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Datei-Analyse</h2>
+                    <p class="section-subtitle">KI-gestützte Analyse von Bildern und Textdateien für therapeutische Zwecke</p>
+                </div>
+
+                <div class="upload-types">
+                    <div class="upload-type active" onclick="setUploadType('image')" id="imageType">
+                        <div class="upload-type-icon">🖼️</div>
+                        <h4>Bilder analysieren</h4>
+                        <p>Screenshots, Zeichnungen, Fotos von Dokumenten</p>
+                    </div>
+                    <div class="upload-type" onclick="setUploadType('text')" id="textType">
+                        <div class="upload-type-icon">📄</div>
+                        <h4>Textdateien</h4>
+                        <p>PDF, DOC, TXT Dokumente verarbeiten</p>
+                    </div>
+                    <div class="upload-type" onclick="setUploadType('mixed')" id="mixedType">
+                        <div class="upload-type-icon">🔎</div>
+                        <h4>Kombiniert</h4>
+                        <p>Mehrere Dateitypen gleichzeitig</p>
+                    </div>
+                </div>
+
+                <div class="file-upload-zone" id="fileUpload">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        <h3>Dateien hier ablegen oder klicken</h3>
+                        <p>Unterstützte Formate: JPG, PNG, PDF, DOC, DOCX, TXT<br>
+                        Max. Größe: 10MB pro Datei</p>
+                    </div>
+                </div>
+
+                <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+
+                <div class="file-preview" id="filePreview">
+                    <div class="file-info">
+                        <div class="file-icon" id="fileIcon">📄</div>
+                        <div class="file-details">
+                            <h4 id="fileName">Keine Datei ausgewählt</h4>
+                            <div class="file-size" id="fileSize">0 KB</div>
+                        </div>
+                    </div>
+                    <div id="previewContent"></div>
+                    <button class="btn btn-primary process-btn" onclick="processSelectedFile()" id="processBtn">
+                        <span>🤖</span> Mit KI analysieren
+                    </button>
+                </div>
+
+                <div class="analysis-result" id="analysisResult" style="display: none;">
+                    <h4>🔍 Analyse-Ergebnis</h4>
+                    <div id="analysisContent"></div>
+                </div>
+
+                <div class="empty-state" id="filesEmptyState">
+                    <div class="empty-icon">🔎</div>
+                    <h3>Keine Dateien hochgeladen</h3>
+                    <p>Laden Sie Bilder oder Textdateien hoch, um sie mit KI-Unterstützung zu analysieren und therapeutische Erkenntnisse zu gewinnen.</p>
+                </div>
+            </div>
+
+            <!-- Audio-Protokolle Section -->
+            <div id="audio" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Audio-Protokolle</h2>
+                    <p class="section-subtitle">Intelligente Transkription und Protokollerstellung Ihrer Therapiesitzungen</p>
+                </div>
+
+                <div class="file-upload-zone" id="audioUpload" onclick="triggerAudioInput()">
+                    <div class="upload-icon">🎤</div>
+                    <div class="upload-text">
+                        <h3>Audio-Datei hochladen oder aufnehmen</h3>
+                        <p>Ziehen Sie eine Audio-Datei hierher oder klicken Sie, um eine Datei auszuwählen.<br>
+                        Unterstützte Formate: MP3, WAV, M4A, OGG</p>
+                        <button class="btn btn-primary">
+                            <span>📁</span> Datei auswählen
+                        </button>
+                    </div>
+                </div>
+
+                <input type="file" id="audioInput" accept="audio/*" style="display: none;">
+
+                <div class="audio-controls">
+                    <div class="recording-status" id="recordingStatus" style="display: none;">
+                        <div class="recording-dot"></div>
+                        <span>Aufnahme läuft... <span id="recordTime">00:00</span></span>
+                    </div>
+                    <button class="record-btn" id="recordBtn" onclick="toggleRecording()">
+                        🎤
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🎧</div>
+                    <h3>Noch keine Audio-Protokolle vorhanden</h3>
+                    <p>Laden Sie eine Audio-Datei hoch oder starten Sie eine Live-Aufnahme, um automatisch strukturierte Therapieprotokolle zu erstellen.</p>
+                </div>
+            </div>
+
+            <!-- KI-Chat Section -->
+            <div id="chat" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">KI-Assistenz Chat</h2>
+                    <p class="section-subtitle">Professionelle Beratung zu Therapiemethoden, Diagnosen und Behandlungsansätzen</p>
+                </div>
+
+                <div class="chat-interface">
+                    <div class="chat-header">
+                        <span>🤖</span>
+                        <strong>Praxida KI-Assistenz</strong>
+                        <span style="margin-left: auto; color: #4facfe;">● Online</span>
+                    </div>
+                    
+                    <div class="messages" id="chatMessages">
+                        <div class="message assistant">
+                            <div class="message-meta">KI-Assistenz • System</div>
+                            <div class="chat-response">
+                                <h4>👋 Willkommen bei Praxida 2.0!</h4>
+                                <p>Ich bin Ihre KI-Assistenz für therapeutische Fragen. Ich kann Ihnen helfen bei:</p>
+                                
+                                <div class="feature-info">
+                                    <ul>
+                                        <li>🎯 Therapieansätzen und -methoden</li>
+                                        <li>🔍 Diagnostischen Überlegungen</li>
+                                        <li>📋 Behandlungsplanung</li>
+                                        <li>👥 Fachlicher Supervision</li>
+                                        <li>📁 Analyse von Bildern und Dokumenten</li>
+                                    </ul>
+                                </div>
+                                
+                                <p>Wie kann ich Sie heute unterstützen?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <textarea class="message-input" id="chatInput" placeholder="Ihre Frage an die KI-Assistenz..."></textarea>
+                        <button class="attach-btn" onclick="attachFileToChat()" title="Datei anhängen">
+                            📎
+                        </button>
+                        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                            Senden
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System-Integration Section -->
+            <div id="integration" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">System-Integration</h2>
+                    <p class="section-subtitle">Nahtlose Verbindung zu bestehender Praxissoftware und Verwaltungssystemen</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🔗</div>
+                    <h3>Integrations-Features</h3>
+                    <p>Diese Funktionen werden in einer zukünftigen Version verfügbar sein.</p>
+                </div>
+            </div>
+
+            <!-- Weitere Sections bleiben gleich... -->
+            <div id="planning" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Therapieplanung</h2>
+                    <p class="section-subtitle">KI-gestützte Behandlungsplanung und Verlaufsdokumentation</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>Therapieplanung</h3>
+                    <p>Erstellen Sie strukturierte Behandlungspläne für Ihre Klient:innen.</p>
+                </div>
+            </div>
+
+            <div id="todos" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">To-Dos & Erinnerungen</h2>
+                    <p class="section-subtitle">Automatisch generierte Aufgaben und Termine aus Ihren Therapiesitzungen</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <h3>Alle Aufgaben erledigt!</h3>
+                    <p>Aktuell sind keine offenen To-Dos vorhanden.</p>
+                </div>
+            </div>
+
+            <div id="team" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Team-Kollaboration</h2>
+                    <p class="section-subtitle">DSGVO-konforme Zusammenarbeit mit Supervisor:innen und Kollegen</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3>Team-Features aktivieren</h3>
+                    <p>Laden Sie Supervisor:innen und Kollegen ein, um sicher zusammenzuarbeiten.</p>
+                </div>
+            </div>
+
+            <div id="search" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Verlaufssuche</h2>
+                    <p class="section-subtitle">Intelligente Suche in allen Therapieprotokollen und Dokumenten</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>Suche starten</h3>
+                    <p>Geben Sie einen Suchbegriff ein, um in allen Protokollen zu suchen.</p>
+                </div>
+            </div>
+
+            <div id="summary" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Zusammenfassung</h2>
+                    <p class="section-subtitle">KI-generierte Berichte und Verlaufszusammenfassungen</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>Berichte generieren</h3>
+                    <p>Erstellen Sie automatische Zusammenfassungen Ihrer Therapieverläufe.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="clientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue:n Klient:in hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('clientModal')">×</button>
+            </div>
+            <form onsubmit="addClient(event)">
+                <div class="form-group">
+                    <label class="form-label">Initialen</label>
+                    <input type="text" class="form-input" name="initials" placeholder="A.B." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Diagnose</label>
+                    <input type="text" class="form-input" name="diagnosis" placeholder="z.B. F32.1 Depression">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Therapieform</label>
+                    <select class="form-select" name="therapy">
+                        <option>Verhaltenstherapie (VT)</option>
+                        <option>Tiefenpsychologie (TP)</option>
+                        <option>Psychoanalyse (PA)</option>
+                        <option>Systemische Therapie (ST)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notizen</label>
+                    <textarea class="form-textarea" name="notes" placeholder="Zusätzliche Informationen..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('clientModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden file input for chat attachments -->
+    <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
+
+<script>
+        // Global variables
+        let currentUploadType = 'image';
+        let uploadedFiles = [];
+        let chatAttachments = [];
+        let selectedFile = null;
+
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Praxida 2.0 Frontend geladen');
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            try {
+                await loadClients();
+                await loadStats();
+                initializeFileUpload();
+                initializeChatInput();
+                console.log('✅ App erfolgreich initialisiert');
+            } catch (error) {
+                console.error('❌ Fehler bei der App-Initialisierung:', error);
+            }
+        }
+
+        // --- Navigation Functions ---
+        function showSection(sectionId, tabElement) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+            
+            // Update active tab
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            if (tabElement) {
+                tabElement.classList.add('active');
+            } else {
+                // Find tab by section name
+                const matchingTab = document.querySelector(`[onclick*="${sectionId}"]`);
+                if (matchingTab) {
+                    matchingTab.classList.add('active');
+                }
+            }
+        }
+
+        // --- Modal Functions ---
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('show');
+            }
+        }
+
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+                
+                // Reset client modal if needed
+                if (modalId === 'clientModal') {
+                    const form = modal.querySelector('form');
+                    if (form) {
+                        form.reset();
+                        form.dataset.mode = '';
+                        form.dataset.clientId = '';
+                    }
+                    
+                    // Reset modal title
+                    const title = modal.querySelector('.modal-title');
+                    if (title) {
+                        title.textContent = 'Neue:n Klient:in hinzufügen';
+                    }
+                }
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+
+        // --- Client Management Functions ---
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/clients');
+                if (response.ok) {
+                    const clients = await response.json();
+                    displayClients(clients);
+                    updateQuickSearch(clients);
+                    document.getElementById('clientsBadge').textContent = clients.length;
+                    
+                    // Show/hide empty state
+                    const emptyState = document.getElementById('clientsEmptyState');
+                    if (emptyState) {
+                        emptyState.style.display = clients.length === 0 ? 'block' : 'none';
+                    }
+                } else {
+                    console.error('❌ Fehler beim Laden der Clients');
+                    throw new Error('API Error');
+                }
+            } catch (error) {
+                console.error('❌ Clients laden fehlgeschlagen:', error);
+                // Show fallback empty state
+                const emptyState = document.getElementById('clientsEmptyState');
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                }
+            }
+        }
+
+        function displayClients(clients) {
+            const grid = document.getElementById('clientGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            clients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div class="client-initials">${client.name}</div>
+                        <div class="client-meta">
+                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                            <span class="tag">Sessions: ${client.sessions || 0}</span>
+                        </div>
+                    </div>
+                    <div class="client-stats">
+                        <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                        <span>🔢 Sessions: ${client.sessions || 0}</span>
+                    </div>
+                    <div class="client-actions">
+                        <button class="btn btn-secondary" onclick="editClient(${client.id}); event.stopPropagation();">
+                            ✏️ Bearbeiten
+                        </button>
+                        <button class="btn btn-warning" onclick="deleteClientConfirm(${client.id}); event.stopPropagation();">
+                            🗑️ Löschen
+                        </button>
+                    </div>
+                `;
+                
+                // Add click handler for selection
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.client-actions')) {
+                        selectClient(card, client.id);
+                    }
+                });
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function selectClient(element, clientId) {
+            const cards = document.querySelectorAll('.client-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        async function editClient(clientId) {
+            try {
+                const response = await fetch(`/api/clients/${clientId}`);
+                if (response.ok) {
+                    const client = await response.json();
+                    
+                    const form = document.querySelector('#clientModal form');
+                    form.querySelector('input[name="initials"]').value = client.name || '';
+                    form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
+                    form.querySelector('textarea[name="notes"]').value = client.notes || '';
+                    
+                    document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    submitBtn.textContent = 'Aktualisieren';
+                    
+                    form.dataset.mode = 'edit';
+                    form.dataset.clientId = clientId;
+                    
+                    showModal('clientModal');
+                } else {
+                    throw new Error('Client nicht gefunden');
+                }
+            } catch (error) {
+                console.error('❌ Fehler beim Laden der Client-Daten:', error);
+                alert('❌ Fehler beim Laden der Klient:in-Daten');
+            }
+        }
+
+        async function deleteClientConfirm(clientId) {
+            const confirmed = confirm('⚠️ Sind Sie sicher, dass Sie diese:n Klient:in löschen möchten?\n\nAlle zugehörigen Daten werden unwiderruflich gelöscht!');
+            
+            if (confirmed) {
+                try {
+                    const response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        await loadClients();
+                        await loadStats();
+                        alert('✅ Klient:in erfolgreich gelöscht');
+                    } else {
+                        const error = await response.json();
+                        alert('❌ Fehler beim Löschen: ' + (error.error || 'Unbekannter Fehler'));
+                    }
+                } catch (error) {
+                    console.error('❌ Fehler beim Löschen:', error);
+                    alert('❌ Verbindungsfehler beim Löschen');
+                }
+            }
+        }
+
+        async function addClient(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clientData = {
+                initials: formData.get('initials'),
+                diagnosis: formData.get('diagnosis'),
+                therapy: formData.get('therapy'),
+                notes: formData.get('notes')
+            };
+
+            const isEditMode = form.dataset.mode === 'edit';
+            const clientId = form.dataset.clientId;
+
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Wird gespeichert...';
+            submitBtn.disabled = true;
+
+            try {
+                let response;
+                
+                if (isEditMode) {
+                    response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: clientData.initials,
+                            diagnosis: clientData.diagnosis,
+                            notes: clientData.notes
+                        })
+                    });
+                } else {
+                    response = await fetch('/api/clients', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(clientData)
+                    });
+                }
+
+                if (response.ok) {
+                    await loadClients();
+                    await loadStats();
+                    hideModal('clientModal');
+                    alert(`✅ Klient:in erfolgreich ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+                } else {
+                    const error = await response.json();
+                    alert('❌ Fehler: ' + (error.error || 'Unbekannter Fehler'));
+                }
+            } catch (error) {
+                console.error('❌ Fehler beim Speichern:', error);
+                alert('❌ Verbindungsfehler beim Speichern');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function updateQuickSearch(clients) {
+            const quickClient = document.getElementById('quickClient');
+            if (quickClient) {
+                quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+                
+                clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = client.name;
+                    quickClient.appendChild(option);
+                });
+            }
+        }
+
+        async function exportClients() {
+            try {
+                const response = await fetch('/api/clients');
+                if (response.ok) {
+                    const clients = await response.json();
+                    alert(`📄 Export vorbereitet:\n\n${clients.length} Klient:innen gefunden\n\nDaten werden heruntergeladen...`);
+                }
+            } catch (error) {
+                alert('❌ Export-Fehler');
+            }
+        }
+
+        // --- Statistics Functions ---
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalClients').textContent = stats.totalClients || 0;
+                    document.getElementById('totalSessions').textContent = stats.totalSessions || 0;
+                    document.getElementById('pendingTodos').textContent = stats.pendingTodos || 0;
+                    document.getElementById('activePlans').textContent = stats.activePlans || 0;
+                    document.getElementById('todosBadge').textContent = stats.pendingTodos || 0;
+                }
+            } catch (error) {
+                console.error('❌ Fehler beim Laden der Statistiken:', error);
+            }
+        }
+
+        // --- File Upload Functions ---
+        function initializeFileUpload() {
+            const uploadZone = document.getElementById('fileUpload');
+            const fileInput = document.getElementById('fileInput');
+            
+            if (uploadZone && fileInput) {
+                // Click handler
+                uploadZone.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                
+                // Drag and drop handlers
+                uploadZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+                
+                uploadZone.addEventListener('dragleave', () => {
+                    uploadZone.classList.remove('dragover');
+                });
+                
+                uploadZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    const files = Array.from(e.dataTransfer.files);
+                    if (files.length > 0) {
+                        handleFileSelection({ target: { files: files } });
+                    }
+                });
+                
+                // File input change handler
+                fileInput.addEventListener('change', handleFileSelection);
+            }
+        }
+
+        function handleFileSelection(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                showFilePreview(selectedFile);
+                
+                // Hide empty state, show preview
+                const emptyState = document.getElementById('filesEmptyState');
+                const preview = document.getElementById('filePreview');
+                const analysisResult = document.getElementById('analysisResult');
+                
+                if (emptyState) emptyState.style.display = 'none';
+                if (preview) preview.classList.add('show');
+                if (analysisResult) analysisResult.style.display = 'none';
+            }
+        }
+
+        function showFilePreview(file) {
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const fileIcon = document.getElementById('fileIcon');
+            const previewContent = document.getElementById('previewContent');
+            
+            if (fileName) fileName.textContent = file.name;
+            if (fileSize) fileSize.textContent = formatFileSize(file.size);
+            
+            // Update icon based on file type
+            if (fileIcon) {
+                if (file.type.startsWith('image/')) {
+                    fileIcon.textContent = '🖼️';
+                } else if (file.type === 'application/pdf') {
+                    fileIcon.textContent = '📄';
+                } else if (file.type.includes('document') || file.type.includes('docx')) {
+                    fileIcon.textContent = '📝';
+                } else {
+                    fileIcon.textContent = '📄';
+                }
+            }
+            
+            // Show image preview if it's an image
+            if (previewContent && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewContent.innerHTML = `<img src="${e.target.result}" alt="Preview" class="image-preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (previewContent) {
+                previewContent.innerHTML = '<p>Datei bereit für Analyse</p>';
+            }
+        }
+
+        async function processSelectedFile() {
+            if (!selectedFile) {
+                alert('❌ Keine Datei ausgewählt');
+                return;
+            }
+            
+            const processBtn = document.getElementById('processBtn');
+            const originalText = processBtn.textContent;
+            processBtn.textContent = '🔄 Wird analysiert...';
+            processBtn.disabled = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAnalysisResult(result);
+                } else {
+                    const error = await response.json();
+                    alert('❌ Fehler beim Upload: ' + (error.error || 'Unbekannter Fehler'));
+                }
+            } catch (error) {
+                console.error('❌ Upload-Fehler:', error);
+                alert('❌ Verbindungsfehler beim Upload');
+            } finally {
+                processBtn.textContent = originalText;
+                processBtn.disabled = false;
+            }
+        }
+
+        function showAnalysisResult(result) {
+            const analysisResult = document.getElementById('analysisResult');
+            const analysisContent = document.getElementById('analysisContent');
+            
+            if (analysisResult && analysisContent) {
+                analysisContent.innerHTML = result.analysis || 'Analyse abgeschlossen.';
+                analysisResult.style.display = 'block';
+                
+                // Scroll to result
+                analysisResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function setUploadType(type) {
+            currentUploadType = type;
+            document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
+            const typeElement = document.getElementById(type + 'Type');
+            if (typeElement) {
+                typeElement.classList.add('active');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // --- Chat Functions ---
+        function initializeChatInput() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const messages = document.getElementById('chatMessages');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            if (!input || !messages) return;
+            
+            const messageText = input.value.trim();
+            if (!messageText && chatAttachments.length === 0) return;
+            
+            // Disable send button
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'Sende...';
+            }
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            
+            let attachmentsHtml = '';
+            if (chatAttachments.length > 0) {
+                attachmentsHtml = chatAttachments.map(file => `
+                    <div class="message-attachment">
+                        <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                        <div class="attachment-info">
+                            <div class="attachment-name">${file.name}</div>
+                            <div class="attachment-type">${formatFileSize(file.size)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            userMessage.innerHTML = `
+                <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+                ${attachmentsHtml}
+                ${messageText || 'Dateianalyse angefordert'}
+            `;
+            messages.appendChild(userMessage);
+            
+            // Clear input and attachments
+            input.value = '';
+            chatAttachments = [];
+            input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+            
+            messages.scrollTop = messages.scrollHeight;
+
+            // Show typing indicator
+            const typingMessage = document.createElement('div');
+            typingMessage.className = 'message assistant';
+            typingMessage.innerHTML = `
+                <div class="message-meta">KI-Assistenz • tippt...</div>
+                <em>Antwort wird generiert...</em>
+            `;
+            messages.appendChild(typingMessage);
+            messages.scrollTop = messages.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: messageText || 'Bitte analysiere die angehängten Dateien.',
+                        hasAttachments: chatAttachments.length > 0
+                    })
+                });
+
+                // Remove typing indicator
+                if (messages.contains(typingMessage)) {
+                    messages.removeChild(typingMessage);
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    const aiMessage = document.createElement('div');
+                    aiMessage.className = 'message assistant';
+                    aiMessage.innerHTML = `
+                        <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+                        ${data.reply}
+                    `;
+                    messages.appendChild(aiMessage);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+            } catch (error) {
+                // Remove typing indicator if still there
+                if (messages.contains(typingMessage)) {
+                    messages.removeChild(typingMessage);
+                }
+                
+                console.error('❌ Chat error:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'message assistant';
+                errorMessage.innerHTML = `
+                    <div class="message-meta">System • Fehler</div>
+                    <div class="analysis-error">
+                        <p>⚠️ Verbindung zur KI fehlgeschlagen. Bitte versuchen Sie es erneut.</p>
+                        <p><small>Fehler: ${error.message}</small></p>
+                    </div>
+                `;
+                messages.appendChild(errorMessage);
+            } finally {
+                // Re-enable send button
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Senden';
+                }
+                
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+
+        function attachFileToChat() {
+            document.getElementById('chatFileInput').click();
+        }
+
+        function handleChatFile(event) {
+            const files = Array.from(event.target.files);
+            if (files.length > 0) {
+                chatAttachments = chatAttachments.concat(files);
+                
+                const input = document.getElementById('chatInput');
+                const fileCount = chatAttachments.length;
+                if (input) {
+                    input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
+                }
+                
+                event.target.value = '';
+            }
+        }
+
+        // --- Audio Functions ---
+        function triggerAudioInput() {
+            const audioInput = document.getElementById('audioInput');
+            if (audioInput) {
+                audioInput.click();
+            }
+        }
+
+        function toggleRecording() {
+            alert('🎤 Audio-Aufnahme (Demo-Modus)\n\nDiese Funktion wird in einer zukünftigen Version verfügbar sein.');
+        }
+
+        // --- Quick Action Functions ---
+        function performQuickSearch() {
+            const searchTerm = document.getElementById('quickSearch').value;
+            const selectedClient = document.getElementById('quickClient').value;
+            
+            if (searchTerm || selectedClient) {
+                alert(`🔍 Schnellsuche (Demo):\n\nSuchbegriff: "${searchTerm}"\nKlient: ${selectedClient || 'Alle'}`);
+            } else {
+                alert('❌ Bitte geben Sie einen Suchbegriff ein oder wählen Sie eine:n Klient:in aus.');
+            }
+        }
+
+        // --- Demo Functions (placeholder implementations) ---
+        function testAPIConnection() {
+            alert('✅ API-Verbindung getestet (Demo)');
+        }
+
+        function showDSGVOReport() {
+            alert('🔒 DSGVO-Status: Alle Systeme sicher (Demo)');
+        }
+
+        function createPlan(event) {
+            if (event) event.preventDefault();
+            alert('📋 Therapieplan erstellt (Demo)');
+        }
+
+        function addTodo(event) {
+            if (event) event.preventDefault();
+            alert('✅ To-Do hinzugefügt (Demo)');
+        }
+
+        function testIntegration(event, system) {
+            if (event) event.preventDefault();
+            alert(`🔗 ${system} Integration getestet (Demo)`);
+        }
+
+        function performSearch() {
+            alert('🔍 Suche wird durchgeführt (Demo)');
+        }
+
+        console.log('✅ Praxida 2.0 JavaScript geladen');
+</script>
+</body>
+</html>
+            
