@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxida 2.0 - KI-Assistenz für Therapeuten</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: calc(100vh - 40px);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        
+        .logo h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .logo .version {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .logo p {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .user-info {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            margin: 0 auto 15px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-tab {
+            padding: 16px 22px;
+            border: none;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            color: #667eea;
+            border-radius: 15px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .nav-tab:hover {
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+            border-color: transparent;
+        }
+        
+        .nav-tab .icon {
+            font-size: 18px;
+        }
+        
+        .nav-tab .badge {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            margin-left: auto;
+            font-weight: 700;
+        }
+        
+        .nav-tab:not(.active) .badge {
+            background: #667eea;
+            color: white;
+        }
+        
+        .quick-actions {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .quick-actions h4 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            padding: 14px 26px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f1f1f1, #e8e8e8);
+            color: #666;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .content-section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        .section-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #eef2ff;
+        }
+        
+        .section-title {
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-subtitle {
+            color: #666;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .stat-number {
+            font-size: 42px;
+            font-weight: 900;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .feature-showcase {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            border-radius: 25px;
+            margin-bottom: 35px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        }
+        
+        .feature-showcase::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+        }
+        
+        .feature-showcase h3 {
+            font-size: 26px;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+        
+        .feature-showcase p {
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 25px;
+            opacity: 0.95;
+        }
+        
+        .feature-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .feature-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 14px 26px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .client-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .client-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 3px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .client-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25);
+        }
+        
+        .client-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.4);
+        }
+        
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .client-initials {
+            font-size: 22px;
+            font-weight: 800;
+        }
+        
+        .client-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            background: rgba(102,126,234,0.15);
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .client-card.selected .tag {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+        
+        .client-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+        
+        .client-stats span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* File Upload and Analysis Styles */
+        .upload-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-type {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-type:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-type.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-type-icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 18px;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            transition: all 0.3s;
+            margin-bottom: 25px;
+            cursor: pointer;
+        }
+
+        .file-upload-zone:hover,
+        .file-upload-zone.dragover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            transform: translateY(-2px);
+        }
+
+        .file-upload-zone.uploading {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-color: #667eea;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 52px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .upload-text p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .file-preview {
+            background: white;
+            border: 2px solid #eef2ff;
+            border-radius: 18px;
+            padding: 25px;
+            margin: 20px 0;
+            display: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .file-preview.show {
+            display: block;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .file-icon {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 22px;
+        }
+
+        .file-details h4 {
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin: 15px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .text-content {
+            background: #f8f9ff;
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .process-btn {
+            width: 100%;
+            margin-top: 18px;
+        }
+        
+        /* Chat Interface */
+        .chat-interface {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+            height: 700px;
+        }
+        
+        .chat-header {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            padding: 22px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .messages {
+            overflow-y: auto;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 18px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            scroll-behavior: smooth;
+        }
+        
+        .message {
+            margin-bottom: 25px;
+            padding: 22px;
+            border-radius: 20px;
+            max-width: 85%;
+            line-height: 1.7;
+            font-size: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.assistant {
+            background: white;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .message-meta {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .message-attachment {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .attachment-icon {
+            font-size: 22px;
+        }
+
+        .attachment-info {
+            flex: 1;
+        }
+
+        .attachment-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .attachment-type {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .input-area {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .message-input {
+            padding: 20px 22px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 65px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .message-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .attach-btn {
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            color: #667eea;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .attach-btn:hover {
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            transform: translateY(-3px);
+        }
+        
+        .send-btn {
+            padding: 20px 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .send-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Audio Controls */
+        .audio-controls {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .recording-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .recording-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .record-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            font-size: 26px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+        
+        .record-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
+        }
+        
+        .record-btn.recording {
+            background: linear-gradient(135deg, #ff4757, #c44569);
+            animation: recordPulse 1.5s infinite;
+        }
+        
+        @keyframes recordPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Integration Styles */
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .integration-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 3px solid rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .integration-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .integration-card:hover {
+            border-color: #667eea;
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25);
+        }
+
+        .integration-icon {
+            font-size: 52px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .integration-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .integration-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .integration-status {
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        .status-coming {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .status-beta {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            color: #8b4513;
+        }
+
+        .api-config {
+            background: white;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .api-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .config-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .config-item {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .config-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .config-input {
+            padding: 12px 16px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .config-status {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-btn {
+            grid-column: span 3;
+            justify-self: start;
+            padding: 12px 22px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 45px;
+            border-radius: 25px;
+            max-width: 650px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #eef2ff;
+        }
+        
+        .modal-title {
+            font-size: 26px;
+            color: #667eea;
+            font-weight: 800;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: #f1f1f1;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        
+        .form-textarea {
+            height: 130px;
+            resize: vertical;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 3px solid #eef2ff;
+        }
+        
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 45px;
+            height: 45px;
+            border: 4px solid #eef2ff;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            transform: translate(-50%, -50%);
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 70px 30px;
+            color: #666;
+        }
+        
+        .empty-icon {
+            font-size: 72px;
+            margin-bottom: 25px;
+            opacity: 0.6;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 18px;
+            color: #333;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .empty-state p {
+            line-height: 1.7;
+        }
+        
+        /* Therapy Planning Styles */
+        .therapy-plan {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .plan-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .plan-status {
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .status-active {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+        
+        .plan-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            line-height: 1.7;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 280px 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .sidebar {
+                position: static;
+                order: 2;
+            }
+            
+            .main-content {
+                order: 1;
+                min-height: auto;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .feature-buttons {
+                justify-content: center;
+            }
+            
+            .chat-interface {
+                height: 500px;
+            }
+
+            .integration-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .config-item {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .test-btn {
+                grid-column: span 1;
+                justify-self: stretch;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-area {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .send-btn, .attach-btn {
+                width: 100%;
+            }
+
+            .upload-types {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+.client-actions {
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+            padding-top: 15px !important;
+        }
+
+        .client-card.selected .client-actions {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .client-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainApp">
+        <div class="sidebar">
+            <div class="logo">
+                <h1>Praxida</h1>
+                <span class="version">2.0</span>
+                <p>KI-Assistenz für Therapeuten</p>
+            </div>
+
+            <div class="user-info">
+                <div class="user-avatar">TH</div>
+                <div class="user-name">Therapeut:in</div>
+            </div>
+            
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showSection('overview', this)">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('clients', this)">
+                    <span class="icon">👥</span>
+                    <span>Klient:innen</span>
+                    <span class="badge" id="clientsBadge">0</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('files', this)">
+                    <span class="icon">🔎</span>
+                    <span>Datei-Analyse</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('audio', this)">
+                    <span class="icon">🎤</span>
+                    <span>Audio-Protokolle</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('chat', this)">
+                    <span class="icon">💬</span>
+                    <span>KI-Chat</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('integration', this)">
+                    <span class="icon">🔗</span>
+                    <span>System-Integration</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('planning', this)">
+                    <span class="icon">📋</span>
+                    <span>Therapieplanung</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('todos', this)">
+                    <span class="icon">✅</span>
+                    <span>To-Dos & Erinnerungen</span>
+                    <span class="badge" id="todosBadge">0</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('team', this)">
+                    <span class="icon">👥</span>
+                    <span>Team-Kollaboration</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('search', this)">
+                    <span class="icon">🔍</span>
+                    <span>Verlaufssuche</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('summary', this)">
+                    <span class="icon">📄</span>
+                    <span>Zusammenfassung</span>
+                </button>
+            </div>
+            
+            <div class="quick-actions">
+                <h4>🚀 Schnellaktionen</h4>
+                <input type="text" class="search-input" placeholder="Schnellsuche..." id="quickSearch">
+                <div style="display: grid; gap: 10px;">
+                    <select class="search-input" id="quickClient">
+                        <option value="">Klient:in auswählen</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="performQuickSearch()">
+                        <span>🔍</span> Suchen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Dashboard -->
+            <div id="overview" class="content-section active">
+                <div class="section-header">
+                    <h2 class="section-title">Dashboard</h2>
+                    <p class="section-subtitle">Ihre komplette Praxisverwaltung mit KI-Unterstützung</p>
+                </div>
+                
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalClients">12</div>
+                        <div class="stat-label">Aktive Klient:innen</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSessions">248</div>
+                        <div class="stat-label">Gesamte Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingTodos">5</div>
+                        <div class="stat-label">Offene To-Dos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activePlans">3</div>
+                        <div class="stat-label">Aktive Therapiepläne</div>
+                    </div>
+                </div>
+                
+                <div class="feature-showcase">
+                    <h3>🎯 Neue Profi-Features in Version 2.0</h3>
+                    <p>
+                        <strong>Intelligente Datei-Analyse:</strong> Laden Sie Bilder und Textdateien hoch für KI-gestützte Auswertung.<br>
+                        <strong>System-Integration:</strong> Nahtlose Verbindung zu bestehender Praxissoftware und Verwaltungssystemen.<br>
+                        <strong>Optimierte Benutzeroberfläche:</strong> Modernes, benutzerfreundliches Design für effizienteres Arbeiten.
+                    </p>
+                    <div class="feature-buttons">
+                        <button class="feature-btn" onclick="showSection('files')">
+                            🔎 Datei-Analyse
+                        </button>
+                        <button class="feature-btn" onclick="showSection('integration')">
+                            🔗 Integration
+                        </button>
+                        <button class="feature-btn" onclick="showSection('chat')">
+                            💬 KI-Chat
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Klient:innen Section -->
+            <div id="clients" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Klient:innen-Verwaltung</h2>
+                    <p class="section-subtitle">Übersicht aller aktiven Patient:innen und deren Behandlungsverläufe</p>
+                </div>
+                
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary" onclick="showModal('clientModal')">
+                        <span>➕</span> Neue:n Klient:in hinzufügen
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportClients()">
+                        <span>📄</span> Exportieren
+                    </button>
+                </div>
+
+                <div class="client-grid" id="clientGrid">
+                    <div class="client-card" onclick="selectClient(this, 'client1')">
+                        <div class="client-header">
+                            <div class="client-initials">A.M.</div>
+                            <div class="client-meta">
+                                <span class="tag">Angststörung</span>
+                                <span class="tag">VT</span>
+                            </div>
+                        </div>
+                        <div class="client-stats">
+                            <span>📅 Letzte Sitzung: 18.08.2025</span>
+                            <span>🔢 Sessions: 12</span>
+                        </div>
+                    </div>
+                    
+                    <div class="client-card" onclick="selectClient(this, 'client2')">
+                        <div class="client-header">
+                            <div class="client-initials">B.S.</div>
+                            <div class="client-meta">
+                                <span class="tag">Depression</span>
+                                <span class="tag">TPT</span>
+                            </div>
+                        </div>
+                        <div class="client-stats">
+                            <span>📅 Letzte Sitzung: 20.08.2025</span>
+                            <span>🔢 Sessions: 8</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datei-Analyse Section -->
+            <div id="files" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Datei-Analyse</h2>
+                    <p class="section-subtitle">KI-gestützte Analyse von Bildern und Textdateien für therapeutische Zwecke</p>
+                </div>
+
+                <div class="upload-types">
+                    <div class="upload-type active" onclick="setUploadType('image')" id="imageType">
+                        <div class="upload-type-icon">🖼️</div>
+                        <h4>Bilder analysieren</h4>
+                        <p>Screenshots, Zeichnungen, Fotos von Dokumenten</p>
+                    </div>
+                    <div class="upload-type" onclick="setUploadType('text')" id="textType">
+                        <div class="upload-type-icon">📄</div>
+                        <h4>Textdateien</h4>
+                        <p>PDF, DOC, TXT Dokumente verarbeiten</p>
+                    </div>
+                    <div class="upload-type" onclick="setUploadType('mixed')" id="mixedType">
+                        <div class="upload-type-icon">🔎</div>
+                        <h4>Kombiniert</h4>
+                        <p>Mehrere Dateitypen gleichzeitig</p>
+                    </div>
+                </div>
+
+                <div class="file-upload-zone" id="fileUpload" onclick="triggerFileInput()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        <h3>Dateien hier ablegen oder klicken</h3>
+                        <p>Unterstützte Formate: JPG, PNG, PDF, DOC, DOCX, TXT<br>
+                        Max. Größe: 10MB pro Datei</p>
+                        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="file-preview" id="filePreview">
+                    <div class="file-info">
+                        <div class="file-icon" id="fileIcon">📄</div>
+                        <div class="file-details">
+                            <h4 id="fileName">Keine Datei ausgewählt</h4>
+                            <div class="file-size" id="fileSize">0 KB</div>
+                        </div>
+                    </div>
+                    <div id="previewContent"></div>
+                    <button class="btn btn-primary process-btn" onclick="processFile()">
+                        <span>🤖</span> Mit KI analysieren
+                    </button>
+                </div>
+
+                <div class="empty-state" id="filesEmptyState">
+                    <div class="empty-icon">🔎</div>
+                    <h3>Keine Dateien hochgeladen</h3>
+                    <p>Laden Sie Bilder oder Textdateien hoch, um sie mit KI-Unterstützung zu analysieren und therapeutische Erkenntnisse zu gewinnen.</p>
+                </div>
+            </div>
+
+            <!-- Audio-Protokolle Section -->
+            <div id="audio" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Audio-Protokolle</h2>
+                    <p class="section-subtitle">Intelligente Transkription und Protokollerstellung Ihrer Therapiesitzungen</p>
+                </div>
+
+                <div class="file-upload-zone" id="audioUpload">
+                    <div class="upload-icon">🎤</div>
+                    <div class="upload-text">
+                        <h3>Audio-Datei hochladen oder aufnehmen</h3>
+                        <p>Ziehen Sie eine Audio-Datei hierher oder klicken Sie, um eine Datei auszuwählen.<br>
+                        Unterstützte Formate: MP3, WAV, M4A, OGG</p>
+                        <button class="btn btn-primary">
+                            <span>📁</span> Datei auswählen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="audio-controls">
+                    <div class="recording-status" id="recordingStatus" style="display: none;">
+                        <div class="recording-dot"></div>
+                        <span>Aufnahme läuft... <span id="recordTime">00:00</span></span>
+                    </div>
+                    <button class="record-btn" id="recordBtn" onclick="toggleRecording()">
+                        🎤
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🎧</div>
+                    <h3>Noch keine Audio-Protokolle vorhanden</h3>
+                    <p>Laden Sie eine Audio-Datei hoch oder starten Sie eine Live-Aufnahme, um automatisch strukturierte Therapieprotokolle zu erstellen.</p>
+                </div>
+            </div>
+
+            <!-- KI-Chat Section -->
+            <div id="chat" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">KI-Assistenz Chat</h2>
+                    <p class="section-subtitle">Professionelle Beratung zu Therapiemethoden, Diagnosen und Behandlungsansätzen</p>
+                </div>
+
+                <div class="chat-interface">
+                    <div class="chat-header">
+                        <span>🤖</span>
+                        <strong>Praxida KI-Assistenz</strong>
+                        <span style="margin-left: auto; color: #4facfe;">● Online</span>
+                    </div>
+                    
+                    <div class="messages" id="chatMessages">
+                        <div class="message assistant">
+                            <div class="message-meta">KI-Assistenz • Heute 14:30</div>
+                            Hallo! Ich bin Ihre KI-Assistenz für therapeutische Fragen. Ich kann Ihnen helfen bei:
+                            <br><br>
+                            • Therapieansätzen und -methoden<br>
+                            • Diagnostischen Überlegungen<br>
+                            • Behandlungsplanung<br>
+                            • Fachlicher Supervision<br>
+                            • Analyse von Bildern und Dokumenten<br><br>
+                            Wie kann ich Sie heute unterstützen?
+                        </div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <textarea class="message-input" id="chatInput" placeholder="Ihre Frage an die KI-Assistenz..."></textarea>
+                        <button class="attach-btn" onclick="attachFileToChat()" title="Datei anhängen">
+                            🔎
+                        </button>
+                        <button class="send-btn" onclick="sendMessage()">
+                            Senden
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System-Integration Section -->
+            <div id="integration" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">System-Integration</h2>
+                    <p class="section-subtitle">Nahtlose Verbindung zu bestehender Praxissoftware und Verwaltungssystemen</p>
+                </div>
+
+                <div class="integration-grid">
+                    <div class="integration-card">
+                        <div class="integration-icon">🏥</div>
+                        <h3 class="integration-title">Praxisverwaltung</h3>
+                        <p class="integration-description">Integration mit CGM ALBIS, medistar, TurboMed und anderen Praxisverwaltungssystemen</p>
+                        <div class="integration-status status-available">Verfügbar</div>
+                        <button class="btn btn-primary" onclick="showModal('pvsModal')">Konfigurieren</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">💳</div>
+                        <h3 class="integration-title">Abrechnungssysteme</h3>
+                        <p class="integration-description">Direkte Verbindung zu Kassenärztlichen Vereinigungen und privaten Abrechnungsstellen</p>
+                        <div class="integration-status status-beta">Beta</div>
+                        <button class="btn btn-secondary" onclick="showModal('abrechnungModal')">Einrichten</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">🔒</div>
+                        <h3 class="integration-title">DSGVO-Compliance</h3>
+                        <p class="integration-description">Automatische Datenschutz-Checks und Compliance-Berichte für Ihre Praxis</p>
+                        <div class="integration-status status-available">Aktiv</div>
+                        <button class="btn btn-success" onclick="showDSGVOReport()">Status prüfen</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">📊</div>
+                        <h3 class="integration-title">Telematik-Infrastruktur</h3>
+                        <p class="integration-description">Sichere Anbindung an die TI für ePA, KIM und weitere Dienste</p>
+                        <div class="integration-status status-coming">In Entwicklung</div>
+                        <button class="btn btn-secondary" disabled>Bald verfügbar</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">📋</div>
+                        <h3 class="integration-title">Terminbuchung</h3>
+                        <p class="integration-description">Integration mit Doctolib, Jameda und anderen Online-Buchungsplattformen</p>
+                        <div class="integration-status status-available">Verfügbar</div>
+                        <button class="btn btn-primary" onclick="showModal('terminModal')">Verknüpfen</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-icon">📱</div>
+                        <h3 class="integration-title">Mobile Apps</h3>
+                        <p class="integration-description">Synchronisation mit Patient:innen-Apps und Wearables für kontinuierliches Monitoring</p>
+                        <div class="integration-status status-beta">Beta</div>
+                        <button class="btn btn-secondary" onclick="showModal('mobileModal')">Testen</button>
+                    </div>
+                </div>
+
+                <div class="api-config">
+                    <h3 class="api-title">🔧 API-Konfiguration</h3>
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <div class="config-label">Praxis-ID:</div>
+                            <input type="text" class="config-input" placeholder="Ihre Praxis-ID" value="PX-2024-8849">
+                            <div class="config-status status-connected">Verbunden</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">API-Schlüssel:</div>
+                            <input type="password" class="config-input" placeholder="API-Schlüssel eingeben" value="●●●●●●●●●●●●">
+                            <div class="config-status status-connected">Aktiv</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">Webhook-URL:</div>
+                            <input type="url" class="config-input" placeholder="https://ihre-praxis.de/webhook" value="https://praxis-demo.de/hook">
+                            <div class="config-status status-connected">Erreichbar</div>
+                        </div>
+                        <button class="test-btn" onclick="testAPIConnection()">Verbindung testen</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Therapieplanung Section -->
+            <div id="planning" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Therapieplanung</h2>
+                    <p class="section-subtitle">KI-gestützte Behandlungsplanung und Verlaufsdokumentation</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <button class="btn btn-primary" onclick="showModal('planModal')">
+                        <span>➕</span> Neuen Therapieplan erstellen
+                    </button>
+                </div>
+
+                <div class="therapy-plan">
+                    <div class="plan-header">
+                        <div class="plan-title">Kognitiv-behaviorale Therapie - A.M.</div>
+                        <div class="plan-status status-active">Aktiv</div>
+                    </div>
+                    <div class="plan-content">
+                        <strong>Therapieziele:</strong><br>
+                        1. Reduktion der Angstsymptomatik um 50%<br>
+                        2. Verbesserung der sozialen Kompetenz<br>
+                        3. Entwicklung von Bewältigungsstrategien<br><br>
