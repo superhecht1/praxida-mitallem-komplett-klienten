@@ -1662,3 +1662,958 @@
                         1. Reduktion der Angstsymptomatik um 50%<br>
                         2. Verbesserung der sozialen Kompetenz<br>
                         3. Entwicklung von Bewältigungsstrategien<br><br>
+                        <strong>Nächste Schritte:</strong><br>
+                        • Exposition in vivo (Woche 8-10)<br>
+                        • Kognitive Umstrukturierung vertiefen<br>
+                        • Rückfallprophylaxe planen
+                    </div>
+                </div>
+            </div>
+
+            <!-- To-Dos Section -->
+            <div id="todos" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">To-Dos & Erinnerungen</h2>
+                    <p class="section-subtitle">Automatisch generierte Aufgaben und Termine aus Ihren Therapiesitzungen</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <button class="btn btn-primary" onclick="showModal('todoModal')">
+                        <span>➕</span> Neue Aufgabe hinzufügen
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <h3>Alle Aufgaben erledigt!</h3>
+                    <p>Aktuell sind keine offenen To-Dos vorhanden. Neue Aufgaben werden automatisch aus Ihren Therapieprotokollen generiert.</p>
+                </div>
+            </div>
+
+            <!-- Team-Kollaboration Section -->
+            <div id="team" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Team-Kollaboration</h2>
+                    <p class="section-subtitle">DSGVO-konforme Zusammenarbeit mit Supervisor:innen und Kollegen</p>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3>Team-Features aktivieren</h3>
+                    <p>Laden Sie Supervisor:innen und Kollegen ein, um sicher zusammenzuarbeiten und Fälle zu besprechen.</p>
+                    <br>
+                    <button class="btn btn-primary">
+                        <span>✉️</span> Team-Mitglied einladen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Verlaufssuche Section -->
+            <div id="search" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Verlaufssuche</h2>
+                    <p class="section-subtitle">Intelligente Suche in allen Therapieprotokollen und Dokumenten</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <input type="text" class="search-input" placeholder="Suchen Sie in Protokollen, Notizen, Diagnosen..." id="mainSearch" style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 15px;">
+                        <select class="search-input" style="width: 200px;">
+                            <option>Alle Klient:innen</option>
+                            <option>A.M.</option>
+                            <option>B.S.</option>
+                        </select>
+                        <select class="search-input" style="width: 200px;">
+                            <option>Alle Zeiträume</option>
+                            <option>Letzte Woche</option>
+                            <option>Letzter Monat</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="performSearch()">
+                            <span>🔍</span> Suchen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>Suche starten</h3>
+                    <p>Geben Sie einen Suchbegriff ein, um in allen Therapieprotokollen und Dokumenten zu suchen.</p>
+                </div>
+            </div>
+
+            <!-- Zusammenfassung Section -->
+            <div id="summary" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Zusammenfassung</h2>
+                    <p class="section-subtitle">KI-generierte Berichte und Verlaufszusammenfassungen</p>
+                </div>
+
+                <div style="margin-bottom: 30px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary">
+                        <span>📊</span> Wochenbericht generieren
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span>📈</span> Fortschrittsbericht
+                    </button>
+                    <button class="btn btn-success">
+                        <span>📄</span> Export für Kostenträger
+                    </button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>Berichte generieren</h3>
+                    <p>Erstellen Sie automatische Zusammenfassungen und Berichte für Ihre Therapieverläufe.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Client Modal -->
+    <div class="modal" id="clientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue:n Klient:in hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('clientModal')">×</button>
+            </div>
+<form onsubmit="addClient(event)">
+    <div class="form-group">
+        <label class="form-label">Initialen</label>
+        <input type="text" class="form-input" name="initials" placeholder="A.B." required>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Diagnose</label>
+        <input type="text" class="form-input" name="diagnosis" placeholder="z.B. F32.1 Depression">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Therapieform</label>
+        <select class="form-select" name="therapy">
+            <option>Verhaltenstherapie (VT)</option>
+            <option>Tiefenpsychologie (TP)</option>
+            <option>Psychoanalyse (PA)</option>
+            <option>Systemische Therapie (ST)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Notizen</label>
+        <textarea class="form-textarea" name="notes" placeholder="Zusätzliche Informationen..."></textarea>
+    </div>
+    <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="hideModal('clientModal')">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+</form>
+        </div>
+    </div>
+
+    <!-- Integration Modals -->
+    <div class="modal" id="pvsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Praxisverwaltung konfigurieren</h3>
+                <button class="close-btn" onclick="hideModal('pvsModal')">×</button>
+            </div>
+            <form onsubmit="testIntegration(event, 'PVS')">
+                <div class="form-group">
+                    <label class="form-label">System auswählen</label>
+                    <select class="form-select">
+                        <option>CGM ALBIS</option>
+                        <option>medistar</option>
+                        <option>TurboMed</option>
+                        <option>MEDICAL OFFICE</option>
+                        <option>Sonstiges</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Server-Adresse</label>
+                    <input type="text" class="form-input" placeholder="192.168.1.100 oder praxis-server.local">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Benutzername</label>
+                    <input type="text" class="form-input" placeholder="Ihr PVS-Benutzername">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API-Schlüssel</label>
+                    <input type="password" class="form-input" placeholder="API-Schlüssel eingeben">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('pvsModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Verbindung testen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="planModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neuen Therapieplan erstellen</h3>
+                <button class="close-btn" onclick="hideModal('planModal')">×</button>
+            </div>
+            <form onsubmit="createPlan(event)">
+                <div class="form-group">
+                    <label class="form-label">Klient:in auswählen</label>
+                    <select class="form-select">
+                        <option>A.M.</option>
+                        <option>B.S.</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Therapieziele</label>
+                    <textarea class="form-textarea" placeholder="Definieren Sie die Hauptziele der Behandlung..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Geplante Interventionen</label>
+                    <textarea class="form-textarea" placeholder="Welche Methoden und Techniken planen Sie einzusetzen?"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('planModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Plan erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="todoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Neue Aufgabe hinzufügen</h3>
+                <button class="close-btn" onclick="hideModal('todoModal')">×</button>
+            </div>
+            <form onsubmit="addTodo(event)">
+                <div class="form-group">
+                    <label class="form-label">Aufgabe</label>
+                    <input type="text" class="form-input" placeholder="Was muss erledigt werden?" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Klient:in</label>
+                    <select class="form-select">
+                        <option>Allgemein</option>
+                        <option>A.M.</option>
+                        <option>B.S.</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fälligkeitsdatum</label>
+                    <input type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priorität</label>
+                    <select class="form-select">
+                        <option>Normal</option>
+                        <option>Hoch</option>
+                        <option>Niedrig</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('todoModal')">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Aufgabe erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden file input for chat attachments -->
+    <input type="file" id="chatFileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt" onchange="handleChatFile(event)">
+
+<script>
+        // Global variables
+        let currentUser = null;
+        let currentUploadType = 'image';
+        let uploadedFiles = [];
+        let chatAttachments = [];
+
+        // Authentication
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'demo' && password === 'praxida2024') {
+                currentUser = {
+                    username: username,
+                    displayName: 'Demo User',
+                    initials: 'DU'
+                };
+                
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userName').textContent = currentUser.displayName;
+                document.getElementById('userAvatar').textContent = currentUser.initials;
+                
+                initializeApp();
+            } else {
+                alert('Ungültige Anmeldedaten. Verwenden Sie die Demo-Zugangsdaten.');
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        async function initializeApp() {
+            await loadClients();
+            await loadStats();
+        }
+
+        // Navigation
+        function showSection(sectionId, tabElement) {
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            document.getElementById(sectionId).classList.add('active');
+            
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            
+            if (modalId === 'clientModal') {
+                // Form zurücksetzen
+                const form = document.querySelector('#clientModal form');
+                form.reset();
+                form.dataset.mode = '';
+                form.dataset.clientId = '';
+                
+                // Modal-Titel zurücksetzen
+                document.querySelector('#clientModal .modal-title').textContent = 'Neue:n Klient:in hinzufügen';
+                
+                // Submit-Button Text zurücksetzen
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Speichern';
+            }
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+
+        // --- KLIENTEN-FUNKTIONALITÄT --- //
+
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/clients');
+                if (response.ok) {
+                    const clients = await response.json();
+                    displayClients(clients);
+                    updateQuickSearch(clients);
+                    document.getElementById('clientsBadge').textContent = clients.length;
+                } else {
+                    console.error('Fehler beim Laden der Klienten');
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+            }
+        }
+
+        function displayClients(clients) {
+            const grid = document.getElementById('clientGrid');
+            grid.innerHTML = '';
+            
+            clients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div class="client-initials">${client.name}</div>
+                        <div class="client-meta">
+                            <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                            <span class="tag">Sitzungen: ${client.sessions}</span>
+                        </div>
+                    </div>
+                    <div class="client-stats">
+                        <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                        <span>🔢 Sessions: ${client.sessions}</span>
+                    </div>
+                    <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(102, 126, 234, 0.1); padding-top: 15px;">
+                        <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="editClient(${client.id}); event.stopPropagation();">
+                            ✏️ Bearbeiten
+                        </button>
+                        <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="deleteClientConfirm(${client.id}); event.stopPropagation();">
+                            🗑️ Löschen
+                        </button>
+                    </div>
+                `;
+                
+                // Click handler für Card-Auswahl
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.client-actions')) {
+                        selectClient(card, client.id);
+                    }
+                });
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Client bearbeiten
+        async function editClient(clientId) {
+            try {
+                const response = await fetch(`/api/clients/${clientId}`);
+                if (response.ok) {
+                    const client = await response.json();
+                    
+                    // Modal mit bestehenden Daten füllen
+                    const form = document.querySelector('#clientModal form');
+                    form.querySelector('input[name="initials"]').value = client.name || '';
+                    form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
+                    form.querySelector('select[name="therapy"]').value = extractTherapyFromNotes(client.notes);
+                    form.querySelector('textarea[name="notes"]').value = client.notes || '';
+                    
+                    // Modal-Titel ändern
+                    document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
+                    
+                    // Submit-Button Text ändern
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    submitBtn.textContent = 'Aktualisieren';
+                    
+                    // Form für Update-Modus markieren
+                    form.dataset.mode = 'edit';
+                    form.dataset.clientId = clientId;
+                    
+                    showModal('clientModal');
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Client-Daten:', error);
+                alert('❌ Fehler beim Laden der Klient:in-Daten');
+            }
+        }
+
+        // Client löschen mit Bestätigung
+        async function deleteClientConfirm(clientId) {
+            const confirmed = confirm('⚠️ Sind Sie sicher, dass Sie diese:n Klient:in löschen möchten?\n\nAlle zugehörigen Daten werden unwiderruflich gelöscht!');
+            
+            if (confirmed) {
+                try {
+                    const response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        await loadClients();
+                        await loadStats();
+                        alert('✅ Klient:in erfolgreich gelöscht');
+                    } else {
+                        const error = await response.json();
+                        alert('❌ Fehler beim Löschen: ' + error.error);
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Löschen:', error);
+                    alert('❌ Verbindungsfehler beim Löschen');
+                }
+            }
+        }
+
+        // Hilfsfunktion um Therapieform aus Notizen zu extrahieren
+        function extractTherapyFromNotes(notes) {
+            if (!notes) return 'Verhaltenstherapie (VT)';
+            
+            if (notes.includes('TP') || notes.includes('Tiefenpsychologie')) {
+                return 'Tiefenpsychologie (TP)';
+            } else if (notes.includes('PA') || notes.includes('Psychoanalyse')) {
+                return 'Psychoanalyse (PA)';
+            } else if (notes.includes('ST') || notes.includes('Systemische')) {
+                return 'Systemische Therapie (ST)';
+            }
+            
+            return 'Verhaltenstherapie (VT)';
+        }
+
+        function updateQuickSearch(clients) {
+            const quickClient = document.getElementById('quickClient');
+            quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+            
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                quickClient.appendChild(option);
+            });
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalClients').textContent = stats.totalClients;
+                    document.getElementById('totalSessions').textContent = stats.totalSessions;
+                    document.getElementById('pendingTodos').textContent = stats.pendingTodos;
+                    document.getElementById('activePlans').textContent = stats.activePlans;
+                    document.getElementById('todosBadge').textContent = stats.pendingTodos;
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Statistiken:', error);
+            }
+        }
+
+        // Client Modal Form Handler
+        async function addClient(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clientData = {
+                initials: formData.get('initials'),
+                diagnosis: formData.get('diagnosis'),
+                therapy: formData.get('therapy'),
+                notes: formData.get('notes')
+            };
+
+            // Prüfen ob Edit-Modus oder Neu-Modus
+            const isEditMode = form.dataset.mode === 'edit';
+            const clientId = form.dataset.clientId;
+
+            try {
+                let response;
+                
+                if (isEditMode) {
+                    // Update bestehender Client
+                    response = await fetch(`/api/clients/${clientId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: clientData.initials,
+                            diagnosis: clientData.diagnosis,
+                            notes: `Therapie: ${clientData.therapy}. ${clientData.notes}`
+                        })
+                    });
+                } else {
+                    // Neuer Client
+                    response = await fetch('/api/clients', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(clientData)
+                    });
+                }
+
+                if (response.ok) {
+                    await loadClients();
+                    await loadStats();
+                    hideModal('clientModal');
+                    alert(`✅ Klient:in erfolgreich ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+                } else {
+                    const error = await response.json();
+                    alert('❌ Fehler: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                alert('❌ Verbindungsfehler');
+            }
+        }
+
+        function selectClient(element, clientId) {
+            const cards = document.querySelectorAll('.client-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        async function exportClients() {
+            try {
+                const response = await fetch('/api/clients');
+                if (response.ok) {
+                    const clients = await response.json();
+                    alert(`📄 Export vorbereitet:\n\n${clients.length} Klient:innen gefunden\n\nDaten werden heruntergeladen...`);
+                }
+            } catch (error) {
+                alert('❌ Export-Fehler');
+            }
+        }
+
+        // Dummy-Funktionen für andere Features
+        function setUploadType(type) {
+            currentUploadType = type;
+            document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
+            document.getElementById(type + 'Type').classList.add('active');
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        function processFile() {
+            alert('Datei-Verarbeitung (Demo-Modus)');
+        }
+
+        function sendMessage() {
+            alert('Chat-Nachricht (Demo-Modus)');
+        }
+
+        function attachFileToChat() {
+            alert('Datei-Anhang (Demo-Modus)');
+        }
+
+        function testAPIConnection() {
+            alert('✅ API-Verbindung getestet (Demo)');
+        }
+
+        function showDSGVOReport() {
+            alert('🔒 DSGVO-Status: Alle Systeme sicher (Demo)');
+        }
+
+        function createPlan(event) {
+            event.preventDefault();
+            alert('Therapieplan erstellt (Demo)');
+            hideModal('planModal');
+        }
+
+        function addTodo(event) {
+            event.preventDefault();
+            alert('To-Do hinzugefügt (Demo)');
+            hideModal('todoModal');
+        }
+
+        function testIntegration(event, system) {
+            event.preventDefault();
+            alert(`✅ ${system} Integration getestet (Demo)`);
+            hideModal(event.target.closest('.modal').id);
+        }
+
+        function performQuickSearch() {
+            alert('Schnellsuche (Demo-Modus)');
+        }
+
+        function performSearch() {
+            alert('Suche wird durchgeführt (Demo)');
+        }
+
+        function toggleRecording() {
+            alert('Audio-Aufnahme (Demo-Modus)');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+        });
+</script>
+<script>
+// Client-Management Funktionen
+
+async function loadClients() {
+    try {
+        const response = await fetch('/api/clients');
+        if (response.ok) {
+            const clients = await response.json();
+            displayClients(clients);
+            updateQuickSearch(clients);
+            document.getElementById('clientsBadge').textContent = clients.length;
+        } else {
+            console.error('Fehler beim Laden der Klienten');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+function displayClients(clients) {
+    const grid = document.getElementById('clientGrid');
+    grid.innerHTML = '';
+    
+    clients.forEach(client => {
+        const card = document.createElement('div');
+        card.className = 'client-card';
+        
+        card.innerHTML = `
+            <div class="client-header">
+                <div class="client-initials">${client.name}</div>
+                <div class="client-meta">
+                    <span class="tag">${client.diagnosis || 'Keine Diagnose'}</span>
+                    <span class="tag">Sitzungen: ${client.sessions}</span>
+                </div>
+            </div>
+            <div class="client-stats">
+                <span>📅 Letzte Sitzung: ${client.last_session || 'Noch keine'}</span>
+                <span>🔢 Sessions: ${client.sessions}</span>
+            </div>
+            <div class="client-actions" style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(102, 126, 234, 0.1); padding-top: 15px;">
+                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="editClient(${client.id}); event.stopPropagation();">
+                    ✏️ Bearbeiten
+                </button>
+                <button class="btn btn-warning" style="padding: 8px 12px; font-size: 12px; flex: 1;" onclick="deleteClientConfirm(${client.id}); event.stopPropagation();">
+                    🗑️ Löschen
+                </button>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+    });
+}
+
+async function editClient(clientId) {
+    try {
+        const response = await fetch(`/api/clients/${clientId}`);
+        if (response.ok) {
+            const client = await response.json();
+            
+            const form = document.querySelector('#clientModal form');
+            form.querySelector('input[name="initials"]').value = client.name || '';
+            form.querySelector('input[name="diagnosis"]').value = client.diagnosis || '';
+            form.querySelector('textarea[name="notes"]').value = client.notes || '';
+            
+            document.querySelector('#clientModal .modal-title').textContent = 'Klient:in bearbeiten';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Aktualisieren';
+            
+            form.dataset.mode = 'edit';
+            form.dataset.clientId = clientId;
+            
+            showModal('clientModal');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        alert('❌ Fehler beim Laden der Daten');
+    }
+}
+
+async function deleteClientConfirm(clientId) {
+    const confirmed = confirm('⚠️ Klient:in wirklich löschen?\n\nAlle Daten werden gelöscht!');
+    
+    if (confirmed) {
+        try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                await loadClients();
+                await loadStats();
+                alert('✅ Klient:in gelöscht');
+            } else {
+                alert('❌ Fehler beim Löschen');
+            }
+        } catch (error) {
+            alert('❌ Verbindungsfehler');
+        }
+    }
+}
+
+// Override der ursprünglichen addClient Funktion
+async function addClient(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const clientData = {
+        initials: formData.get('initials'),
+        diagnosis: formData.get('diagnosis'),
+        therapy: formData.get('therapy'),
+        notes: formData.get('notes')
+    };
+
+    const isEditMode = form.dataset.mode === 'edit';
+    const clientId = form.dataset.clientId;
+
+    try {
+        let response;
+        
+        if (isEditMode) {
+            response = await fetch(`/api/clients/${clientId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: clientData.initials,
+                    diagnosis: clientData.diagnosis,
+                    notes: clientData.notes
+                })
+            });
+        } else {
+            response = await fetch('/api/clients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clientData)
+            });
+        }
+
+        if (response.ok) {
+            await loadClients();
+            await loadStats();
+            hideModal('clientModal');
+            alert(`✅ Klient:in ${isEditMode ? 'aktualisiert' : 'hinzugefügt'}!`);
+        } else {
+            alert('❌ Fehler beim Speichern');
+        }
+    } catch (error) {
+        alert('❌ Verbindungsfehler');
+    }
+}
+
+function updateQuickSearch(clients) {
+    const quickClient = document.getElementById('quickClient');
+    quickClient.innerHTML = '<option value="">Klient:in auswählen</option>';
+    
+    clients.forEach(client => {
+        const option = document.createElement('option');
+        option.value = client.id;
+        option.textContent = client.name;
+        quickClient.appendChild(option);
+    });
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats');
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('totalClients').textContent = stats.totalClients;
+            document.getElementById('totalSessions').textContent = stats.totalSessions;
+            document.getElementById('pendingTodos').textContent = stats.pendingTodos;
+            document.getElementById('activePlans').textContent = stats.activePlans;
+            document.getElementById('todosBadge').textContent = stats.pendingTodos;
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Statistiken:', error);
+    }
+}
+
+// Chat-Funktionalität wiederherstellen
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (input.value.trim() === '' && chatAttachments.length === 0) return;
+    
+    // Add user message with attachments
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (chatAttachments.length > 0) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${input.value || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
+
+    const messageText = input.value;
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    
+    // Clear attachments
+    chatAttachments = [];
+    
+    messages.scrollTop = messages.scrollHeight;
+
+    // Show typing indicator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • tippt...</div>
+        <em>Antwort wird generiert...</em>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                message: messageText || 'Bitte analysiere die angehängten Dateien.',
+                hasAttachments: chatAttachments.length > 0
+            })
+        });
+
+        messages.removeChild(typingMessage);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${data.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        if (messages.contains(typingMessage)) {
+            messages.removeChild(typingMessage);
+        }
+        
+        console.error('Chat error:', error);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message assistant';
+        errorMessage.innerHTML = `
+            <div class="message-meta">System • Fehler</div>
+            <em>Verbindung zur KI fehlgeschlagen. Bitte versuchen Sie es erneut.</em>
+        `;
+        messages.appendChild(errorMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function attachFileToChat() {
+    document.getElementById('chatFileInput').click();
+}
+
+function handleChatFile(event) {
+    const files = Array.from(event.target.files);
+    chatAttachments = chatAttachments.concat(files);
+    
+    const input = document.getElementById('chatInput');
+    const fileCount = chatAttachments.length;
+    input.placeholder = `Ihre Frage an die KI-Assistenz... (${fileCount} Datei${fileCount > 1 ? 'en' : ''} angehängt)`;
+    
+    event.target.value = '';
+}
+</script>
+</body>
+</html>
