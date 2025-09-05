@@ -3108,20 +3108,7 @@
             }
         }
 
-        // Dummy-Funktionen für andere Features
-        function setUploadType(type) {
-            currentUploadType = type;
-            document.querySelectorAll('.upload-type').forEach(el => el.classList.remove('active'));
-            document.getElementById(type + 'Type').classList.add('active');
-        }
-
-        function triggerFileInput() {
-            document.getElementById('fileInput').click();
-        }
-
-        function processFile() {
-            alert('Datei-Verarbeitung (Demo-Modus)');
-        }
+        Ersetzen Sie diese Dummy-Funktionen:
 
         function sendMessage() {
             alert('Chat-Nachricht (Demo-Modus)');
@@ -3163,10 +3150,6 @@
 
         function performSearch() {
             alert('Suche wird durchgeführt (Demo)');
-        }
-
-        function toggleRecording() {
-            alert('Audio-Aufnahme (Demo-Modus)');
         }
 
         // --- Enhanced To-Do Functions ---
