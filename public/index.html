@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxida 2.0 - KI-Assistenz für Therapeuten</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: url("mein-hintergrund.jpg") no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: calc(100vh - 40px);
+        }
+
+        .logo h1 {
+            color: #1abc9c;
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .nav-tabs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+        .nav-tab { padding: 14px; border-radius: 12px; border: none; background: #f8f9ff; cursor: pointer; font-weight: 600; }
+        .nav-tab.active { background: #1abc9c; color: #fff; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+
+        .section-header { margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .section-title { font-size: 28px; color: #1abc9c; }
+
+        .feature-box, .integration-card {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .icon { font-size: 30px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo"><h1>Praxida</h1><p>KI-Assistenz</p></div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showSection('overview')">📊 Dashboard</button>
+                <button class="nav-tab" onclick="showSection('clients')">👥 Klient:innen</button>
+                <button class="nav-tab" onclick="showSection('files')">📎 Datei-Analyse</button>
+                <button class="nav-tab" onclick="showSection('chat')">💬 KI-Chat</button>
+                <button class="nav-tab" onclick="showSection('integration')">🔗 System-Integration</button>
+                <button class="nav-tab" onclick="showSection('planning')">📋 Therapieplanung</button>
+                <button class="nav-tab" onclick="showSection('todos')">✅ To-Dos</button>
+                <button class="nav-tab" onclick="showSection('team')">👥 Team</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="overview" class="content-section active">
+                <div class="section-header"><h2 class="section-title">Dashboard</h2></div>
+                <p>Übersicht über alle Funktionen.</p>
+            </div>
+
+            <div id="files" class="content-section">
+                <div class="section-header"><h2 class="section-title">Datei-Analyse</h2></div>
+                <div class="feature-box"><div class="icon">🖼️</div><h3>Bilder analysieren</h3><p>Screenshots, Zeichnungen, Fotos von Dokumenten</p></div>
+                <div class="feature-box"><div class="icon">📄</div><h3>Textdateien</h3><p>PDF, DOC, TXT Dokumente verarbeiten</p></div>
+                <div class="feature-box"><div class="icon">📎</div><h3>Kombiniert</h3><p>Mehrere Dateitypen gleichzeitig</p></div>
+                <div class="feature-box"><div class="icon">📁</div><h3>Dateien hier ablegen oder klicken</h3><p>Unterstützte Formate: JPG, PNG, PDF, DOC, DOCX, TXT – Max. Größe: 10MB</p></div>
+                <div class="feature-box"><div class="icon">🎤</div><h3>Audio-Protokolle</h3><p>Intelligente Transkription und Protokollerstellung Ihrer Therapiesitzungen.<br>Unterstützte Formate: MP3, WAV, M4A, OGG</p></div>
+            </div>
+
+            <div id="chat" class="content-section"><div class="section-header"><h2 class="section-title">KI-Chat</h2></div><p>Fragen Sie die KI nach Therapieunterstützung.</p></div>
+
+            <div id="integration" class="content-section">
+                <div class="section-header"><h2 class="section-title">System-Integration</h2></div>
+                <div class="integration-card"><div class="icon">🏥</div><h3>Praxisverwaltung</h3><p>Integration mit CGM ALBIS, medistar, TurboMed</p></div>
+                <div class="integration-card"><div class="icon">🔒</div><h3>DSGVO-Compliance</h3><p>Automatische Datenschutz-Checks und Compliance-Berichte</p></div>
+                <div class="integration-card"><div class="icon">📊</div><h3>Telematik-Infrastruktur</h3><p>Sichere Anbindung an ePA, KIM und weitere Dienste</p></div>
+                <div class="integration-card"><div class="icon">📋</div><h3>Terminbuchung</h3><p>Integration mit Doctolib, Jameda u.a.</p></div>
+                <div class="integration-card"><div class="icon">📱</div><h3>Mobile Apps</h3><p>Synchronisation mit Patient:innen-Apps und Wearables</p></div>
+            </div>
+
+            <div id="clients" class="content-section"><div class="section-header"><h2 class="section-title">Klient:innen</h2></div></div>
+            <div id="planning" class="content-section"><div class="section-header"><h2 class="section-title">Therapieplanung</h2></div></div>
+            <div id="todos" class="content-section"><div class="section-header"><h2 class="section-title">To-Dos</h2></div></div>
+            <div id="team" class="content-section"><div class="section-header"><h2 class="section-title">Team</h2></div></div>
+        </div>
+    </div>
+
+<script>
+function showSection(id) {
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
