@@ -2819,42 +2819,11 @@
         let uploadedFiles = [];
         let chatAttachments = [];
 
-        // Authentication
-        function handleLogin(event) {
-            event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'demo' && password === 'praxida2024') {
-                currentUser = {
-                    username: username,
-                    displayName: 'Demo User',
-                    initials: 'DU'
-                };
-                
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                document.getElementById('userName').textContent = currentUser.displayName;
-                document.getElementById('userAvatar').textContent = currentUser.initials;
-                
-                initializeApp();
-            } else {
-                alert('Ungültige Anmeldedaten. Verwenden Sie die Demo-Zugangsdaten.');
-            }
-        }
-
-        function handleLogout() {
-            currentUser = null;
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-
-        async function initializeApp() {
-            await loadClients();
-            await loadStats();
-        }
+        // Auto-initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadClients();
+            loadStats();
+        });
 
         // Navigation
         function showSection(sectionId, tabElement) {
