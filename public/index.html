@@ -3309,7 +3309,508 @@
             
             event.target.value = '';
         }
+// Fügen Sie diese Funktionen zu Ihrem bestehenden JavaScript hinzu:
 
+// === AUDIO & WHISPER FUNKTIONALITÄT === //
+
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
+let isRecording = false;
+
+// Audio-Aufnahme starten/stoppen
+async function toggleRecording() {
+    const recordBtn = document.getElementById('recordBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const recordTime = document.getElementById('recordTime');
+    
+    if (isRecording) {
+        // Stoppe Aufnahme
+        console.log('⏹️ Stoppe Audio-Aufnahme...');
+        mediaRecorder.stop();
+        clearInterval(recordingTimer);
+        
+        recordBtn.classList.remove('recording');
+        recordingStatus.style.display = 'none';
+        recordBtn.innerHTML = '🎤';
+        isRecording = false;
+        
+        showSuccess('Aufnahme beendet - wird verarbeitet...');
+    } else {
+        // Starte Aufnahme
+        try {
+            console.log('🎤 Starte Audio-Aufnahme...');
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    channelCount: 1,
+                    sampleRate: 16000
+                } 
+            });
+            
+            audioChunks = [];
+            recordingSeconds = 0;
+            
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+            });
+            
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+            
+            mediaRecorder.onstop = async () => {
+                console.log('🔄 Verarbeite Audio-Aufnahme...');
+                
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Create audio blob
+                const audioBlob = new Blob(audioChunks, { 
+                    type: mediaRecorder.mimeType 
+                });
+                
+                // Upload and process
+                await uploadAndProcessAudio(audioBlob);
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            
+            recordBtn.classList.add('recording');
+            recordingStatus.style.display = 'flex';
+            recordBtn.innerHTML = '⏹️';
+            
+            // Timer
+            recordingTimer = setInterval(() => {
+                recordingSeconds++;
+                const minutes = Math.floor(recordingSeconds / 60);
+                const seconds = recordingSeconds % 60;
+                recordTime.textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+            
+            showSuccess('🎤 Aufnahme gestartet');
+            
+        } catch (error) {
+            console.error('❌ Fehler bei Audio-Aufnahme:', error);
+            showError('Mikrofon-Zugriff verweigert oder nicht verfügbar');
+        }
+    }
+}
+
+// Audio-Datei hochladen und mit Whisper verarbeiten
+async function uploadAndProcessAudio(audioBlob, clientId = null) {
+    try {
+        console.log('📤 Lade Audio zu Whisper hoch...');
+        
+        const formData = new FormData();
+        formData.append('audio', audioBlob, `recording-${Date.now()}.webm`);
+        formData.append('analysis_type', 'protocol');
+        
+        if (clientId) {
+            formData.append('client_id', clientId);
+        }
+        
+        // Zeige Loading-Status
+        const loadingMessage = showLoadingMessage('🎤 Whisper transkribiert Audio...');
+        
+        const response = await fetch('/api/audio/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        hideLoadingMessage(loadingMessage);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Server-Fehler');
+        }
+        
+        const result = await response.json();
+        
+        console.log('✅ Whisper-Transkription erfolgreich');
+        
+        // Zeige Ergebnisse an
+        displayTranscriptionResults(result);
+        
+    } catch (error) {
+        console.error('❌ Whisper-Fehler:', error);
+        showError('Fehler bei Audio-Verarbeitung: ' + error.message);
+    }
+}
+
+// Zeige Transkriptions-Ergebnisse
+function displayTranscriptionResults(result) {
+    const messages = document.getElementById('chatMessages');
+    if (!messages) return;
+    
+    // Audio-Nachricht hinzufügen
+    const audioMessage = document.createElement('div');
+    audioMessage.className = 'message user';
+    audioMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        <div class="message-attachment">
+            <div class="attachment-icon">🎤</div>
+            <div class="attachment-info">
+                <div class="attachment-name">Audio-Aufnahme</div>
+                <div class="attachment-type">${formatFileSize(result.file.size)}</div>
+            </div>
+        </div>
+        <strong>Transkription:</strong><br>
+        ${result.transcription}
+    `;
+    messages.appendChild(audioMessage);
+    
+    // KI-Analyse als separate Nachricht
+    const analysisMessage = document.createElement('div');
+    analysisMessage.className = 'message assistant';
+    analysisMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        <strong>🤖 Automatische Protokoll-Erstellung:</strong><br><br>
+        ${result.analysis}
+    `;
+    messages.appendChild(analysisMessage);
+    
+    messages.scrollTop = messages.scrollHeight;
+    
+    showSuccess('✅ Audio erfolgreich transkribiert und analysiert!');
+}
+
+// === ERWEITERTE KI-CHAT FUNKTIONALITÄT === //
+
+// Erweiterte Chat-Nachricht senden
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (!input || !messages) return;
+    
+    const messageText = input.value.trim();
+    const hasAttachments = chatAttachments.length > 0;
+    
+    if (messageText === '' && !hasAttachments) return;
+    
+    console.log('💬 Sende erweiterte KI-Nachricht...');
+    
+    // Bestimme Kontext basierend auf aktueller Sektion
+    const activeSection = document.querySelector('.content-section.active');
+    const sectionContext = activeSection ? activeSection.id : 'general';
+    
+    // User-Nachricht anzeigen
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (hasAttachments) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${messageText || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
+
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    chatAttachments = [];
+    messages.scrollTop = messages.scrollHeight;
+
+    // Typing-Indikator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • analysiert...</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+            <em>Generiere professionelle Antwort...</em>
+        </div>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        // Erweiterte KI-Anfrage
+        const requestData = {
+            message: messageText || 'Bitte analysiere die angehängten Dateien.',
+            context: sectionContext,
+            client_id: getSelectedClientId(),
+            analysis_request: determineAnalysisType(messageText)
+        };
+
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        messages.removeChild(typingMessage);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${data.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        if (messages.contains(typingMessage)) {
+            messages.removeChild(typingMessage);
+        }
+        
+        console.error('❌ Enhanced Chat error:', error);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message assistant';
+        errorMessage.innerHTML = `
+            <div class="message-meta">System • Fehler</div>
+            <div style="background: #ffe6e6; padding: 10px; border-radius: 8px; border-left: 4px solid #ff4444;">
+                <strong>⚠️ Verbindungsfehler</strong><br>
+                Die KI-Assistenz ist momentan nicht erreichbar. Bitte versuchen Sie es später erneut.
+                <br><br>
+                <small>Ihre Nachricht wurde gespeichert.</small>
+            </div>
+        `;
+        messages.appendChild(errorMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+// Hilfs-Funktionen
+function getSelectedClientId() {
+    const selectedCard = document.querySelector('.client-card.selected');
+    return selectedCard ? selectedCard.dataset.clientId : null;
+}
+
+function determineAnalysisType(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('protokoll') || lowerMessage.includes('dokumentation')) {
+        return 'protocol';
+    } else if (lowerMessage.includes('fortschritt') || lowerMessage.includes('verlauf')) {
+        return 'progress';
+    } else if (lowerMessage.includes('diagnose') || lowerMessage.includes('symptom')) {
+        return 'diagnosis';
+    }
+    
+    return 'general';
+}
+
+function showLoadingMessage(text) {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-message';
+    loadingDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 1001;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease;
+    `;
+    loadingDiv.innerHTML = `
+        <div class="spinner" style="
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        "></div>
+        ${text}
+    `;
+    
+    // CSS Animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(loadingDiv);
+    return loadingDiv;
+}
+
+function hideLoadingMessage(messageDiv) {
+    if (messageDiv && messageDiv.parentNode) {
+        messageDiv.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 300);
+    }
+}
+
+// Audio-Datei Upload (File Input)
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    console.log('📁 Audio-Datei ausgewählt:', file.name);
+    
+    // Validierung
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+        showError('Datei zu groß! Maximum: 100MB');
+        return;
+    }
+    
+    const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/ogg', 'audio/flac', 'audio/webm'];
+    if (!allowedTypes.includes(file.type)) {
+        showError('Nicht unterstütztes Audio-Format!');
+        return;
+    }
+    
+    uploadAndProcessAudio(file);
+    event.target.value = ''; // Reset input
+}
+
+// Text-Analyse anfordern
+async function analyzeText(text, analysisType = 'general') {
+    try {
+        const response = await fetch('/api/audio/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                analysis_type: analysisType,
+                client_id: getSelectedClientId()
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Analyse-Fehler');
+        }
+        
+        const result = await response.json();
+        return result.analysis;
+        
+    } catch (error) {
+        console.error('❌ Text-Analyse Fehler:', error);
+        throw error;
+    }
+}
+
+// === INITIALISIERUNG === //
+
+// Erweiterte Initialisierung
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎤 Initialisiere Audio & KI Features...');
+    
+    // Audio-Upload Input Event
+    const audioUploadZone = document.getElementById('audioUpload');
+    if (audioUploadZone) {
+        audioUploadZone.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*';
+            input.onchange = handleAudioUpload;
+            input.click();
+        });
+    }
+    
+    // Drag & Drop für Audio
+    if (audioUploadZone) {
+        audioUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            audioUploadZone.classList.add('dragover');
+        });
+        
+        audioUploadZone.addEventListener('dragleave', () => {
+            audioUploadZone.classList.remove('dragover');
+        });
+        
+        audioUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            audioUploadZone.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('audio/')) {
+                uploadAndProcessAudio(file);
+            } else {
+                showError('Bitte nur Audio-Dateien hochladen!');
+            }
+        });
+    }
+    
+    // Check Mikrofon-Verfügbarkeit
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        console.log('✅ Mikrofon-Aufnahme verfügbar');
+    } else {
+        console.log('⚠️ Mikrofon-Aufnahme nicht verfügbar');
+        const recordBtn = document.getElementById('recordBtn');
+        if (recordBtn) {
+            recordBtn.disabled = true;
+            recordBtn.title = 'Mikrofon nicht verfügbar';
+        }
+    }
+    
+    console.log('✅ Audio & KI Features initialisiert');
+});
+
+// === ZUSÄTZLICHE HILFSFUNKTIONEN === //
+
+// Formatiere Audiodauer
+function formatDuration(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Prüfe OpenAI API Verfügbarkeit
+async function checkAPIAvailability() {
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: 'test' })
+        });
+        
+        const data = await response.json();
+        return !data.reply.includes('nicht verfügbar');
+    } catch {
+        return false;
+    }
+}
+
+console.log('🎤 Audio & KI Integration geladen!');
         // Utility functions
         function showSuccess(message) {
             console.log('✅ SUCCESS:', message);
