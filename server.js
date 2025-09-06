@@ -733,4 +733,426 @@ app.listen(PORT, () => {
       console.log(`📁 Ordner erstellt: ${dir}`);
     }
   });
+    // === OUTCOME TRACKING BACKEND EXTENSION === //
+// Fügen Sie diese Routen zu Ihrer server.js hinzu:
+
+// Standardisierte Assessment-Instrumente
+const ASSESSMENTS = {
+  'PHQ-9': {
+    name: 'Patient Health Questionnaire-9',
+    type: 'depression',
+    questions: [
+      'Wenig Interesse oder Freude an Tätigkeiten',
+      'Niedergeschlagenheit, Schwermut oder Hoffnungslosigkeit',
+      'Schwierigkeiten beim Ein- oder Durchschlafen oder vermehrter Schlaf',
+      'Müdigkeit oder Gefühl, keine Energie zu haben',
+      'Verminderter Appetit oder übermäßiges Bedürfnis zu essen',
+      'Schlechte Meinung von sich selbst; Gefühl ein Versager zu sein',
+      'Schwierigkeiten sich zu konzentrieren',
+      'Langsame Bewegungen oder Sprache, oder Unruhe',
+      'Gedanken, dass Sie besser tot wären oder sich Leid zufügen möchten'
+    ],
+    scale: ['Überhaupt nicht', 'An einzelnen Tagen', 'An mehr als der Hälfte der Tage', 'Beinahe jeden Tag'],
+    scoring: {
+      minimal: [0, 4],
+      mild: [5, 9],
+      moderate: [10, 14],
+      moderateSevere: [15, 19],
+      severe: [20, 27]
+    },
+    maxScore: 27
+  },
+  'GAD-7': {
+    name: 'Generalized Anxiety Disorder 7-item',
+    type: 'anxiety',
+    questions: [
+      'Nervosität, Ängstlichkeit oder Anspannung',
+      'Nicht in der Lage sein, Sorgen zu stoppen oder zu kontrollieren',
+      'Zu viele Sorgen bezüglich verschiedener Angelegenheiten',
+      'Schwierigkeiten zu entspannen',
+      'Unruhe, sodass Stillsitzen schwer fällt',
+      'Schnelle Verärgerung oder Gereiztheit',
+      'Angst, dass etwas Schlimmes passieren könnte'
+    ],
+    scale: ['Überhaupt nicht', 'An einzelnen Tagen', 'An mehr als der Hälfte der Tage', 'Beinahe jeden Tag'],
+    scoring: {
+      minimal: [0, 4],
+      mild: [5, 9],
+      moderate: [10, 14],
+      severe: [15, 21]
+    },
+    maxScore: 21
+  },
+  'PCL-5': {
+    name: 'PTSD Checklist for DSM-5',
+    type: 'trauma',
+    questions: [
+      'Wiederholte, störende und ungewollte Erinnerungen an das belastende Ereignis',
+      'Wiederholte, störende Träume über das belastende Ereignis',
+      'Plötzliches Verhalten oder Gefühl, als ob das belastende Ereignis erneut geschieht',
+      'Sehr starke belastende Gefühle bei Erinnerung an das Ereignis',
+      'Starke körperliche Reaktionen bei Erinnerung an das Ereignis',
+      'Vermeidung von Erinnerungen, Gedanken oder Gefühlen bezüglich des Ereignisses',
+      'Vermeidung von äußeren Erinnerungen (Menschen, Orte, Gespräche, etc.)',
+      'Probleme, sich an wichtige Teile des belastenden Ereignisses zu erinnern',
+      'Starke negative Überzeugungen über sich selbst, andere oder die Welt',
+      'Andere oder sich selbst für das Ereignis oder die Folgen verantwortlich machen',
+      'Starke negative Gefühle (Angst, Wut, Schuld, Scham)',
+      'Deutlich vermindertes Interesse an Aktivitäten',
+      'Gefühl der Entfremdung oder Distanziertheit von anderen',
+      'Anhaltende Unfähigkeit positive Gefühle zu empfinden',
+      'Reizbarkeit, Wutausbrüche oder Aggressivität',
+      'Übermäßig risikoreiches oder selbstschädigendes Verhalten',
+      'Übermäßige Wachsamkeit',
+      'Übertriebene Schreckreaktionen',
+      'Schwierigkeiten sich zu konzentrieren',
+      'Schlafstörungen'
+    ],
+    scale: ['Überhaupt nicht', 'Ein wenig', 'Mäßig', 'Ziemlich', 'Extrem'],
+    scoring: {
+      minimal: [0, 32],
+      mild: [33, 37],
+      moderate: [38, 43],
+      severe: [44, 80]
+    },
+    maxScore: 80
+  },
+  'OQ-45': {
+    name: 'Outcome Questionnaire-45',
+    type: 'general',
+    questions: [
+      'Ich komme mit anderen Menschen gut aus',
+      'Ich werde müde ohne besonderen Grund',
+      'Ich bin unglücklich in meiner Ehe/Partnerschaft',
+      'Ich habe Gedanken, mir selbst das Leben zu nehmen',
+      'Ich fühle mich schwach',
+      'Meine Arbeit/Schule leidet',
+      'Ich bin eine glückliche Person',
+      'Ich habe Probleme bei der Arbeit/Schule wegen Drogen- oder Alkoholkonsums'
+      // Vereinfachte Version - das echte OQ-45 hat 45 Fragen
+    ],
+    scale: ['Nie', 'Selten', 'Manchmal', 'Häufig', 'Fast immer'],
+    scoring: {
+      normal: [0, 63],
+      mild: [64, 83],
+      moderate: [84, 103],
+      severe: [104, 180]
+    },
+    maxScore: 180
+  }
+};
+
+// === ERWEITERTE DATENBANK FUNKTIONEN === //
+
+function addAssessment(assessmentData) {
+  try {
+    const assessment = {
+      id: db.nextId.assessments++,
+      client_id: assessmentData.client_id,
+      session_id: assessmentData.session_id || null,
+      assessment_type: assessmentData.assessment_type,
+      responses: assessmentData.responses,
+      total_score: assessmentData.total_score,
+      severity_level: assessmentData.severity_level,
+      completed_at: new Date().toISOString(),
+      notes: assessmentData.notes || null
+    };
+    
+    if (!db.assessments) db.assessments = [];
+    db.assessments.push(assessment);
+    saveDatabase();
+    
+    console.log(`✅ Assessment hinzugefügt: ${assessment.assessment_type} für Client ${assessment.client_id}`);
+    return { lastInsertRowid: assessment.id };
+  } catch (error) {
+    console.error("❌ Fehler beim Hinzufügen des Assessments:", error);
+    throw error;
+  }
+}
+
+function getAssessmentsByClient(clientId, assessmentType = null) {
+  try {
+    if (!db.assessments) return [];
+    
+    let assessments = db.assessments.filter(a => a.client_id == clientId);
+    
+    if (assessmentType) {
+      assessments = assessments.filter(a => a.assessment_type === assessmentType);
+    }
+    
+    return assessments.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+  } catch (error) {
+    console.error("❌ Fehler beim Abrufen der Assessments:", error);
+    return [];
+  }
+}
+
+function calculateAssessmentScore(assessmentType, responses) {
+  const assessment = ASSESSMENTS[assessmentType];
+  if (!assessment) throw new Error('Unbekannter Assessment-Typ');
+  
+  const totalScore = responses.reduce((sum, response) => sum + response, 0);
+  
+  // Bestimme Schweregrad
+  let severityLevel = 'unknown';
+  for (const [level, range] of Object.entries(assessment.scoring)) {
+    if (totalScore >= range[0] && totalScore <= range[1]) {
+      severityLevel = level;
+      break;
+    }
+  }
+  
+  return {
+    totalScore,
+    severityLevel,
+    maxScore: assessment.maxScore,
+    percentage: Math.round((totalScore / assessment.maxScore) * 100)
+  };
+}
+
+async function generateOutcomeAnalysis(clientId, assessmentType = null) {
+  try {
+    const assessments = getAssessmentsByClient(clientId, assessmentType);
+    
+    if (assessments.length < 2) {
+      return {
+        analysis: 'Nicht genügend Daten für Verlaufsanalyse. Mindestens 2 Assessments erforderlich.',
+        trend: 'insufficient_data',
+        recommendations: ['Regelmäßige Assessments durchführen für bessere Verlaufsdokumentation']
+      };
+    }
+    
+    // Trend-Analyse
+    const latest = assessments[0];
+    const previous = assessments[1];
+    const scoreDifference = latest.total_score - previous.total_score;
+    const percentageChange = Math.round(((scoreDifference) / previous.total_score) * 100);
+    
+    let trend = 'stable';
+    let trendDescription = '';
+    
+    if (scoreDifference < -2) {
+      trend = 'improving';
+      trendDescription = `Verbesserung um ${Math.abs(scoreDifference)} Punkte (${Math.abs(percentageChange)}%)`;
+    } else if (scoreDifference > 2) {
+      trend = 'worsening';
+      trendDescription = `Verschlechterung um ${scoreDifference} Punkte (${percentageChange}%)`;
+    } else {
+      trend = 'stable';
+      trendDescription = `Stabiler Verlauf (${scoreDifference >= 0 ? '+' : ''}${scoreDifference} Punkte)`;
+    }
+    
+    // KI-gestützte Analyse falls OpenAI verfügbar
+    let detailedAnalysis = '';
+    if (process.env.OPENAI_API_KEY) {
+      const assessmentData = assessments.slice(0, 5).map(a => ({
+        date: a.completed_at.split('T')[0],
+        score: a.total_score,
+        severity: a.severity_level
+      }));
+      
+      const prompt = `Als Therapeut analysiere folgenden ${assessmentType} Verlauf:
+      
+${assessmentData.map(d => `${d.date}: ${d.score} Punkte (${d.severity})`).join('\n')}
+
+Erstelle eine professionelle Interpretation mit:
+1. Klinische Bedeutung der Veränderungen
+2. Prognose-Einschätzung  
+3. Konkrete Therapie-Empfehlungen
+4. Warnsignale (falls vorhanden)
+
+Antworte strukturiert und wissenschaftlich fundiert.`;
+
+      try {
+        detailedAnalysis = await callOpenAI([
+          { role: "system", content: "Du bist ein erfahrener Psychotherapeut und Supervisor mit Expertise in Outcome-Messung." },
+          { role: "user", content: prompt }
+        ]);
+      } catch (error) {
+        console.error('KI-Analyse Fehler:', error);
+        detailedAnalysis = 'KI-Analyse momentan nicht verfügbar.';
+      }
+    }
+    
+    return {
+      analysis: detailedAnalysis || generateBasicAnalysis(latest, previous, trend, trendDescription),
+      trend: trend,
+      scoreChange: scoreDifference,
+      percentageChange: percentageChange,
+      currentScore: latest.total_score,
+      currentSeverity: latest.severity_level,
+      assessmentCount: assessments.length,
+      recommendations: generateRecommendations(trend, latest.severity_level, assessmentType)
+    };
+    
+  } catch (error) {
+    console.error('❌ Fehler bei Outcome-Analyse:', error);
+    throw error;
+  }
+}
+
+function generateBasicAnalysis(latest, previous, trend, trendDescription) {
+  const assessment = ASSESSMENTS[latest.assessment_type];
+  
+  return `
+    <div style="background: #f8f9ff; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+      <h4 style="color: #667eea; margin-bottom: 15px;">📊 Verlaufsanalyse ${assessment.name}</h4>
+      
+      <p><strong>Aktueller Status:</strong><br>
+      Score: ${latest.total_score}/${assessment.maxScore} Punkte<br>
+      Schweregrad: ${latest.severity_level}<br>
+      ${trendDescription}</p>
+      
+      <p><strong>Klinische Interpretation:</strong><br>
+      ${trend === 'improving' ? 
+        '✅ Der Patient zeigt eine positive Entwicklung. Die Symptombelastung hat sich messbar reduziert.' :
+        trend === 'worsening' ?
+        '⚠️ Verschlechterung erkennbar. Therapieplan sollte überprüft und angepasst werden.' :
+        '➡️ Stabiler Verlauf. Aktuelle Interventionen scheinen angemessen zu sein.'
+      }</p>
+      
+      <p><strong>Empfehlung:</strong><br>
+      ${trend === 'improving' ? 
+        'Aktuelle Therapiestrategie beibehalten. Nächstes Assessment in 4 Wochen.' :
+        trend === 'worsening' ?
+        'Supervision erwägen. Therapiefrequenz erhöhen. Krisenintervention prüfen.' :
+        'Regelmäßige Assessments fortführen. Therapieziele überprüfen.'
+      }</p>
+    </div>
+  `;
+}
+
+function generateRecommendations(trend, severity, assessmentType) {
+  const recommendations = [];
+  
+  if (trend === 'improving') {
+    recommendations.push('Aktuelle Therapiestrategie beibehalten');
+    recommendations.push('Fortschritte mit Patient besprechen und verstärken');
+    recommendations.push('Nächstes Assessment in 4 Wochen');
+  } else if (trend === 'worsening') {
+    recommendations.push('Therapieplan überprüfen und anpassen');
+    recommendations.push('Supervision oder Intervision in Anspruch nehmen');
+    recommendations.push('Häufigere Termine erwägen');
+    if (severity === 'severe') {
+      recommendations.push('⚠️ Krisenintervention und Sicherheitsplan prüfen');
+    }
+  } else {
+    recommendations.push('Regelmäßige Assessments fortführen');
+    recommendations.push('Therapieziele und -methoden evaluieren');
+    recommendations.push('Motivation und Therapieadhärenz stärken');
+  }
+  
+  return recommendations;
+}
+
+// === API ROUTES === //
+
+// Verfügbare Assessments abrufen
+app.get("/api/assessments/types", (req, res) => {
+  try {
+    const types = Object.keys(ASSESSMENTS).map(key => ({
+      key: key,
+      name: ASSESSMENTS[key].name,
+      type: ASSESSMENTS[key].type,
+      questionCount: ASSESSMENTS[key].questions.length
+    }));
+    res.json(types);
+  } catch (error) {
+    res.status(500).json({ error: "Fehler beim Abrufen der Assessment-Typen" });
+  }
+});
+
+// Spezifisches Assessment-Template abrufen
+app.get("/api/assessments/template/:type", (req, res) => {
+  try {
+    const assessment = ASSESSMENTS[req.params.type];
+    if (!assessment) {
+      return res.status(404).json({ error: "Assessment-Typ nicht gefunden" });
+    }
+    res.json(assessment);
+  } catch (error) {
+    res.status(500).json({ error: "Fehler beim Abrufen des Assessment-Templates" });
+  }
+});
+
+// Assessment einreichen und bewerten
+app.post("/api/assessments", (req, res) => {
+  try {
+    const { client_id, session_id, assessment_type, responses, notes } = req.body;
+    
+    if (!client_id || !assessment_type || !responses) {
+      return res.status(400).json({ error: "Pflichtfelder fehlen" });
+    }
+    
+    // Score berechnen
+    const scoreResult = calculateAssessmentScore(assessment_type, responses);
+    
+    // Assessment speichern
+    const assessmentData = {
+      client_id,
+      session_id,
+      assessment_type,
+      responses,
+      total_score: scoreResult.totalScore,
+      severity_level: scoreResult.severityLevel,
+      notes
+    };
+    
+    const result = addAssessment(assessmentData);
+    
+    res.json({
+      success: true,
+      id: result.lastInsertRowid,
+      score: scoreResult
+    });
+    
+  } catch (error) {
+    console.error("❌ Fehler beim Verarbeiten des Assessments:", error);
+    res.status(500).json({ error: "Fehler beim Verarbeiten des Assessments" });
+  }
+});
+
+// Assessments für einen Client abrufen
+app.get("/api/clients/:id/assessments", (req, res) => {
+  try {
+    const assessments = getAssessmentsByClient(req.params.id);
+    res.json(assessments);
+  } catch (error) {
+    res.status(500).json({ error: "Fehler beim Abrufen der Assessments" });
+  }
+});
+
+// Outcome-Analyse generieren
+app.get("/api/clients/:id/outcome-analysis", async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const assessmentType = req.query.type || null;
+    
+    const analysis = await generateOutcomeAnalysis(clientId, assessmentType);
+    res.json(analysis);
+    
+  } catch (error) {
+    console.error("❌ Fehler bei Outcome-Analyse:", error);
+    res.status(500).json({ error: "Fehler bei der Outcome-Analyse" });
+  }
+});
+
+// Assessment-Verlauf für Visualisierung
+app.get("/api/clients/:id/assessment-history/:type", (req, res) => {
+  try {
+    const assessments = getAssessmentsByClient(req.params.id, req.params.type);
+    
+    const history = assessments.reverse().map(a => ({
+      date: a.completed_at.split('T')[0],
+      score: a.total_score,
+      severity: a.severity_level,
+      sessionId: a.session_id
+    }));
+    
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: "Fehler beim Abrufen der Assessment-Historie" });
+  }
+});
+console.log('✅ Outcome-Tracking Backend geladen!');
 });
