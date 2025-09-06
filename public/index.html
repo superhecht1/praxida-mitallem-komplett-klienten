@@ -1687,6 +1687,15 @@
                     <span class="icon">👥</span>
                     <span>Team-Kollaboration</span>
                 </button>
+                <button class="nav-tab" onclick="showSection('calendar', this)">
+                <span class="icon">📅</span>
+                <span>Terminmanagement</span>
+                </button>
+                <button class="nav-tab" onclick="showSection('multiuser', this)">
+                <span class="icon">🔐</span>
+                <span>Multi-User</span>
+                </button>
+
                 <button class="nav-tab" onclick="showSection('search', this)">
                     <span class="icon">🔍</span>
                     <span>Verlaufssuche</span>
@@ -2453,6 +2462,33 @@
                             <button class="btn btn-primary" style="padding: 8px 12px; font-size: 12px;" onclick="addCollaborator('case-3')">➕ Hinzufügen</button>
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- 📅 Terminmanagement Section -->
+            <div id="calendar" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Terminmanagement</h2>
+                    <p class="section-subtitle">KI-gestützte Terminplanung, Kalender-Integration und automatische Erinnerungen</p>
+            </div>
+            <div class="calendar-container">
+                <div class="calendar-header">
+            <button onclick="prevMonth()">⟵</button>
+            <h3 id="calendarMonth"></h3>
+            <button onclick="nextMonth()">⟶</button>
+                </div>
+            <div class="calendar-grid" id="calendarDays"></div>
+            </div>
+        </div>
+
+                <!-- 🔐 Multi-User Section -->
+                <div id="multiuser" class="content-section">
+                <div class="section-header">
+                <h2 class="section-title">Multi-User & Teams</h2>
+                <p class="section-subtitle">Rollenbasiertes Login, Praxis-Teams und DSGVO-konforme Zugriffskontrolle</p>
+                </div>
+                    <div class="multiuser-placeholder">
+                    🔐 Demo: Anmeldung als Therapeut, Assistenz oder Admin (2FA & Session-Management folgen)
                 </div>
             </div>
 
