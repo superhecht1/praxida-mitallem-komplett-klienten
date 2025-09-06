@@ -1,0 +1,1116 @@
+const express = require("express");
+const bodyParser = require("body-parser");
+const fetch = require("node-fetch");
+const dotenv = require("dotenv");
+const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
+const mammoth = require("mammoth");
+const pdfParse = require("pdf-parse");
+
+dotenv.config();
+
+const app = express();
+
+// Debug: API Key Check
+console.log("🔍 DEBUG INFO:");
+console.log("OpenAI API Key vorhanden:", !!process.env.OPENAI_API_KEY);
+console.log("API Key Länge:", process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0);
+
+// Enhanced Multer Configuration for Audio & Files
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = req.path.includes('audio') ? 'uploads/audio/' : 'uploads/';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+        cb(null, uniqueName);
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB for audio files
+    fileFilter: (req, file, cb) => {
+        if (req.path.includes('audio')) {
+            // Audio files for Whisper
+            const audioTypes = /mp3|wav|m4a|ogg|flac|webm|mp4/;
+            const extname = audioTypes.test(path.extname(file.originalname).toLowerCase());
+            const mimetype = file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/');
+            
+            if (mimetype && extname) {
+                return cb(null, true);
+            } else {
+                cb(new Error('Nur Audio-Dateien erlaubt (MP3, WAV, M4A, OGG, FLAC)'));
+            }
+        } else {
+            // Regular files
+            const allowedTypes = /jpeg|jpg|png|pdf|doc|docx|txt/;
+            const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+            const mimetype = allowedTypes.test(file.mimetype);
+            
+            if (mimetype && extname) {
+                return cb(null, true);
+            } else {
+                cb(new Error('Nicht unterstützter Dateityp'));
+            }
+        }
+    }
+});
+
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static(path.join(__dirname, "public")));
+
+// --- Database Import --- //
+const {
+  addClient,
+  getClients,
+  getClientById,
+  deleteClient,
+  updateClient,
+  addSession,
+  getSessionsByClient,
+  addDocument,
+  getDocumentsByClient,
+  addChatMessage,
+  getChatHistory,
+  getStatistics,
+  addAssessment,
+  getAssessmentsByClient
+} = require("./db");
+
+// --- STANDARDIZED ASSESSMENT INSTRUMENTS --- //
+const ASSESSMENTS = {
+  'PHQ-9': {
+    name: 'Patient Health Questionnaire-9',
+    type: 'depression',
+    questions: [
+      'Wenig Interesse oder Freude an Tätigkeiten',
+      'Niedergeschlagenheit, Schwermut oder Hoffnungslosigkeit',
+      'Schwierigkeiten beim Ein- oder Durchschlafen oder vermehrter Schlaf',
+      'Müdigkeit oder Gefühl, keine Energie zu haben',
+      'Verminderter Appetit oder übermäßiges Bedürfnis zu essen',
+      'Schlechte Meinung von sich selbst; Gefühl ein Versager zu sein',
+      'Schwierigkeiten sich zu konzentrieren',
+      'Langsame Bewegungen oder Sprache, oder Unruhe',
+      'Gedanken, dass Sie besser tot wären oder sich Leid zufügen möchten'
+    ],
+    scale: ['Überhaupt nicht', 'An einzelnen Tagen', 'An mehr als der Hälfte der Tage', 'Beinahe jeden Tag'],
+    scoring: {
+      minimal: [0, 4],
+      mild: [5, 9],
+      moderate: [10, 14],
+      moderateSevere: [15, 19],
+      severe: [20, 27]
+    },
+    maxScore: 27
+  },
+  'GAD-7': {
+    name: 'Generalized Anxiety Disorder 7-item',
+    type: 'anxiety',
+    questions: [
+      'Nervosität, Ängstlichkeit oder Anspannung',
+      'Nicht in der Lage sein, Sorgen zu stoppen oder zu kontrollieren',
+      'Zu viele Sorgen bezüglich verschiedener Angelegenheiten',
+      'Schwierigkeiten zu entspannen',
+      'Unruhe, sodass Stillsitzen schwer fällt',
+      'Schnelle Verärgerung oder Gereiztheit',
+      'Angst, dass etwas Schlimmes passieren könnte'
+    ],
+    scale: ['Überhaupt nicht', 'An einzelnen Tagen', 'An mehr als der Hälfte der Tage', 'Beinahe jeden Tag'],
+    scoring: {
+      minimal: [0, 4],
+      mild: [5, 9],
+      moderate: [10, 14],
+      severe: [15, 21]
+    },
+    maxScore: 21
+  },
+  'PCL-5': {
+    name: 'PTSD Checklist for DSM-5',
+    type: 'trauma',
+    questions: [
+      'Wiederholte, störende und ungewollte Erinnerungen an das belastende Ereignis',
+      'Wiederholte, störende Träume über das belastende Ereignis',
+      'Plötzliches Verhalten oder Gefühl, als ob das belastende Ereignis erneut geschieht',
+      'Sehr starke belastende Gefühle bei Erinnerung an das Ereignis',
+      'Starke körperliche Reaktionen bei Erinnerung an das Ereignis',
+      'Vermeidung von Erinnerungen, Gedanken oder Gefühlen bezüglich des Ereignisses',
+      'Vermeidung von äußeren Erinnerungen (Menschen, Orte, Gespräche, etc.)',
+      'Probleme, sich an wichtige Teile des belastenden Ereignisses zu erinnern',
+      'Starke negative Überzeugungen über sich selbst, andere oder die Welt',
+      'Andere oder sich selbst für das Ereignis oder die Folgen verantwortlich machen',
+      'Starke negative Gefühle (Angst, Wut, Schuld, Scham)',
+      'Deutlich vermindertes Interesse an Aktivitäten',
+      'Gefühl der Entfremdung oder Distanziertheit von anderen',
+      'Anhaltende Unfähigkeit positive Gefühle zu empfinden',
+      'Reizbarkeit, Wutausbrüche oder Aggressivität',
+      'Übermäßig risikoreiches oder selbstschädigendes Verhalten',
+      'Übermäßige Wachsamkeit',
+      'Übertriebene Schreckreaktionen',
+      'Schwierigkeiten sich zu konzentrieren',
+      'Schlafstörungen'
+    ],
+    scale: ['Überhaupt nicht', 'Ein wenig', 'Mäßig', 'Ziemlich', 'Extrem'],
+    scoring: {
+      minimal: [0, 32],
+      mild: [33, 37],
+      moderate: [38, 43],
+      severe: [44, 80]
+    },
+    maxScore: 80
+  },
+  'OQ-45': {
+    name: 'Outcome Questionnaire-45',
+    type: 'general',
+    questions: [
+      'Ich komme mit anderen Menschen gut aus',
+      'Ich werde müde ohne besonderen Grund',
+      'Ich bin unglücklich in meiner Ehe/Partnerschaft',
+      'Ich habe Gedanken, mir selbst das Leben zu nehmen',
+      'Ich fühle mich schwach',
+      'Meine Arbeit/Schule leidet',
+      'Ich bin eine glückliche Person',
+      'Ich habe Probleme bei der Arbeit/Schule wegen Drogen- oder Alkoholkonsums'
+      // Vereinfachte Version - das echte OQ-45 hat 45 Fragen
+    ],
+    scale: ['Nie', 'Selten', 'Manchmal', 'Häufig', 'Fast immer'],
+    scoring: {
+      normal: [0, 63],
+      mild: [64, 83],
+      moderate: [84, 103],
+      severe: [104, 180]
+    },
+    maxScore: 180
+  }
+};
+
+// --- ENHANCED AI FUNCTIONS --- //
+
+async function callOpenAI(messages, model = "gpt-3.5-turbo") {
+    if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API Key nicht konfiguriert');
+    }
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: messages,
+                max_tokens: 2000,
+                temperature: 0.7,
+                presence_penalty: 0.1,
+                frequency_penalty: 0.1
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || `OpenAI API Fehler: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        console.error('❌ OpenAI API Fehler:', error);
+        throw error;
+    }
+}
+
+async function transcribeAudio(audioFilePath) {
+    if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API Key nicht konfiguriert');
+    }
+
+    try {
+        const FormData = require('form-data');
+        const form = new FormData();
+        
+        form.append('file', fs.createReadStream(audioFilePath));
+        form.append('model', 'whisper-1');
+        form.append('language', 'de'); // German
+        form.append('response_format', 'json');
+        form.append('temperature', '0');
+
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                ...form.getHeaders()
+            },
+            body: form
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || `Whisper API Fehler: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.text;
+    } catch (error) {
+        console.error('❌ Whisper API Fehler:', error);
+        throw error;
+    }
+}
+
+async function analyzeTherapyText(text, analysisType = 'general') {
+    const systemPrompts = {
+        general: `Du bist ein erfahrener Psychotherapeut und Supervisor. Analysiere den folgenden Therapie-Text und erstelle eine strukturierte Zusammenfassung.
+
+Fokussiere auf:
+- Hauptthemen und Problembereiche
+- Emotionale Zustände und Stimmung
+- Fortschritte oder Rückschritte
+- Therapeutische Interventionen
+- Empfehlungen für weitere Sitzungen
+
+Antworte professionell und wissenschaftlich fundiert.`,
+
+        protocol: `Du bist ein Experte für Therapieprotokoll-Erstellung. Erstelle aus dem folgenden Therapie-Gespräch ein strukturiertes Sitzungsprotokoll.
+
+Format:
+**Datum:** [Datum der Sitzung]
+**Dauer:** [Sitzungsdauer]
+**Hauptthemen:**
+- Thema 1
+- Thema 2
+
+**Beobachtungen:**
+- Stimmung und Affekt
+- Verhalten und Interaktion
+
+**Interventionen:**
+- Angewandte Techniken
+- Therapeutische Maßnahmen
+
+**Hausaufgaben/Vereinbarungen:**
+- Konkrete Aufgaben
+
+**Nächste Schritte:**
+- Planung der Folgesitzung`,
+
+        progress: `Du bist ein Therapeut, der Therapieverläufe bewertet. Analysiere den Text auf Fortschritte und erstelle eine Fortschrittsbewertung.
+
+Bewerte:
+- Symptomveränderungen
+- Funktionsverbesserungen
+- Therapeutische Allianz
+- Zielerreichung
+- Empfehlungen für Anpassungen`
+    };
+
+    const systemPrompt = systemPrompts[analysisType] || systemPrompts.general;
+
+    return await callOpenAI([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: text }
+    ]);
+}
+
+// --- ASSESSMENT HELPER FUNCTIONS --- //
+
+function calculateAssessmentScore(assessmentType, responses) {
+    const assessment = ASSESSMENTS[assessmentType];
+    if (!assessment) throw new Error('Unbekannter Assessment-Typ');
+    
+    const totalScore = responses.reduce((sum, response) => sum + response, 0);
+    
+    // Bestimme Schweregrad
+    let severityLevel = 'unknown';
+    for (const [level, range] of Object.entries(assessment.scoring)) {
+        if (totalScore >= range[0] && totalScore <= range[1]) {
+            severityLevel = level;
+            break;
+        }
+    }
+    
+    return {
+        totalScore,
+        severityLevel,
+        maxScore: assessment.maxScore,
+        percentage: Math.round((totalScore / assessment.maxScore) * 100)
+    };
+}
+
+async function generateOutcomeAnalysis(clientId, assessmentType = null) {
+    try {
+        const assessments = getAssessmentsByClient(clientId, assessmentType);
+        
+        if (assessments.length < 2) {
+            return {
+                analysis: 'Nicht genügend Daten für Verlaufsanalyse. Mindestens 2 Assessments erforderlich.',
+                trend: 'insufficient_data',
+                recommendations: ['Regelmäßige Assessments durchführen für bessere Verlaufsdokumentation']
+            };
+        }
+        
+        // Trend-Analyse
+        const latest = assessments[0];
+        const previous = assessments[1];
+        const scoreDifference = latest.total_score - previous.total_score;
+        const percentageChange = Math.round(((scoreDifference) / previous.total_score) * 100);
+        
+        let trend = 'stable';
+        let trendDescription = '';
+        
+        if (scoreDifference < -2) {
+            trend = 'improving';
+            trendDescription = `Verbesserung um ${Math.abs(scoreDifference)} Punkte (${Math.abs(percentageChange)}%)`;
+        } else if (scoreDifference > 2) {
+            trend = 'worsening';
+            trendDescription = `Verschlechterung um ${scoreDifference} Punkte (${percentageChange}%)`;
+        } else {
+            trend = 'stable';
+            trendDescription = `Stabiler Verlauf (${scoreDifference >= 0 ? '+' : ''}${scoreDifference} Punkte)`;
+        }
+        
+        // KI-gestützte Analyse falls OpenAI verfügbar
+        let detailedAnalysis = '';
+        if (process.env.OPENAI_API_KEY) {
+            const assessmentData = assessments.slice(0, 5).map(a => ({
+                date: a.completed_at.split('T')[0],
+                score: a.total_score,
+                severity: a.severity_level
+            }));
+            
+            const prompt = `Als Therapeut analysiere folgenden ${assessmentType} Verlauf:
+            
+${assessmentData.map(d => `${d.date}: ${d.score} Punkte (${d.severity})`).join('\n')}
+
+Erstelle eine professionelle Interpretation mit:
+1. Klinische Bedeutung der Veränderungen
+2. Prognose-Einschätzung  
+3. Konkrete Therapie-Empfehlungen
+4. Warnsignale (falls vorhanden)
+
+Antworte strukturiert und wissenschaftlich fundiert.`;
+
+            try {
+                detailedAnalysis = await callOpenAI([
+                    { role: "system", content: "Du bist ein erfahrener Psychotherapeut und Supervisor mit Expertise in Outcome-Messung." },
+                    { role: "user", content: prompt }
+                ]);
+            } catch (error) {
+                console.error('KI-Analyse Fehler:', error);
+                detailedAnalysis = 'KI-Analyse momentan nicht verfügbar.';
+            }
+        }
+        
+        return {
+            analysis: detailedAnalysis || generateBasicAnalysis(latest, previous, trend, trendDescription),
+            trend: trend,
+            scoreChange: scoreDifference,
+            percentageChange: percentageChange,
+            currentScore: latest.total_score,
+            currentSeverity: latest.severity_level,
+            assessmentCount: assessments.length,
+            recommendations: generateRecommendations(trend, latest.severity_level, assessmentType)
+        };
+        
+    } catch (error) {
+        console.error('❌ Fehler bei Outcome-Analyse:', error);
+        throw error;
+    }
+}
+
+function generateBasicAnalysis(latest, previous, trend, trendDescription) {
+    const assessment = ASSESSMENTS[latest.assessment_type];
+    
+    return `
+        <div style="background: #f8f9ff; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+            <h4 style="color: #667eea; margin-bottom: 15px;">📊 Verlaufsanalyse ${assessment.name}</h4>
+            
+            <p><strong>Aktueller Status:</strong><br>
+            Score: ${latest.total_score}/${assessment.maxScore} Punkte<br>
+            Schweregrad: ${latest.severity_level}<br>
+            ${trendDescription}</p>
+            
+            <p><strong>Klinische Interpretation:</strong><br>
+            ${trend === 'improving' ? 
+                '✅ Der Patient zeigt eine positive Entwicklung. Die Symptombelastung hat sich messbar reduziert.' :
+                trend === 'worsening' ?
+                '⚠️ Verschlechterung erkennbar. Therapieplan sollte überprüft und angepasst werden.' :
+                '➡️ Stabiler Verlauf. Aktuelle Interventionen scheinen angemessen zu sein.'
+            }</p>
+            
+            <p><strong>Empfehlung:</strong><br>
+            ${trend === 'improving' ? 
+                'Aktuelle Therapiestrategie beibehalten. Nächstes Assessment in 4 Wochen.' :
+                trend === 'worsening' ?
+                'Supervision erwägen. Therapiefrequenz erhöhen. Krisenintervention prüfen.' :
+                'Regelmäßige Assessments fortführen. Therapieziele überprüfen.'
+            }</p>
+        </div>
+    `;
+}
+
+function generateRecommendations(trend, severity, assessmentType) {
+    const recommendations = [];
+    
+    if (trend === 'improving') {
+        recommendations.push('Aktuelle Therapiestrategie beibehalten');
+        recommendations.push('Fortschritte mit Patient besprechen und verstärken');
+        recommendations.push('Nächstes Assessment in 4 Wochen');
+    } else if (trend === 'worsening') {
+        recommendations.push('Therapieplan überprüfen und anpassen');
+        recommendations.push('Supervision oder Intervision in Anspruch nehmen');
+        recommendations.push('Häufigere Termine erwägen');
+        if (severity === 'severe') {
+            recommendations.push('⚠️ Krisenintervention und Sicherheitsplan prüfen');
+        }
+    } else {
+        recommendations.push('Regelmäßige Assessments fortführen');
+        recommendations.push('Therapieziele und -methoden evaluieren');
+        recommendations.push('Motivation und Therapieadhärenz stärken');
+    }
+    
+    return recommendations;
+}
+
+// --- CLIENTS API ROUTES --- //
+
+app.get("/api/clients", (req, res) => {
+  try {
+    const clients = getClients();
+    console.log(`✅ Loaded ${clients.length} clients`);
+    res.json(clients);
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen der Clients:", err);
+    res.status(500).json({ error: "Fehler beim Abrufen der Clients" });
+  }
+});
+
+app.get("/api/clients/:id", (req, res) => {
+  try {
+    const client = getClientById(req.params.id);
+    if (!client) return res.status(404).json({ error: "Client nicht gefunden" });
+    res.json(client);
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen eines Clients:", err);
+    res.status(500).json({ error: "Fehler beim Abrufen des Clients" });
+  }
+});
+
+app.post("/api/clients", (req, res) => {
+  try {
+    const clientData = {
+      name: req.body.initials || req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      birth_date: req.body.birth_date,
+      address: req.body.address,
+      diagnosis: req.body.diagnosis,
+      notes: req.body.notes || `Therapie: ${req.body.therapy || 'Nicht angegeben'}`
+    };
+
+    if (!clientData.name) {
+      return res.status(400).json({ error: "Initialen/Name ist erforderlich" });
+    }
+
+    const result = addClient(clientData);
+    console.log(`✅ Client hinzugefügt: ${clientData.name}`);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    console.error("❌ Fehler beim Hinzufügen eines Clients:", err);
+    res.status(500).json({ error: "Fehler beim Hinzufügen des Clients" });
+  }
+});
+
+app.put("/api/clients/:id", (req, res) => {
+  try {
+    const updates = req.body;
+    delete updates.id;
+    
+    const result = updateClient(req.params.id, updates);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Client nicht gefunden" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Fehler beim Aktualisieren des Clients:", err);
+    res.status(500).json({ error: "Fehler beim Aktualisieren des Clients" });
+  }
+});
+
+app.delete("/api/clients/:id", (req, res) => {
+  try {
+    const result = deleteClient(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Client nicht gefunden" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Fehler beim Löschen eines Clients:", err);
+    res.status(500).json({ error: "Fehler beim Löschen des Clients" });
+  }
+});
+
+// --- ENHANCED AUDIO ROUTES --- //
+
+app.post("/api/audio/upload", upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "Keine Audio-Datei hochgeladen" });
+        }
+
+        console.log(`🎤 Audio-Datei hochgeladen: ${req.file.originalname}`);
+        
+        const audioFilePath = req.file.path;
+        const clientId = req.body.client_id || null;
+        const analysisType = req.body.analysis_type || 'protocol';
+
+        // Transkription mit Whisper
+        console.log('🔄 Starte Whisper-Transkription...');
+        const transcription = await transcribeAudio(audioFilePath);
+        console.log('✅ Transkription abgeschlossen');
+
+        // KI-Analyse des Transkripts
+        console.log('🔄 Starte KI-Analyse...');
+        const analysis = await analyzeTherapyText(transcription, analysisType);
+        console.log('✅ KI-Analyse abgeschlossen');
+
+        // Speichere Dokument in Datenbank
+        const docData = {
+            client_id: clientId,
+            filename: req.file.filename,
+            original_name: req.file.originalname,
+            file_path: req.file.path,
+            file_type: req.file.mimetype,
+            file_size: req.file.size
+        };
+        
+        const docResult = addDocument(docData);
+
+        // Speichere Session falls Client ID vorhanden
+        if (clientId) {
+            const sessionData = {
+                client_id: clientId,
+                date: new Date().toISOString().split('T')[0],
+                duration: Math.ceil(req.file.size / 1000000), // Rough estimate
+                type: 'Audio-Sitzung',
+                notes: analysis,
+                private_notes: `Transkript:\n\n${transcription}`
+            };
+            
+            addSession(sessionData);
+        }
+
+        res.json({
+            success: true,
+            transcription: transcription,
+            analysis: analysis,
+            document_id: docResult.lastInsertRowid,
+            file: {
+                name: req.file.originalname,
+                size: req.file.size,
+                type: req.file.mimetype
+            }
+        });
+
+    } catch (error) {
+        console.error("❌ Fehler bei Audio-Verarbeitung:", error);
+        
+        // Clean up uploaded file on error
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        
+        res.status(500).json({ 
+            error: "Fehler bei Audio-Verarbeitung: " + error.message,
+            details: error.message.includes('API Key') ? 'OpenAI API Key nicht konfiguriert' : 'Technischer Fehler'
+        });
+    }
+});
+
+app.post("/api/audio/analyze", async (req, res) => {
+    try {
+        const { text, analysis_type, client_id } = req.body;
+        
+        if (!text) {
+            return res.status(400).json({ error: "Text für Analyse erforderlich" });
+        }
+
+        console.log('🔄 Starte Text-Analyse...');
+        const analysis = await analyzeTherapyText(text, analysis_type);
+        console.log('✅ Text-Analyse abgeschlossen');
+
+        // Speichere Chat-Nachricht falls Client ID vorhanden
+        if (client_id) {
+            addChatMessage({
+                client_id: client_id,
+                role: 'user',
+                content: `Analyse-Anfrage: ${text.substring(0, 100)}...`
+            });
+            
+            addChatMessage({
+                client_id: client_id,
+                role: 'assistant',
+                content: analysis
+            });
+        }
+
+        res.json({
+            success: true,
+            analysis: analysis,
+            analysis_type: analysis_type
+        });
+
+    } catch (error) {
+        console.error("❌ Fehler bei Text-Analyse:", error);
+        res.status(500).json({ 
+            error: "Fehler bei Text-Analyse: " + error.message 
+        });
+    }
+});
+
+// --- ENHANCED CHAT ROUTES --- //
+
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, client_id, context, analysis_request } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: "Nachricht ist erforderlich" });
+    }
+
+    console.log(`💬 Enhanced Chat-Anfrage: ${message.substring(0, 50)}...`);
+    
+    // Speichere User-Nachricht
+    if (client_id) {
+      addChatMessage({
+        client_id: client_id,
+        role: 'user',
+        content: message
+      });
+    }
+
+    let reply = '';
+    
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        // Erweiterte Kontext-Integration
+        let systemPrompt = `Du bist ein erfahrener Psychotherapeut und KI-Assistent für therapeutische Praxis. 
+
+Du hilfst bei:
+- Therapieplanung und -methoden
+- Diagnostischen Überlegungen  
+- Behandlungsansätzen
+- Supervision und Fallbesprechung
+- Dokumentation und Protokollerstellung
+- Fortschrittsbewertung
+
+Antworte immer:
+- Professionell und wissenschaftlich fundiert
+- Empathisch und ethisch verantwortlich
+- Mit konkreten, praxisorientierten Empfehlungen
+- Unter Berücksichtigung der DSGVO und Schweigepflicht
+
+Wichtig: Du ersetzt keine professionelle Supervision oder Ausbildung, sondern ergänzt diese.`;
+
+        // Füge Kontext hinzu falls vorhanden
+        if (context) {
+          systemPrompt += `\n\nAktueller Kontext: ${context}`;
+        }
+
+        if (analysis_request) {
+          systemPrompt += `\n\nSpezielle Analyse-Anfrage: ${analysis_request}`;
+        }
+
+        const messages = [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ];
+
+        // Hole Chat-Historie für besseren Kontext
+        if (client_id) {
+          const history = getChatHistory(client_id, 5); // Letzte 5 Nachrichten
+          history.forEach(msg => {
+            if (msg.role === 'user' || msg.role === 'assistant') {
+              messages.splice(-1, 0, { role: msg.role, content: msg.content });
+            }
+          });
+        }
+
+        reply = await callOpenAI(messages);
+
+      } catch (apiError) {
+        console.error("❌ OpenAI API Fehler:", apiError);
+        reply = generateEnhancedFallbackResponse(message, apiError.message);
+      }
+    } else {
+      reply = generateEnhancedFallbackResponse(message, 'API Key fehlt');
+    }
+
+    // Speichere KI-Antwort
+    if (client_id) {
+      addChatMessage({
+        client_id: client_id,
+        role: 'assistant',
+        content: reply
+      });
+    }
+
+    res.json({ reply: reply });
+
+  } catch (err) {
+    console.error("❌ Fehler im Enhanced Chat:", err);
+    res.status(500).json({ 
+      reply: "Entschuldigung, es ist ein technischer Fehler aufgetreten. Bitte versuchen Sie es später erneut." 
+    });
+  }
+});
+
+// --- FILE UPLOAD ROUTES --- //
+
+app.post("/api/upload", upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Keine Datei hochgeladen" });
+    }
+
+    console.log(`📁 Datei hochgeladen: ${req.file.originalname}`);
+    
+    let fileContent = '';
+    const filePath = req.file.path;
+    
+    // Extract text based on file type
+    if (req.file.mimetype.startsWith('text/') || req.file.originalname.endsWith('.txt')) {
+      fileContent = fs.readFileSync(filePath, 'utf8');
+    } else if (req.file.originalname.endsWith('.docx')) {
+      const result = await mammoth.extractRawText({ path: filePath });
+      fileContent = result.value;
+    } else if (req.file.mimetype === 'application/pdf') {
+      const dataBuffer = fs.readFileSync(filePath);
+      const pdfData = await pdfParse(dataBuffer);
+      fileContent = pdfData.text;
+    } else if (req.file.mimetype.startsWith('image/')) {
+      fileContent = `[Bild-Datei: ${req.file.originalname}] - Bildanalyse mit OpenAI Vision API würde hier implementiert werden.`;
+    }
+
+    // Save document info to database
+    const docData = {
+      client_id: req.body.client_id || null,
+      filename: req.file.filename,
+      original_name: req.file.originalname,
+      file_path: req.file.path,
+      file_type: req.file.mimetype,
+      file_size: req.file.size
+    };
+    
+    addDocument(docData);
+    
+    // Enhanced AI Analysis
+    let analysis = '';
+    if (process.env.OPENAI_API_KEY && fileContent) {
+      analysis = await analyzeTherapyText(fileContent, 'general');
+    } else {
+      analysis = `<strong>Datei erfolgreich hochgeladen:</strong><br>
+                  Name: ${req.file.originalname}<br>
+                  Größe: ${(req.file.size / 1024).toFixed(2)} KB<br>
+                  Typ: ${req.file.mimetype}<br><br>
+                  <em>KI-Analyse ${process.env.OPENAI_API_KEY ? 'konnte nicht durchgeführt werden' : 'nicht verfügbar (OpenAI API Key fehlt)'}</em><br><br>
+                  Dateiinhalt (Vorschau):<br>
+                  <pre>${fileContent.substring(0, 500)}${fileContent.length > 500 ? '...' : ''}</pre>`;
+    }
+
+    res.json({ 
+      success: true, 
+      analysis: analysis,
+      file: {
+        name: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Fehler beim Verarbeiten der Datei:", err);
+    res.status(500).json({ error: "Fehler beim Verarbeiten der Datei: " + err.message });
+  }
+});
+
+// --- ASSESSMENT API ROUTES --- //
+
+// Verfügbare Assessments abrufen
+app.get("/api/assessments/types", (req, res) => {
+    try {
+        const types = Object.keys(ASSESSMENTS).map(key => ({
+            key: key,
+            name: ASSESSMENTS[key].name,
+            type: ASSESSMENTS[key].type,
+            questionCount: ASSESSMENTS[key].questions.length
+        }));
+        res.json(types);
+    } catch (error) {
+        res.status(500).json({ error: "Fehler beim Abrufen der Assessment-Typen" });
+    }
+});
+
+// Spezifisches Assessment-Template abrufen
+app.get("/api/assessments/template/:type", (req, res) => {
+    try {
+        const assessment = ASSESSMENTS[req.params.type];
+        if (!assessment) {
+            return res.status(404).json({ error: "Assessment-Typ nicht gefunden" });
+        }
+        res.json(assessment);
+    } catch (error) {
+        res.status(500).json({ error: "Fehler beim Abrufen des Assessment-Templates" });
+    }
+});
+
+// Assessment einreichen und bewerten
+app.post("/api/assessments", (req, res) => {
+    try {
+        const { client_id, session_id, assessment_type, responses, notes } = req.body;
+        
+        if (!client_id || !assessment_type || !responses) {
+            return res.status(400).json({ error: "Pflichtfelder fehlen" });
+        }
+        
+        // Score berechnen
+        const scoreResult = calculateAssessmentScore(assessment_type, responses);
+        
+        // Assessment speichern
+        const assessmentData = {
+            client_id,
+            session_id,
+            assessment_type,
+            responses,
+            total_score: scoreResult.totalScore,
+            severity_level: scoreResult.severityLevel,
+            notes
+        };
+        
+        const result = addAssessment(assessmentData);
+        
+        res.json({
+            success: true,
+            id: result.lastInsertRowid,
+            score: scoreResult
+        });
+        
+    } catch (error) {
+        console.error("❌ Fehler beim Verarbeiten des Assessments:", error);
+        res.status(500).json({ error: "Fehler beim Verarbeiten des Assessments" });
+    }
+});
+
+// Assessments für einen Client abrufen
+app.get("/api/clients/:id/assessments", (req, res) => {
+    try {
+        const assessments = getAssessmentsByClient(req.params.id);
+        res.json(assessments);
+    } catch (error) {
+        res.status(500).json({ error: "Fehler beim Abrufen der Assessments" });
+    }
+});
+
+// Outcome-Analyse generieren
+app.get("/api/clients/:id/outcome-analysis", async (req, res) => {
+    try {
+        const clientId = req.params.id;
+        const assessmentType = req.query.type || null;
+        
+        const analysis = await generateOutcomeAnalysis(clientId, assessmentType);
+        res.json(analysis);
+        
+    } catch (error) {
+        console.error("❌ Fehler bei Outcome-Analyse:", error);
+        res.status(500).json({ error: "Fehler bei der Outcome-Analyse" });
+    }
+});
+
+// Assessment-Verlauf für Visualisierung
+app.get("/api/clients/:id/assessment-history/:type", (req, res) => {
+    try {
+        const assessments = getAssessmentsByClient(req.params.id, req.params.type);
+        
+        const history = assessments.reverse().map(a => ({
+            date: a.completed_at.split('T')[0],
+            score: a.total_score,
+            severity: a.severity_level,
+            sessionId: a.session_id
+        }));
+        
+        res.json(history);
+    } catch (error) {
+        res.status(500).json({ error: "Fehler beim Abrufen der Assessment-Historie" });
+    }
+});
+
+// --- STATISTICS ROUTE --- //
+app.get("/api/stats", (req, res) => {
+  try {
+    const stats = getStatistics();
+    
+    const completeStats = {
+      totalClients: stats.totalClients || 0,
+      totalSessions: stats.totalSessions || 0,
+      pendingTodos: stats.pendingTodos || 0,
+      activePlans: stats.activePlans || 0
+    };
+    
+    res.json(completeStats);
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen der Statistiken:", err);
+    res.status(500).json({ 
+      totalClients: 0,
+      totalSessions: 0,
+      pendingTodos: 0,
+      activePlans: 0
+    });
+  }
+});
+
+// --- SESSION ROUTES --- //
+app.post("/api/sessions", (req, res) => {
+  try {
+    const sessionData = {
+      client_id: req.body.client_id,
+      date: req.body.date || new Date().toISOString().split('T')[0],
+      duration: req.body.duration || 50,
+      type: req.body.type || 'Einzeltherapie',
+      notes: req.body.notes,
+      private_notes: req.body.private_notes
+    };
+
+    const result = addSession(sessionData);
+    console.log(`✅ Session hinzugefügt für Client ${sessionData.client_id}`);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    console.error("❌ Fehler beim Hinzufügen einer Session:", err);
+    res.status(500).json({ error: "Fehler beim Hinzufügen der Session" });
+  }
+});
+
+app.get("/api/clients/:id/sessions", (req, res) => {
+  try {
+    const sessions = getSessionsByClient(req.params.id);
+    res.json(sessions);
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen der Sessions:", err);
+    res.status(500).json({ error: "Fehler beim Abrufen der Sessions" });
+  }
+});
+
+app.get("/api/clients/:id/chat", (req, res) => {
+  try {
+    const history = getChatHistory(req.params.id);
+    res.json(history);
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen des Chat-Verlaufs:", err);
+    res.status(500).json({ error: "Fehler beim Abrufen des Chat-Verlaufs" });
+  }
+});
+
+// --- ENHANCED HELPER FUNCTIONS --- //
+
+function generateEnhancedFallbackResponse(message, errorDetails) {
+  const lowerMessage = message.toLowerCase();
+  
+  let response = `<div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 10px 0;">
+    <strong>⚠️ Eingeschränkter Modus</strong><br>
+    Die vollständige KI-Analyse ist momentan nicht verfügbar`;
+  
+  if (errorDetails && errorDetails.includes('API Key')) {
+    response += ` (OpenAI API Key nicht konfiguriert).`;
+  } else {
+    response += ` (Technischer Fehler).`;
+  }
+  
+  response += `</div>`;
+  
+  // Intelligente Fallback-Antworten basierend auf Kontext
+  if (lowerMessage.includes('whisper') || lowerMessage.includes('audio') || lowerMessage.includes('transkription')) {
+    response += `
+    <div style="margin-top: 15px;">
+      <strong>🎤 Audio-Transkription:</strong><br>
+      Um Whisper Speech-to-Text zu nutzen, fügen Sie Ihren OpenAI API Key in die .env Datei ein:<br>
+      <code>OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code><br><br>
+      
+      <strong>Unterstützte Audio-Formate:</strong><br>
+      • MP3, WAV, M4A, OGG, FLAC<br>
+      • Bis zu 100MB Dateigröße<br>
+      • Automatische deutsche Transkription<br>
+      • KI-gestützte Therapieprotokoll-Erstellung
+    </div>`;
+  } else if (lowerMessage.includes('therapie') || lowerMessage.includes('behandlung') || lowerMessage.includes('diagnose')) {
+    response += `
+    <div style="margin-top: 15px;">
+      <strong>🩺 Therapeutische Unterstützung:</strong><br>
+      Mit aktivierter KI kann ich Ihnen helfen bei:<br>
+      • Diagnose-Findung und Differentialdiagnostik<br>
+      • Therapieplanung und Methodenauswahl<br>
+      • Supervision und Fallbesprechung<br>
+      • Fortschrittsbewertung und Dokumentation<br><br>
+      
+      <em>Basis-Funktionen wie Klient:innen-Verwaltung funktionieren weiterhin vollständig.</em>
+    </div>`;
+  } else if (lowerMessage.includes('analyse') || lowerMessage.includes('auswertung')) {
+    response += `
+    <div style="margin-top: 15px;">
+      <strong>📊 KI-Analyse Features:</strong><br>
+      Mit OpenAI API Key verfügbar:<br>
+      • Automatische Sitzungsprotokoll-Erstellung<br>
+      • Fortschritts- und Verlaufsanalyse<br>
+      • Thematische Auswertung von Gesprächen<br>
+      • Empfehlungen für Interventionen<br>
+      • Strukturierte Dokumentation
+    </div>`;
+  } else {
+    response += `
+    <div style="margin-top: 15px;">
+      <strong>💡 Verfügbare Funktionen:</strong><br>
+      • ✅ Klient:innen-Verwaltung<br>
+      • ✅ Sitzungs-Dokumentation<br>
+      • ✅ Datei-Upload und -Organisation<br>
+      • ✅ Chat-Interface (eingeschränkt)<br>
+      • ⏳ KI-Analyse (benötigt API Key)<br>
+      • ⏳ Whisper-Transkription (benötigt API Key)
+    </div>`;
+  }
+  
+  return response;
+}
+
+// --- SERVER START --- //
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Praxida 2.0 Server läuft auf Port ${PORT}`);
+  console.log(`📍 Öffnen Sie: http://localhost:${PORT}`);
+  
+  if (!process.env.OPENAI_API_KEY) {
+    console.log(`⚠️  WARNUNG: Kein OpenAI API Key gefunden!`);
+    console.log(`   Fügen Sie OPENAI_API_KEY in die .env Datei ein für:`);
+    console.log(`   🎤 Whisper Speech-to-Text`);
+    console.log(`   🤖 KI-Chat und Analyse`);
+    console.log(`   📊 Automatische Protokollerstellung`);
+  } else {
+    console.log(`✅ OpenAI API Key gefunden!`);
+    console.log(`🎤 Whisper Speech-to-Text: AKTIV`);
+    console.log(`🤖 KI-Funktionen: AKTIV`);
+    console.log(`📊 Intelligente Analyse: AKTIV`);
+  }
+  
+  // Create upload directories
+  ['uploads', 'uploads/audio'].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`📁 Ordner erstellt: ${dir}`);
+    }
+  });
+  
+  console.log('✅ Outcome-Tracking Backend geladen!');
+});
