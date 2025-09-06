@@ -810,6 +810,173 @@ function getStatistics() {
   }
 }
 
+// --- ANAMNESE FUNKTIONEN --- //
+function addAnamnese(data) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO anamneses (client_id, created_by, data, created_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    const result = stmt.run(data.client_id, data.created_by || null, JSON.stringify(data.data));
+    console.log("📝 Anamnese gespeichert für Client:", data.client_id);
+    return result;
+  } catch (error) {
+    console.error("❌ Fehler beim Hinzufügen der Anamnese:", error);
+    throw error;
+  }
+}
+
+function getAnamnesesByClient(clientId) {
+  try {
+    const stmt = db.prepare(`
+      SELECT a.*, u.name as created_by_name
+      FROM anamneses a
+      LEFT JOIN users u ON a.created_by = u.id
+      WHERE a.client_id = ?
+      ORDER BY a.created_at DESC
+    `);
+    return stmt.all(clientId).map(r => ({
+      ...r,
+      data: JSON.parse(r.data)
+    }));
+  } catch (error) {
+    console.error("❌ Fehler beim Abrufen der Anamnesen:", error);
+    return [];
+  }
+}
+
+// --- INVOICE FUNKTIONEN --- //
+function addInvoice(invoiceData) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO invoices (praxis_id, client_id, created_by, invoice_number, date, due_date, amount, status, pdf_path, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    const result = stmt.run(
+      invoiceData.praxis_id,
+      invoiceData.client_id,
+      invoiceData.created_by || null,
+      invoiceData.invoice_number,
+      invoiceData.date,
+      invoiceData.due_date || null,
+      invoiceData.amount,
+      invoiceData.status || 'open',
+      invoiceData.pdf_path || null
+    );
+    console.log("💰 Rechnung erstellt:", invoiceData.invoice_number);
+    return result;
+  } catch (error) {
+    console.error("❌ Fehler beim Erstellen der Rechnung:", error);
+    throw error;
+  }
+}
+
+function addInvoiceItem(itemData) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO invoice_items (invoice_id, description, quantity, unit_price)
+      VALUES (?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      itemData.invoice_id,
+      itemData.description,
+      itemData.quantity || 1,
+      itemData.unit_price
+    );
+    console.log("➕ Rechnungsposition hinzugefügt:", itemData.description);
+    return result;
+  } catch (error) {
+    console.error("❌ Fehler beim Hinzufügen der Rechnungsposition:", error);
+    throw error;
+  }
+}
+
+function getInvoicesByClient(clientId) {
+  try {
+    const stmt = db.prepare(`
+      SELECT i.*, u.name as created_by_name
+      FROM invoices i
+      LEFT JOIN users u ON i.created_by = u.id
+      WHERE i.client_id = ?
+      ORDER BY i.date DESC
+    `);
+    return stmt.all(clientId);
+  } catch (error) {
+    console.error("❌ Fehler beim Abrufen der Rechnungen:", error);
+    return [];
+  }
+}
+
+function getInvoiceItems(invoiceId) {
+  try {
+    const stmt = db.prepare(`
+      SELECT * FROM invoice_items WHERE invoice_id = ?
+    `);
+    return stmt.all(invoiceId);
+  } catch (error) {
+    console.error("❌ Fehler beim Abrufen der Rechnungspositionen:", error);
+    return [];
+  }
+}
+
+// --- USER & PRAXIS FUNKTIONEN --- //
+function addPraxis(praxisData) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO praxis (name, adresse, telefon, email, logo_url, created_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    const result = stmt.run(
+      praxisData.name,
+      praxisData.adresse || null,
+      praxisData.telefon || null,
+      praxisData.email || null,
+      praxisData.logo_url || null
+    );
+    console.log("🏢 Praxis erstellt:", praxisData.name);
+    return result;
+  } catch (error) {
+    console.error("❌ Fehler beim Erstellen der Praxis:", error);
+    throw error;
+  }
+}
+
+function addUser(userData) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO users (praxis_id, name, email, password_hash, role, created_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    const result = stmt.run(
+      userData.praxis_id,
+      userData.name,
+      userData.email,
+      userData.password_hash,
+      userData.role || 'therapeut'
+    );
+    console.log("👤 Benutzer hinzugefügt:", userData.name);
+    return result;
+  } catch (error) {
+    console.error("❌ Fehler beim Hinzufügen des Benutzers:", error);
+    throw error;
+  }
+}
+
+function getUsersByPraxis(praxisId) {
+  try {
+    const stmt = db.prepare(`
+      SELECT id, name, email, role, created_at
+      FROM users
+      WHERE praxis_id = ?
+      ORDER BY name ASC
+    `);
+    return stmt.all(praxisId);
+  } catch (error) {
+    console.error("❌ Fehler beim Abrufen der Benutzer:", error);
+    return [];
+  }
+}
+
 // --- SEARCH FUNKTIONEN --- //
 function searchClients(query) {
   try {
@@ -1008,4 +1175,19 @@ module.exports = {
   vacuum,
   getDataStats,
   backupDatabase
+
+    // Anamnese
+  addAnamnese,
+  getAnamnesesByClient,
+
+  // Invoices
+  addInvoice,
+  addInvoiceItem,
+  getInvoicesByClient,
+  getInvoiceItems,
+
+  // Praxis & User
+  addPraxis,
+  addUser,
+  getUsersByPraxis,
 };
