@@ -37,6 +37,241 @@ try {
 function initializeTables() {
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
+
+  // Praxen (Mandanten)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS praxis (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      adresse TEXT,
+      telefon TEXT,
+      email TEXT,
+      logo_url TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+
+  // Benutzer
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      praxis_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT CHECK (role IN ('admin','therapeut','assistenz')) DEFAULT 'therapeut',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (praxis_id) REFERENCES praxis(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Clients/Patienten Tabelle (mit Praxis-ID)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS clients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      praxis_id INTEGER,
+      name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      birth_date TEXT,
+      address TEXT,
+      diagnosis TEXT,
+      notes TEXT,
+      sessions INTEGER DEFAULT 0,
+      last_session TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (praxis_id) REFERENCES praxis(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Sitzungen/Sessions Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      duration INTEGER DEFAULT 50,
+      type TEXT DEFAULT 'Einzeltherapie',
+      notes TEXT,
+      private_notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Dokumente Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER,
+      session_id INTEGER,
+      filename TEXT NOT NULL,
+      original_name TEXT,
+      file_path TEXT NOT NULL,
+      file_type TEXT,
+      file_size INTEGER,
+      uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Anamnese-Formulare
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS anamneses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      created_by INTEGER,
+      data TEXT NOT NULL, -- JSON (Fragen/Antworten)
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `).run();
+
+  // Rechnungen
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      praxis_id INTEGER NOT NULL,
+      client_id INTEGER NOT NULL,
+      created_by INTEGER,
+      invoice_number TEXT UNIQUE NOT NULL,
+      date TEXT NOT NULL,
+      due_date TEXT,
+      amount REAL NOT NULL,
+      status TEXT DEFAULT 'open' CHECK (status IN ('open','paid','cancelled')),
+      pdf_path TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (praxis_id) REFERENCES praxis(id) ON DELETE CASCADE,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `).run();
+
+  // Rechnungspositionen
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      unit_price REAL NOT NULL,
+      total REAL GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Chat-Verlauf Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS chat_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER,
+      session_id INTEGER,
+      role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+      content TEXT NOT NULL,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Audio-Transkriptionen Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS audio_transcriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER,
+      session_id INTEGER,
+      filename TEXT NOT NULL,
+      original_name TEXT,
+      file_path TEXT NOT NULL,
+      transcription TEXT,
+      analysis TEXT,
+      duration INTEGER,
+      file_size INTEGER,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Notizen/Bemerkungen Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER,
+      session_id INTEGER,
+      title TEXT,
+      content TEXT NOT NULL,
+      category TEXT DEFAULT 'general',
+      is_private BOOLEAN DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Behandlungsziele Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS treatment_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      target_date TEXT,
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'cancelled')),
+      priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+      progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Termine Tabelle (mit Kalender-Sync)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS appointments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER,
+      date_time TEXT NOT NULL,
+      duration INTEGER DEFAULT 50,
+      type TEXT DEFAULT 'therapy',
+      status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled','completed','cancelled','no_show')),
+      notes TEXT,
+      reminder_sent BOOLEAN DEFAULT 0,
+      google_event_id TEXT,
+      outlook_event_id TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // System-Einstellungen Tabelle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT,
+      description TEXT,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+
+  // Indizes erstellen
+  createIndexes();
+
+  // Demo-Daten wenn DB leer ist
+  const clientCount = db.prepare("SELECT COUNT(*) as count FROM clients").get().count;
+  if (clientCount === 0) {
+    insertDemoData();
+  }
+
+  // Settings initialisieren
+  initializeSettings();
+}
+
   
   // Clients/Patienten Tabelle
   db.prepare(`
