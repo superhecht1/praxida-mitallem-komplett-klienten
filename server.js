@@ -7,6 +7,12 @@ const multer = require("multer");
 const fs = require("fs");
 const mammoth = require("mammoth");
 const pdfParse = require("pdf-parse");
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
+const SQLiteStore = require('connect-sqlite3')(session);
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const { v4: uuidv4 } = require('uuid');
 
 dotenv.config();
 
@@ -973,7 +979,752 @@ app.get("/api/stats", (req, res) => {
     });
   }
 });
+// Security Middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.openai.com"]
+    }
+  }
+}));
 
+// Rate Limiting
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { error: 'Zu viele Login-Versuche. Bitte warten Sie 15 Minuten.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100, // 100 requests per window
+  message: { error: 'Zu viele Anfragen. Bitte verlangsamen Sie.' }
+});
+
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/', generalLimiter);
+
+// Session Configuration
+app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: './data',
+    table: 'sessions'
+  }),
+  secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+  resave: false,
+  saveUninitialized: false,
+  name: 'praxida.sid',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
+  },
+  rolling: true
+}));
+
+// === DATABASE HELPER FUNCTIONS === //
+
+function getUserByEmail(email) {
+  try {
+    const stmt = db.prepare(`
+      SELECT u.*, p.name as praxis_name 
+      FROM users u 
+      LEFT JOIN praxis p ON u.praxis_id = p.id 
+      WHERE u.email = ?
+    `);
+    return stmt.get(email);
+  } catch (error) {
+    console.error('❌ Fehler beim Abrufen des Benutzers:', error);
+    return null;
+  }
+}
+
+function getUserById(id) {
+  try {
+    const stmt = db.prepare(`
+      SELECT u.*, p.name as praxis_name 
+      FROM users u 
+      LEFT JOIN praxis p ON u.praxis_id = p.id 
+      WHERE u.id = ?
+    `);
+    return stmt.get(id);
+  } catch (error) {
+    console.error('❌ Fehler beim Abrufen des Benutzers:', error);
+    return null;
+  }
+}
+
+function getPraxisByName(name) {
+  try {
+    const stmt = db.prepare("SELECT * FROM praxis WHERE name = ?");
+    return stmt.get(name);
+  } catch (error) {
+    console.error('❌ Fehler beim Abrufen der Praxis:', error);
+    return null;
+  }
+}
+
+function createLoginAttempt(email, success, ip, userAgent) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO login_attempts (email, success, ip_address, user_agent, attempted_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    return stmt.run(email, success ? 1 : 0, ip, userAgent);
+  } catch (error) {
+    console.warn('Fehler beim Speichern des Login-Versuchs:', error);
+  }
+}
+
+function getRecentLoginAttempts(email, windowMinutes = 15) {
+  try {
+    const stmt = db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM login_attempts 
+      WHERE email = ? AND success = 0 AND attempted_at > datetime('now', '-${windowMinutes} minutes')
+    `);
+    return stmt.get(email)?.count || 0;
+  } catch (error) {
+    console.warn('Fehler beim Abrufen der Login-Versuche:', error);
+    return 0;
+  }
+}
+
+// Create login_attempts table if not exists
+try {
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      success BOOLEAN NOT NULL,
+      ip_address TEXT,
+      user_agent TEXT,
+      attempted_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_login_attempts_attempted_at ON login_attempts(attempted_at)").run();
+} catch (error) {
+  console.warn('Login attempts table bereits vorhanden oder Fehler:', error);
+}
+
+// === AUTHENTICATION MIDDLEWARE === //
+
+function requireAuth(req, res, next) {
+  if (!req.session?.user) {
+    return res.status(401).json({ 
+      error: 'Authentifizierung erforderlich',
+      code: 'AUTH_REQUIRED' 
+    });
+  }
+  
+  // Check if user still exists in database
+  const user = getUserById(req.session.user.id);
+  if (!user) {
+    req.session.destroy();
+    return res.status(401).json({ 
+      error: 'Benutzer nicht mehr vorhanden',
+      code: 'USER_NOT_FOUND' 
+    });
+  }
+  
+  req.user = user;
+  next();
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        error: 'Authentifizierung erforderlich' 
+      });
+    }
+    
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        error: 'Insufficient permissions',
+        required_roles: roles,
+        user_role: req.user.role
+      });
+    }
+    
+    next();
+  };
+}
+
+function requirePraxis(req, res, next) {
+  if (!req.user?.praxis_id) {
+    return res.status(403).json({ 
+      error: 'Praxis-Zuordnung erforderlich' 
+    });
+  }
+  next();
+}
+
+// === AUTHENTICATION ROUTES === //
+
+// Register new praxis (initial setup)
+app.post('/api/auth/register-praxis', async (req, res) => {
+  try {
+    const { 
+      praxis_name, 
+      praxis_email, 
+      praxis_telefon, 
+      praxis_adresse,
+      admin_name, 
+      admin_email, 
+      admin_password 
+    } = req.body;
+
+    // Validation
+    if (!praxis_name || !admin_name || !admin_email || !admin_password) {
+      return res.status(400).json({ 
+        error: 'Alle Pflichtfelder müssen ausgefüllt werden' 
+      });
+    }
+
+    if (admin_password.length < 8) {
+      return res.status(400).json({ 
+        error: 'Passwort muss mindestens 8 Zeichen lang sein' 
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(admin_email)) {
+      return res.status(400).json({ 
+        error: 'Ungültige E-Mail-Adresse' 
+      });
+    }
+
+    // Check if praxis or admin already exists
+    const existingPraxis = getPraxisByName(praxis_name);
+    if (existingPraxis) {
+      return res.status(400).json({ 
+        error: 'Praxis-Name bereits vergeben' 
+      });
+    }
+
+    const existingUser = getUserByEmail(admin_email);
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'E-Mail-Adresse bereits registriert' 
+      });
+    }
+
+    // Create praxis
+    const praxisData = {
+      name: praxis_name,
+      email: praxis_email,
+      telefon: praxis_telefon,
+      adresse: praxis_adresse
+    };
+    
+    const praxisResult = addPraxis(praxisData);
+    const praxisId = praxisResult.lastInsertRowid;
+
+    // Hash password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(admin_password, saltRounds);
+
+    // Create admin user
+    const userData = {
+      praxis_id: praxisId,
+      name: admin_name,
+      email: admin_email,
+      password_hash: hashedPassword,
+      role: 'admin'
+    };
+
+    const userResult = addUser(userData);
+
+    console.log(`✅ Neue Praxis registriert: ${praxis_name} mit Admin: ${admin_name}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Praxis erfolgreich registriert',
+      praxis_id: praxisId,
+      user_id: userResult.lastInsertRowid
+    });
+
+  } catch (error) {
+    console.error('❌ Fehler bei Praxis-Registrierung:', error);
+    res.status(500).json({ 
+      error: 'Fehler bei der Registrierung: ' + error.message 
+    });
+  }
+});
+
+// User Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password, praxis_name } = req.body;
+    const ip = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({ 
+        error: 'E-Mail und Passwort sind erforderlich' 
+      });
+    }
+
+    // Check for recent failed attempts
+    const recentAttempts = getRecentLoginAttempts(email);
+    if (recentAttempts >= 5) {
+      createLoginAttempt(email, false, ip, userAgent);
+      return res.status(429).json({ 
+        error: 'Account temporär gesperrt. Zu viele fehlgeschlagene Login-Versuche.' 
+      });
+    }
+
+    // Get user
+    const user = getUserByEmail(email);
+    if (!user) {
+      createLoginAttempt(email, false, ip, userAgent);
+      return res.status(401).json({ 
+        error: 'Ungültige Anmeldedaten' 
+      });
+    }
+
+    // Verify password
+    const passwordValid = await bcrypt.compare(password, user.password_hash);
+    if (!passwordValid) {
+      createLoginAttempt(email, false, ip, userAgent);
+      return res.status(401).json({ 
+        error: 'Ungültige Anmeldedaten' 
+      });
+    }
+
+    // Check praxis match if provided
+    if (praxis_name && user.praxis_name !== praxis_name) {
+      createLoginAttempt(email, false, ip, userAgent);
+      return res.status(401).json({ 
+        error: 'Benutzer gehört nicht zu der angegebenen Praxis' 
+      });
+    }
+
+    // Successful login
+    createLoginAttempt(email, true, ip, userAgent);
+
+    // Create session
+    req.session.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      praxis_id: user.praxis_id,
+      praxis_name: user.praxis_name
+    };
+
+    req.session.login_time = new Date().toISOString();
+    req.session.ip = ip;
+
+    console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        praxis_name: user.praxis_name
+      },
+      message: 'Erfolgreich angemeldet'
+    });
+
+  } catch (error) {
+    console.error('❌ Login-Fehler:', error);
+    res.status(500).json({ 
+      error: 'Fehler beim Anmelden: ' + error.message 
+    });
+  }
+});
+
+// User Logout
+app.post('/api/auth/logout', (req, res) => {
+  if (req.session?.user) {
+    const userName = req.session.user.name;
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('❌ Logout-Fehler:', err);
+        return res.status(500).json({ error: 'Fehler beim Abmelden' });
+      }
+      
+      console.log(`👋 Benutzer abgemeldet: ${userName}`);
+      res.json({ success: true, message: 'Erfolgreich abgemeldet' });
+    });
+  } else {
+    res.json({ success: true, message: 'Bereits abgemeldet' });
+  }
+});
+
+// Get current user info
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  res.json({
+    user: {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      praxis_name: req.user.praxis_name,
+      praxis_id: req.user.praxis_id
+    },
+    session_info: {
+      login_time: req.session.login_time,
+      expires: new Date(Date.now() + req.session.cookie.maxAge).toISOString()
+    }
+  });
+});
+
+// Add user to existing praxis (admin only)
+app.post('/api/auth/add-user', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Validation
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ 
+        error: 'Alle Felder sind erforderlich' 
+      });
+    }
+
+    if (!['admin', 'therapeut', 'assistenz'].includes(role)) {
+      return res.status(400).json({ 
+        error: 'Ungültige Rolle' 
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        error: 'Passwort muss mindestens 8 Zeichen lang sein' 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = getUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'E-Mail-Adresse bereits registriert' 
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create user in same praxis as admin
+    const userData = {
+      praxis_id: req.user.praxis_id,
+      name: name,
+      email: email,
+      password_hash: hashedPassword,
+      role: role
+    };
+
+    const result = addUser(userData);
+
+    console.log(`✅ Neuer Benutzer hinzugefügt: ${name} (${role}) von Admin: ${req.user.name}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Benutzer erfolgreich hinzugefügt',
+      user_id: result.lastInsertRowid
+    });
+
+  } catch (error) {
+    console.error('❌ Fehler beim Hinzufügen des Benutzers:', error);
+    res.status(500).json({ 
+      error: 'Fehler beim Hinzufügen des Benutzers: ' + error.message 
+    });
+  }
+});
+
+// Get users in same praxis (admin and therapeut)
+app.get('/api/auth/users', requireAuth, requireRole('admin', 'therapeut'), (req, res) => {
+  try {
+    const users = getUsersByPraxis(req.user.praxis_id);
+    
+    // Remove sensitive data
+    const safeUsers = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      created_at: user.created_at
+    }));
+
+    res.json(safeUsers);
+  } catch (error) {
+    console.error('❌ Fehler beim Abrufen der Benutzer:', error);
+    res.status(500).json({ error: 'Fehler beim Abrufen der Benutzer' });
+  }
+});
+
+// Update user password
+app.put('/api/auth/change-password', requireAuth, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({ 
+        error: 'Aktuelles und neues Passwort erforderlich' 
+      });
+    }
+
+    if (new_password.length < 8) {
+      return res.status(400).json({ 
+        error: 'Neues Passwort muss mindestens 8 Zeichen lang sein' 
+      });
+    }
+
+    // Verify current password
+    const user = getUserById(req.user.id);
+    const passwordValid = await bcrypt.compare(current_password, user.password_hash);
+    
+    if (!passwordValid) {
+      return res.status(401).json({ 
+        error: 'Aktuelles Passwort ist falsch' 
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(new_password, 12);
+
+    // Update password
+    const stmt = db.prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+    stmt.run(hashedPassword, req.user.id);
+
+    console.log(`🔑 Passwort geändert für Benutzer: ${req.user.name}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Passwort erfolgreich geändert' 
+    });
+
+  } catch (error) {
+    console.error('❌ Fehler beim Passwort-Wechsel:', error);
+    res.status(500).json({ 
+      error: 'Fehler beim Ändern des Passworts: ' + error.message 
+    });
+  }
+});
+
+// Delete user (admin only, cannot delete self)
+app.delete('/api/auth/users/:id', requireAuth, requireRole('admin'), (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+
+    if (userId === req.user.id) {
+      return res.status(400).json({ 
+        error: 'Sie können sich nicht selbst löschen' 
+      });
+    }
+
+    // Check if user belongs to same praxis
+    const targetUser = getUserById(userId);
+    if (!targetUser || targetUser.praxis_id !== req.user.praxis_id) {
+      return res.status(404).json({ 
+        error: 'Benutzer nicht gefunden oder gehört zu anderer Praxis' 
+      });
+    }
+
+    // Delete user
+    const stmt = db.prepare("DELETE FROM users WHERE id = ?");
+    const result = stmt.run(userId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ 
+        error: 'Benutzer nicht gefunden' 
+      });
+    }
+
+    console.log(`🗑️ Benutzer gelöscht: ${targetUser.name} von Admin: ${req.user.name}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Benutzer erfolgreich gelöscht' 
+    });
+
+  } catch (error) {
+    console.error('❌ Fehler beim Löschen des Benutzers:', error);
+    res.status(500).json({ 
+      error: 'Fehler beim Löschen des Benutzers: ' + error.message 
+    });
+  }
+});
+
+// Get login attempts (admin only)
+app.get('/api/auth/login-attempts', requireAuth, requireRole('admin'), (req, res) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT email, success, ip_address, attempted_at 
+      FROM login_attempts 
+      WHERE attempted_at > datetime('now', '-7 days')
+      ORDER BY attempted_at DESC 
+      LIMIT 100
+    `);
+    
+    const attempts = stmt.all();
+    res.json(attempts);
+  } catch (error) {
+    console.error('❌ Fehler beim Abrufen der Login-Versuche:', error);
+    res.status(500).json({ error: 'Fehler beim Abrufen der Login-Versuche' });
+  }
+});
+
+// === PROTECT EXISTING API ROUTES === //
+
+// Middleware to apply authentication to existing routes
+app.use('/api/clients', requireAuth, requirePraxis);
+app.use('/api/sessions', requireAuth, requirePraxis);
+app.use('/api/upload', requireAuth);
+app.use('/api/audio', requireAuth);
+app.use('/api/chat', requireAuth);
+app.use('/api/assessments', requireAuth, requirePraxis);
+
+// Filter clients by praxis
+const originalGetClients = app._router.stack.find(layer => 
+  layer.route?.path === '/api/clients' && 
+  layer.route?.methods?.get
+);
+
+if (originalGetClients) {
+  app.get("/api/clients", requireAuth, requirePraxis, (req, res) => {
+    try {
+      // Get all clients but filter by praxis_id
+      const stmt = db.prepare(`
+        SELECT 
+          c.*,
+          COUNT(s.id) as total_sessions,
+          MAX(s.date) as latest_session
+        FROM clients c
+        LEFT JOIN sessions s ON c.id = s.client_id
+        WHERE c.praxis_id = ? OR c.praxis_id IS NULL
+        GROUP BY c.id
+        ORDER BY c.name ASC
+      `);
+      
+      const clients = stmt.all(req.user.praxis_id);
+      
+      // Update any clients without praxis_id
+      const updateStmt = db.prepare("UPDATE clients SET praxis_id = ? WHERE praxis_id IS NULL");
+      updateStmt.run(req.user.praxis_id);
+      
+      console.log(`✅ Loaded ${clients.length} clients for praxis ${req.user.praxis_id}`);
+      res.json(clients);
+    } catch (err) {
+      console.error("❌ Fehler beim Abrufen der Clients:", err);
+      res.status(500).json({ error: "Fehler beim Abrufen der Clients" });
+    }
+  });
+}
+
+// === SESSION MANAGEMENT === //
+
+// Clean expired sessions (run periodically)
+function cleanExpiredSessions() {
+  try {
+    const stmt = db.prepare(`
+      DELETE FROM sessions 
+      WHERE datetime(expired) < datetime('now')
+    `);
+    const result = stmt.run();
+    if (result.changes > 0) {
+      console.log(`🧹 ${result.changes} abgelaufene Sessions gelöscht`);
+    }
+  } catch (error) {
+    console.warn('Fehler beim Löschen abgelaufener Sessions:', error);
+  }
+}
+
+// Clean sessions every hour
+setInterval(cleanExpiredSessions, 60 * 60 * 1000);
+
+// === DEMO DATA FOR MULTI-TENANT === //
+
+async function createDemoAccounts() {
+  try {
+    // Check if demo praxis already exists
+    const existingPraxis = getPraxisByName('Demo Praxis Köln');
+    if (existingPraxis) {
+      console.log('📋 Demo-Praxis bereits vorhanden');
+      return;
+    }
+
+    // Create demo praxis
+    const praxisData = {
+      name: 'Demo Praxis Köln',
+      email: 'info@demo-praxis.de',
+      telefon: '+49 221 123456',
+      adresse: 'Musterstraße 123, 50667 Köln'
+    };
+    
+    const praxisResult = addPraxis(praxisData);
+    const praxisId = praxisResult.lastInsertRowid;
+
+    // Create demo users
+    const demoUsers = [
+      {
+        name: 'Dr. Demo Admin',
+        email: 'admin@demo-praxis.de',
+        password: 'demo123456',
+        role: 'admin'
+      },
+      {
+        name: 'Dr. Sarah Therapeutin',
+        email: 'therapeut@demo-praxis.de',
+        password: 'demo123456',
+        role: 'therapeut'
+      },
+      {
+        name: 'Lisa Assistenz',
+        email: 'assistenz@demo-praxis.de',
+        password: 'demo123456',
+        role: 'assistenz'
+      }
+    ];
+
+    for (const demoUser of demoUsers) {
+      const hashedPassword = await bcrypt.hash(demoUser.password, 12);
+      
+      const userData = {
+        praxis_id: praxisId,
+        name: demoUser.name,
+        email: demoUser.email,
+        password_hash: hashedPassword,
+        role: demoUser.role
+      };
+
+      addUser(userData);
+    }
+
+    console.log('✅ Demo-Accounts erstellt:');
+    console.log('   📧 admin@demo-praxis.de / demo123456 (Admin)');
+    console.log('   📧 therapeut@demo-praxis.de / demo123456 (Therapeut)');
+    console.log('   📧 assistenz@demo-praxis.de / demo123456 (Assistenz)');
+
+  } catch (error) {
+    console.error('❌ Fehler beim Erstellen der Demo-Accounts:', error);
+  }
+}
+
+// Create demo accounts on startup
+setTimeout(createDemoAccounts, 1000);
+
+console.log('🔐 Multi-Tenant Authentication System aktiviert!');
+console.log('📝 Registrierung: POST /api/auth/register-praxis');
+console.log('🔑 Login: POST /api/auth/login');
+console.log('👤 Benutzer hinzufügen: POST /api/auth/add-user');
+console.log('🛡️ Alle API-Routen sind jetzt authentifiziert');
 // --- SESSION ROUTES --- //
 app.post("/api/sessions", (req, res) => {
   try {
