@@ -73,7 +73,7 @@ function initializeDatabase() {
     // Create demo data if database is empty
     const clientCount = db.prepare("SELECT COUNT(*) as count FROM clients").get().count;
     if (clientCount === 0) {
-        createDemoData();
+       // createDemoData(); //
     }
     
     console.log("✅ Database schema initialized");
