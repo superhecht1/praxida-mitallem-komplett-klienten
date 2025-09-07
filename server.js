@@ -498,7 +498,7 @@ app.use(session({
   saveUninitialized: false,
   name: 'praxida.sid',
   cookie: {
-    secure: false, // Wichtig für Development - auf true für Production setzen
+    secure: false, // Wichtig: auf false für Development
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax'
