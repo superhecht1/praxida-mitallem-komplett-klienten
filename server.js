@@ -2140,6 +2140,155 @@ app.get('/api/maintenance/stats', requireAuth, requireRole('admin'), (req, res) 
   }
 });
 
+// === FÜGEN SIE DIESE DEBUG-ENDPOINTS IN SERVER.JS EIN ===
+// (nach den MAINTENANCE ROUTES, vor dem ERROR HANDLING)
+
+// Debug-Endpoint für Datenbank-Status
+app.get('/api/debug/status', (req, res) => {
+  try {
+    // Prüfe Tabellen-Existenz
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    
+    let users = [];
+    let praxis = [];
+    let userCount = 0;
+    let praxisCount = 0;
+    
+    try {
+      userCount = db.prepare("SELECT COUNT(*) as count FROM users").get()?.count || 0;
+      users = db.prepare("SELECT id, email, name, role, praxis_id FROM users").all();
+    } catch (e) {
+      console.log("Users table error:", e.message);
+    }
+    
+    try {
+      praxisCount = db.prepare("SELECT COUNT(*) as count FROM praxis").get()?.count || 0;
+      praxis = db.prepare("SELECT id, name, email FROM praxis").all();
+    } catch (e) {
+      console.log("Praxis table error:", e.message);
+    }
+    
+    res.json({
+      database_connected: true,
+      tables: tables.map(t => t.name),
+      total_users: userCount,
+      total_praxis: praxisCount,
+      users: users,
+      praxis: praxis,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: error.message,
+      database_connected: false
+    });
+  }
+});
+
+// Emergency Admin Creator mit besserer Fehlerbehandlung
+app.post('/api/debug/create-admin', async (req, res) => {
+  try {
+    console.log('🚨 Erstelle Emergency Admin...');
+    
+    // Lösche alten Test-User
+    try {
+      db.prepare("DELETE FROM users WHERE email = 'emergency@admin.local'").run();
+    } catch (e) {}
+    
+    // Erstelle oder finde Praxis
+    let praxis = getPraxisByName('Emergency Praxis');
+    if (!praxis) {
+      const praxisResult = addPraxis({
+        name: 'Emergency Praxis',
+        email: 'emergency@admin.local',
+        telefon: '0000-000000',
+        adresse: 'Emergency Address'
+      });
+      praxis = { id: praxisResult.lastInsertRowid };
+    }
+    
+    // Erstelle Admin
+    const hashedPassword = await bcrypt.hash('emergency123', 12);
+    
+    const userResult = addUser({
+      praxis_id: praxis.id,
+      name: 'Emergency Admin',
+      email: 'emergency@admin.local',
+      password_hash: hashedPassword,
+      role: 'admin'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Emergency Admin erstellt',
+      login: {
+        email: 'emergency@admin.local',
+        password: 'emergency123'
+      },
+      user_id: userResult.lastInsertRowid,
+      praxis_id: praxis.id
+    });
+    
+  } catch (error) {
+    console.error('Emergency Admin Fehler:', error);
+    res.status(500).json({ 
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Login-Test Endpoint
+app.post('/api/debug/test-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log('🔍 Debug Login für:', email);
+    
+    // Zeige alle Benutzer
+    const allUsers = db.prepare("SELECT id, email, name, role, praxis_id FROM users").all();
+    console.log('👥 Alle Benutzer:', allUsers);
+    
+    // Get user
+    const user = getUserByEmail(email);
+    console.log('👤 Gefundener User:', user);
+    
+    if (!user) {
+      return res.json({
+        success: false,
+        error: 'Benutzer nicht gefunden',
+        debug: {
+          email_searched: email,
+          available_users: allUsers.map(u => u.email)
+        }
+      });
+    }
+    
+    // Test password
+    const passwordValid = await bcrypt.compare(password, user.password_hash);
+    console.log('🔑 Passwort gültig:', passwordValid);
+    
+    res.json({
+      success: passwordValid,
+      user_found: true,
+      password_valid: passwordValid,
+      user_info: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        praxis_id: user.praxis_id
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // === ERROR HANDLING === //
 
 // Global error handler
