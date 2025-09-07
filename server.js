@@ -1597,4 +1597,60 @@ process.on('SIGTERM', () => {
 // Create emergency admin after short delay
 setTimeout(createEmergencyAdmin, 2000);
 
+// === DEMO-ACCOUNTS REPARATUR === //
+async function createWorkingDemoAccounts() {
+    const bcrypt = require('bcryptjs');
+    
+    try {
+        console.log("🔧 Repariere Demo-Accounts...");
+        
+        // Demo-Praxis erstellen/finden
+        let praxis;
+        const checkPraxis = db.prepare("SELECT * FROM praxis WHERE name = 'Demo Praxis Köln'").get();
+        if (checkPraxis) {
+            praxis = checkPraxis;
+        } else {
+            const praxisStmt = db.prepare(`
+                INSERT INTO praxis (name, email, telefon, adresse, created_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `);
+            const result = praxisStmt.run('Demo Praxis Köln', 'info@demo-praxis.de', '+49 221 123456', 'Musterstraße 123, 50667 Köln');
+            praxis = { id: result.lastInsertRowid };
+        }
+        
+        // Alte Demo-Benutzer löschen
+        db.prepare("DELETE FROM users WHERE email LIKE '%@demo-praxis.de'").run();
+        
+        const hashedPassword = await bcrypt.hash('demo123456', 12);
+        
+        const demoAccounts = [
+            { name: 'Dr. Demo Administrator', email: 'admin@demo-praxis.de', role: 'admin' },
+            { name: 'Dr. Sarah Therapeutin', email: 'therapeut@demo-praxis.de', role: 'therapeut' },
+            { name: 'Lisa Assistenz', email: 'assistenz@demo-praxis.de', role: 'assistenz' },
+            { name: 'Tom Praktikant', email: 'praktikant@demo-praxis.de', role: 'praktikant' }
+        ];
+        
+        const userStmt = db.prepare(`
+            INSERT INTO users (praxis_id, name, email, password_hash, role, is_active, created_at)
+            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        `);
+        
+        for (const account of demoAccounts) {
+            userStmt.run(praxis.id, account.name, account.email, hashedPassword, account.role);
+            console.log(`✅ ${account.email} erstellt`);
+        }
+        
+        console.log("\n🎉 DEMO-ACCOUNTS BEREIT!");
+        console.log("🔑 Passwort für alle: demo123456");
+        
+    } catch (error) {
+        console.error("❌ Fehler:", error);
+    }
+}
+
+// Nach 4 Sekunden ausführen
+setTimeout(async () => {
+    await createWorkingDemoAccounts();
+}, 4000);
+
 module.exports = app;
