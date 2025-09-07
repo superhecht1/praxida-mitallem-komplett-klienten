@@ -2043,6 +2043,64 @@ async function createDemoAccounts() {
     console.error('❌ Fehler beim Erstellen der Demo-Accounts:', error);
   }
 }
+// === FÜGEN SIE DIESE FUNKTION IN SERVER.JS EIN ===
+// (nach den anderen createDemo... Funktionen)
+
+async function createEmergencyAdmin() {
+  try {
+    console.log('🚨 Erstelle Notfall-Admin...');
+    
+    // Erstelle Standard-Praxis
+    let praxis;
+    try {
+      praxis = getPraxisByName('Notfall Praxis');
+      if (!praxis) {
+        const praxisData = {
+          name: 'Notfall Praxis',
+          email: 'admin@local.test',
+          telefon: '0221-123456',
+          adresse: 'Test Straße 1'
+        };
+        const result = addPraxis(praxisData);
+        praxis = { id: result.lastInsertRowid };
+        console.log('✅ Praxis erstellt, ID:', praxis.id);
+      }
+    } catch (error) {
+      console.error('❌ Praxis-Fehler:', error);
+      return;
+    }
+
+    // Lösche evtl. existierenden Test-Admin
+    try {
+      db.prepare("DELETE FROM users WHERE email = 'admin@test.local'").run();
+    } catch (e) {
+      // Ignorieren falls Tabelle nicht existiert
+    }
+
+    // Erstelle Admin-Benutzer
+    const hashedPassword = await bcrypt.hash('test123', 12);
+    
+    const userData = {
+      praxis_id: praxis.id,
+      name: 'Test Administrator',
+      email: 'admin@test.local',
+      password_hash: hashedPassword,
+      role: 'admin'
+    };
+
+    const userResult = addUser(userData);
+    
+    console.log('✅ NOTFALL-ADMIN ERSTELLT:');
+    console.log('   📧 Email: admin@test.local');
+    console.log('   🔑 Passwort: test123');
+    console.log('   👤 Name: Test Administrator');
+    console.log('   🎯 Rolle: admin');
+    console.log('   🏢 Praxis: Notfall Praxis');
+    
+  } catch (error) {
+    console.error('❌ Fehler beim Erstellen des Notfall-Admins:', error);
+  }
+}
 
 // === MAINTENANCE ROUTES === //
 
@@ -2203,5 +2261,6 @@ process.on('SIGTERM', () => {
   
   process.exit(0);
 });
+setTimeout(createEmergencyAdmin, 2000);
 
 module.exports = app;
