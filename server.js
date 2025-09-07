@@ -2044,9 +2044,6 @@ async function createDemoAccounts() {
   }
 }
 
-// Create demo accounts on startup
-setTimeout(createDemoAccounts, 1000);
-
 // === MAINTENANCE ROUTES === //
 
 // Database maintenance (admin only)
