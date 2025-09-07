@@ -1468,6 +1468,76 @@ app.get('/api/debug/env', (req, res) => {
   }
 });
 
+// === NOTFALL-DEMO-ACCOUNTS === //
+app.get('/create-demo-now', async (req, res) => {
+    try {
+        console.log("🚨 ERSTELLE DEMO-ACCOUNTS...");
+        
+        const bcrypt = require('bcryptjs');
+        
+        // Praxis finden/erstellen
+        let praxis = db.prepare("SELECT * FROM praxis WHERE name = 'Demo Praxis Köln'").get();
+        if (!praxis) {
+            const result = db.prepare(`
+                INSERT INTO praxis (name, email, telefon, adresse, created_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `).run('Demo Praxis Köln', 'info@demo-praxis.de', '+49 221 123456', 'Musterstraße 123, 50667 Köln');
+            praxis = { id: result.lastInsertRowid };
+        }
+        
+        // Alte Demo-Accounts löschen
+        db.prepare("DELETE FROM users WHERE email LIKE '%@demo-praxis.de'").run();
+        
+        // Passwort hashen
+        const hashedPassword = await bcrypt.hash('demo123456', 12);
+        
+        // Accounts erstellen
+        const accounts = [
+            { name: 'Dr. Demo Administrator', email: 'admin@demo-praxis.de', role: 'admin' },
+            { name: 'Dr. Sarah Therapeutin', email: 'therapeut@demo-praxis.de', role: 'therapeut' },
+            { name: 'Lisa Assistenz', email: 'assistenz@demo-praxis.de', role: 'assistenz' },
+            { name: 'Tom Praktikant', email: 'praktikant@demo-praxis.de', role: 'praktikant' }
+        ];
+        
+        const stmt = db.prepare(`
+            INSERT INTO users (praxis_id, name, email, password_hash, role, is_active, created_at)
+            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        `);
+        
+        const created = [];
+        for (const account of accounts) {
+            const result = stmt.run(praxis.id, account.name, account.email, hashedPassword, account.role);
+            created.push({ email: account.email, role: account.role });
+            console.log(`✅ ${account.email} erstellt`);
+        }
+        
+        console.log("\n🎉 ALLE DEMO-ACCOUNTS ERSTELLT!");
+        console.log("🔑 Passwort: demo123456");
+        
+        res.json({
+            success: true,
+            message: `${created.length} Accounts erstellt!`,
+            accounts: created,
+            password: 'demo123456'
+        });
+        
+    } catch (error) {
+        console.error("❌ Fehler:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/show-users', (req, res) => {
+    const users = db.prepare(`
+        SELECT u.email, u.role, p.name as praxis_name
+        FROM users u
+        LEFT JOIN praxis p ON u.praxis_id = p.id
+        ORDER BY u.created_at DESC
+    `).all();
+    
+    res.json({ total: users.length, users });
+});
+
 // === ERROR HANDLING === //
 
 // Global error handler
