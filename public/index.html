@@ -7895,25 +7895,115 @@
             messages.appendChild(typingMessage);
             messages.scrollTop = messages.scrollHeight;
 
-            // Simulate AI response
-            setTimeout(() => {
-                messages.removeChild(typingMessage);
+            async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (!input || !messages) return;
+    
+    const messageText = input.value.trim();
+    const hasAttachments = chatAttachments.length > 0;
+    
+    if (messageText === '' && !hasAttachments) return;
+    
+    console.log('💬 Sende KI-Nachricht...');
+    
+    // User message
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (hasAttachments) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${messageText || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
 
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'message assistant';
-                aiMessage.innerHTML = `
-                    <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                    Das ist eine sehr interessante Frage zu "${messageText}". In der therapeutischen Praxis empfehle ich folgende Ansätze:
-                    <br><br>
-                    • <strong>Evidenzbasierte Methoden:</strong> Orientierung an aktuellen Leitlinien<br>
-                    • <strong>Individualisierung:</strong> Anpassung an den spezifischen Fall<br>
-                    • <strong>Verlaufskontrolle:</strong> Regelmäßige Bewertung der Fortschritte<br><br>
-                    Haben Sie spezifische Aspekte, die Sie vertiefen möchten?
-                `;
-                messages.appendChild(aiMessage);
-                messages.scrollTop = messages.scrollHeight;
-            }, 1500);
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    chatAttachments = [];
+    messages.scrollTop = messages.scrollHeight;
+
+    // Typing indicator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • analysiert...</div>
+        <em>Generiere professionelle Antwort...</em>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        // ECHTE API-Anfrage an Backend
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                message: messageText,
+                client_id: selectedClientId,
+                context: hasAttachments ? 'Datei-Analyse angefordert' : null
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+
+        const data = await response.json();
+        
+        // Entferne Typing-Indikator
+        if (typingMessage.parentNode) {
+            messages.removeChild(typingMessage);
+        }
+
+        // Zeige ECHTE KI-Antwort
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${data.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+        console.log('✅ Echte KI-Antwort erhalten und angezeigt');
+
+    } catch (error) {
+        console.error('❌ Chat-Fehler:', error);
+        
+        if (typingMessage.parentNode) {
+            messages.removeChild(typingMessage);
+        }
+
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message assistant';
+        errorMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • Fehler</div>
+            <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; border-left: 4px solid #d63031;">
+                ❌ <strong>Fehler bei KI-Anfrage:</strong><br>
+                ${error.message}
+            </div>
+        `;
+        messages.appendChild(errorMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+    // WICHTIG: KEIN setTimeout() Demo-Code mehr hier!
+}
 
         function attachFileToChat() {
             const fileInput = document.getElementById('chatFileInput');
