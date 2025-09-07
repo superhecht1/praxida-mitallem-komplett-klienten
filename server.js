@@ -454,7 +454,7 @@ function calculateAssessmentScore(assessmentType, responses) {
     };
 }
 
-// Security Middleware
+// === FIXED SECURITY MIDDLEWARE === //
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -485,19 +485,20 @@ const generalLimiter = rateLimit({
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/', generalLimiter);
 
-// Session Configuration
+// === FIXED SESSION CONFIGURATION === //
 app.use(session({
   store: new SQLiteStore({
     db: 'sessions.db',
     dir: './data',
-    table: 'sessions'
+    table: 'sessions',
+    concurrentDB: true
   }),
-  secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+  secret: process.env.SESSION_SECRET || 'praxida-2024-demo-secret-key',
   resave: false,
   saveUninitialized: false,
   name: 'praxida.sid',
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Wichtig für Development - auf true für Production setzen
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax'
@@ -505,19 +506,30 @@ app.use(session({
   rolling: true
 }));
 
-// === DATABASE HELPER FUNCTIONS === //
+// === FIXED DATABASE HELPER FUNCTIONS === //
 
 function getUserByEmail(email) {
   try {
+    console.log(`🔍 Suche Benutzer: ${email}`);
+    
     const stmt = db.prepare(`
       SELECT u.*, p.name as praxis_name 
       FROM users u 
       LEFT JOIN praxis p ON u.praxis_id = p.id 
-      WHERE u.email = ?
+      WHERE LOWER(u.email) = LOWER(?) AND u.is_active = 1
     `);
-    return stmt.get(email);
+    
+    const user = stmt.get(email);
+    
+    if (user) {
+      console.log(`✅ Benutzer gefunden: ${user.name} (${user.role}) - Praxis: ${user.praxis_name}`);
+    } else {
+      console.log(`❌ Kein Benutzer gefunden für: ${email}`);
+    }
+    
+    return user;
   } catch (error) {
-    console.error('❌ Fehler beim Abrufen des Benutzers:', error);
+    console.error('❌ Datenbankfehler bei getUserByEmail:', error);
     return null;
   }
 }
@@ -590,6 +602,99 @@ try {
   db.prepare("CREATE INDEX IF NOT EXISTS idx_login_attempts_attempted_at ON login_attempts(attempted_at)").run();
 } catch (error) {
   console.warn('Login attempts table bereits vorhanden oder Fehler:', error);
+}
+
+// === FIXED DEMO ACCOUNT CREATION === //
+let demoAccountsCreated = false;
+
+async function createStableDemoAccounts() {
+  if (demoAccountsCreated) {
+    console.log('⏭️ Demo-Accounts bereits erstellt, überspringe...');
+    return;
+  }
+
+  try {
+    console.log('🔧 Erstelle stabile Demo-Accounts...');
+    
+    // Praxis erstellen/finden
+    let praxis;
+    try {
+      const checkPraxis = db.prepare("SELECT * FROM praxis WHERE name = ?").get('Demo Praxis Köln');
+      if (checkPraxis) {
+        praxis = checkPraxis;
+        console.log('✅ Demo Praxis gefunden:', praxis.id);
+      } else {
+        const praxisStmt = db.prepare(`
+          INSERT INTO praxis (name, email, telefon, adresse, created_at)
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `);
+        const result = praxisStmt.run('Demo Praxis Köln', 'info@demo-praxis.de', '+49 221 123456', 'Musterstraße 123, 50667 Köln');
+        praxis = { id: result.lastInsertRowid, name: 'Demo Praxis Köln' };
+        console.log('✅ Demo Praxis erstellt:', praxis.id);
+      }
+    } catch (error) {
+      console.error('❌ Praxis-Fehler:', error);
+      return;
+    }
+    
+    // Alle alten Demo-Benutzer löschen
+    try {
+      const deleteResult = db.prepare("DELETE FROM users WHERE email LIKE '%@demo-praxis.de' OR email = 'emergency@admin.local'").run();
+      console.log(`🗑️ ${deleteResult.changes} alte Demo-Accounts gelöscht`);
+    } catch (error) {
+      console.warn('⚠️ Warnung beim Löschen alter Accounts:', error.message);
+    }
+    
+    // Einheitliches Passwort hashen
+    const demoPassword = 'demo123456';
+    const hashedPassword = await bcrypt.hash(demoPassword, 12);
+    console.log('🔐 Passwort gehasht für:', demoPassword);
+    
+    // Demo-Accounts definieren
+    const demoAccounts = [
+      { name: 'Dr. Demo Administrator', email: 'admin@demo-praxis.de', role: 'admin' },
+      { name: 'Dr. Sarah Therapeutin', email: 'therapeut@demo-praxis.de', role: 'therapeut' },
+      { name: 'Lisa Assistenz', email: 'assistenz@demo-praxis.de', role: 'assistenz' },
+      { name: 'Tom Praktikant', email: 'praktikant@demo-praxis.de', role: 'praktikant' },
+      { name: 'Emergency Admin', email: 'emergency@admin.local', role: 'admin' } // Notfall-Account
+    ];
+    
+    // Accounts einzeln erstellen
+    const userStmt = db.prepare(`
+      INSERT INTO users (praxis_id, name, email, password_hash, role, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+    `);
+    
+    const createdAccounts = [];
+    for (const account of demoAccounts) {
+      try {
+        const result = userStmt.run(praxis.id, account.name, account.email, hashedPassword, account.role);
+        createdAccounts.push({
+          id: result.lastInsertRowid,
+          email: account.email,
+          role: account.role,
+          name: account.name
+        });
+        console.log(`✅ Account erstellt: ${account.email} (${account.role})`);
+      } catch (error) {
+        console.error(`❌ Fehler bei ${account.email}:`, error.message);
+      }
+    }
+    
+    // Erfolgsmeldung
+    console.log('\n🎉 DEMO-ACCOUNTS ERFOLGREICH ERSTELLT:');
+    console.log('📧 Verfügbare Logins:');
+    createdAccounts.forEach(acc => {
+      console.log(`   ${acc.email} (${acc.role})`);
+    });
+    console.log('🔑 Passwort für alle Accounts: demo123456');
+    console.log('🏥 Praxis: Demo Praxis Köln (optional beim Login)');
+    
+    demoAccountsCreated = true;
+    
+  } catch (error) {
+    console.error('❌ Schwerwiegender Fehler bei Demo-Account-Erstellung:', error);
+  }
 }
 
 // === AUTHENTICATION MIDDLEWARE === //
@@ -697,7 +802,7 @@ app.post('/api/test-openai', requireAuth, async (req, res) => {
     }
 });
 
-// === AUTHENTICATION ROUTES === //
+// === FIXED AUTHENTICATION ROUTES === //
 
 // Register new praxis (initial setup)
 app.post('/api/auth/register-praxis', async (req, res) => {
@@ -790,59 +895,75 @@ app.post('/api/auth/register-praxis', async (req, res) => {
   }
 });
 
-// User Login
+// === FIXED USER LOGIN === //
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, praxis_name } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
     const userAgent = req.get('User-Agent');
+    
+    console.log(`\n🔐 LOGIN-VERSUCH: ${email}`);
+    console.log(`🌐 IP: ${ip}`);
+    console.log(`🏥 Praxis: ${praxis_name || 'nicht angegeben'}`);
 
-    // Validation
+    // Basis-Validierung
     if (!email || !password) {
+      console.log('❌ Email oder Passwort fehlt');
       return res.status(400).json({ 
         error: 'E-Mail und Passwort sind erforderlich' 
       });
     }
 
-    // Check for recent failed attempts
+    // Rate Limiting Check
     const recentAttempts = getRecentLoginAttempts(email);
     if (recentAttempts >= 5) {
+      console.log(`🚫 Rate Limit für ${email}: ${recentAttempts} Versuche`);
       createLoginAttempt(email, false, ip, userAgent);
       return res.status(429).json({ 
         error: 'Account temporär gesperrt. Zu viele fehlgeschlagene Login-Versuche.' 
       });
     }
 
-    // Get user
+    // Benutzer suchen
     const user = getUserByEmail(email);
     if (!user) {
+      console.log(`❌ Benutzer nicht gefunden: ${email}`);
       createLoginAttempt(email, false, ip, userAgent);
       return res.status(401).json({ 
         error: 'Ungültige Anmeldedaten' 
       });
     }
 
-    // Verify password
+    // Passwort prüfen
+    console.log('🔐 Prüfe Passwort...');
     const passwordValid = await bcrypt.compare(password, user.password_hash);
     if (!passwordValid) {
+      console.log(`❌ Ungültiges Passwort für: ${email}`);
       createLoginAttempt(email, false, ip, userAgent);
       return res.status(401).json({ 
         error: 'Ungültige Anmeldedaten' 
       });
     }
 
-    // Check praxis match if provided
-    if (praxis_name && user.praxis_name !== praxis_name) {
-      createLoginAttempt(email, false, ip, userAgent);
-      return res.status(401).json({ 
-        error: 'Benutzer gehört nicht zu der angegebenen Praxis' 
-      });
+    // Praxis-Check (nur wenn angegeben und nicht leer)
+    if (praxis_name && praxis_name.trim() !== '' && user.praxis_name) {
+      const normalizedPraxisName = praxis_name.trim().toLowerCase();
+      const normalizedUserPraxis = user.praxis_name.trim().toLowerCase();
+      
+      if (normalizedUserPraxis !== normalizedPraxisName) {
+        console.log(`❌ Praxis-Mismatch: ${normalizedUserPraxis} vs ${normalizedPraxisName}`);
+        createLoginAttempt(email, false, ip, userAgent);
+        return res.status(401).json({ 
+          error: 'Benutzer gehört nicht zu der angegebenen Praxis' 
+        });
+      }
     }
 
-    // Successful login
+    // Erfolgreicher Login
+    console.log(`✅ Login erfolgreich: ${user.name}`);
     createLoginAttempt(email, true, ip, userAgent);
 
-    // Create session
+    // Session erstellen
     req.session.user = {
       id: user.id,
       name: user.name,
@@ -855,22 +976,29 @@ app.post('/api/auth/login', async (req, res) => {
     req.session.login_time = new Date().toISOString();
     req.session.ip = ip;
 
-    console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
+    // Session speichern und Antwort senden
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session-Speicher-Fehler:', err);
+        return res.status(500).json({ error: 'Fehler beim Erstellen der Sitzung' });
+      }
 
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        praxis_name: user.praxis_name
-      },
-      message: 'Erfolgreich angemeldet'
+      console.log(`✅ Session erstellt für: ${user.name}`);
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          praxis_name: user.praxis_name
+        },
+        message: 'Erfolgreich angemeldet'
+      });
     });
 
   } catch (error) {
-    console.error('❌ Login-Fehler:', error);
+    console.error('❌ LOGIN-FEHLER:', error);
     res.status(500).json({ 
       error: 'Fehler beim Anmelden: ' + error.message 
     });
@@ -911,6 +1039,95 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
       expires: new Date(Date.now() + req.session.cookie.maxAge).toISOString()
     }
   });
+});
+
+// === FIXED DEBUG ENDPOINTS === //
+app.get('/api/debug/accounts', (req, res) => {
+  try {
+    const users = db.prepare(`
+      SELECT u.id, u.name, u.email, u.role, u.is_active, p.name as praxis_name
+      FROM users u
+      LEFT JOIN praxis p ON u.praxis_id = p.id
+      ORDER BY u.created_at DESC
+    `).all();
+    
+    const praxis = db.prepare("SELECT * FROM praxis").all();
+    
+    res.json({
+      total_users: users.length,
+      total_praxis: praxis.length,
+      users: users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        active: !!u.is_active,
+        praxis: u.praxis_name
+      })),
+      praxis: praxis
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/debug/test-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email und Passwort erforderlich' });
+    }
+    
+    const user = getUserByEmail(email);
+    if (!user) {
+      return res.json({ 
+        found: false, 
+        message: 'Benutzer nicht gefunden' 
+      });
+    }
+    
+    const passwordValid = await bcrypt.compare(password, user.password_hash);
+    
+    res.json({
+      found: true,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        praxis: user.praxis_name
+      },
+      password_valid: passwordValid,
+      hash_preview: user.password_hash.substring(0, 20) + '...'
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/create-accounts-now', async (req, res) => {
+  try {
+    demoAccountsCreated = false; // Reset Flag
+    await createStableDemoAccounts();
+    
+    const users = db.prepare(`
+      SELECT email, role, name 
+      FROM users 
+      WHERE email LIKE '%@demo-praxis.de' OR email = 'emergency@admin.local'
+      ORDER BY role
+    `).all();
+    
+    res.json({
+      success: true,
+      message: 'Demo-Accounts neu erstellt!',
+      accounts: users,
+      password: 'demo123456',
+      login_hint: 'Verwenden Sie eine der E-Mail-Adressen mit dem Passwort "demo123456"'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // === PROTECT EXISTING API ROUTES === //
@@ -1400,50 +1617,6 @@ function generateAdvancedFallbackAnalysis(fileInfo, type, content = '') {
   return analysis;
 }
 
-// === EMERGENCY ADMIN CREATOR === //
-
-async function createEmergencyAdmin() {
-  try {
-    console.log('🚨 Erstelle Emergency Admin...');
-    
-    // Create or find praxis
-    let praxis = getPraxisByName('Emergency Praxis');
-    if (!praxis) {
-      const praxisResult = addPraxis({
-        name: 'Emergency Praxis',
-        email: 'emergency@admin.local',
-        telefon: '0000-000000',
-        adresse: 'Emergency Address'
-      });
-      praxis = { id: praxisResult.lastInsertRowid };
-    }
-    
-    // Delete old test user
-    try {
-      db.prepare("DELETE FROM users WHERE email = 'emergency@admin.local'").run();
-    } catch (e) {}
-    
-    // Create admin
-    const hashedPassword = await bcrypt.hash('emergency123', 12);
-    
-    const userResult = addUser({
-      praxis_id: praxis.id,
-      name: 'Emergency Admin',
-      email: 'emergency@admin.local',
-      password_hash: hashedPassword,
-      role: 'admin'
-    });
-    
-    console.log('✅ EMERGENCY ADMIN ERSTELLT:');
-    console.log('   📧 Email: emergency@admin.local');
-    console.log('   🔑 Passwort: emergency123');
-    console.log('   🎯 Rolle: admin');
-    
-  } catch (error) {
-    console.error('❌ Fehler beim Erstellen des Emergency Admins:', error);
-  }
-}
-
 // === DEBUG ENDPOINTS FOR RENDER === //
 
 app.get('/api/debug/env', (req, res) => {
@@ -1466,65 +1639,6 @@ app.get('/api/debug/env', (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
-
-// === NOTFALL-DEMO-ACCOUNTS === //
-app.get('/create-demo-now', async (req, res) => {
-    try {
-        console.log("🚨 ERSTELLE DEMO-ACCOUNTS...");
-        
-        const bcrypt = require('bcryptjs');
-        
-        // Praxis finden/erstellen
-        let praxis = db.prepare("SELECT * FROM praxis WHERE name = 'Demo Praxis Köln'").get();
-        if (!praxis) {
-            const result = db.prepare(`
-                INSERT INTO praxis (name, email, telefon, adresse, created_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            `).run('Demo Praxis Köln', 'info@demo-praxis.de', '+49 221 123456', 'Musterstraße 123, 50667 Köln');
-            praxis = { id: result.lastInsertRowid };
-        }
-        
-        // Alte Demo-Accounts löschen
-        db.prepare("DELETE FROM users WHERE email LIKE '%@demo-praxis.de'").run();
-        
-        // Passwort hashen
-        const hashedPassword = await bcrypt.hash('demo123456', 12);
-        
-        // Accounts erstellen
-        const accounts = [
-            { name: 'Dr. Demo Administrator', email: 'admin@demo-praxis.de', role: 'admin' },
-            { name: 'Dr. Sarah Therapeutin', email: 'therapeut@demo-praxis.de', role: 'therapeut' },
-            { name: 'Lisa Assistenz', email: 'assistenz@demo-praxis.de', role: 'assistenz' },
-            { name: 'Tom Praktikant', email: 'praktikant@demo-praxis.de', role: 'praktikant' }
-        ];
-        
-        const stmt = db.prepare(`
-            INSERT INTO users (praxis_id, name, email, password_hash, role, is_active, created_at)
-            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-        `);
-        
-        const created = [];
-        for (const account of accounts) {
-            const result = stmt.run(praxis.id, account.name, account.email, hashedPassword, account.role);
-            created.push({ email: account.email, role: account.role });
-            console.log(`✅ ${account.email} erstellt`);
-        }
-        
-        console.log("\n🎉 ALLE DEMO-ACCOUNTS ERSTELLT!");
-        console.log("🔑 Passwort: demo123456");
-        
-        res.json({
-            success: true,
-            message: `${created.length} Accounts erstellt!`,
-            accounts: created,
-            password: 'demo123456'
-        });
-        
-    } catch (error) {
-        console.error("❌ Fehler:", error);
-        res.status(500).json({ error: error.message });
-    }
 });
 
 app.get('/show-users', (req, res) => {
@@ -1664,63 +1778,11 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Create emergency admin after short delay
-setTimeout(createEmergencyAdmin, 2000);
-
-// === DEMO-ACCOUNTS REPARATUR === //
-async function createWorkingDemoAccounts() {
-    const bcrypt = require('bcryptjs');
-    
-    try {
-        console.log("🔧 Repariere Demo-Accounts...");
-        
-        // Demo-Praxis erstellen/finden
-        let praxis;
-        const checkPraxis = db.prepare("SELECT * FROM praxis WHERE name = 'Demo Praxis Köln'").get();
-        if (checkPraxis) {
-            praxis = checkPraxis;
-        } else {
-            const praxisStmt = db.prepare(`
-                INSERT INTO praxis (name, email, telefon, adresse, created_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            `);
-            const result = praxisStmt.run('Demo Praxis Köln', 'info@demo-praxis.de', '+49 221 123456', 'Musterstraße 123, 50667 Köln');
-            praxis = { id: result.lastInsertRowid };
-        }
-        
-        // Alte Demo-Benutzer löschen
-        db.prepare("DELETE FROM users WHERE email LIKE '%@demo-praxis.de'").run();
-        
-        const hashedPassword = await bcrypt.hash('demo123456', 12);
-        
-        const demoAccounts = [
-            { name: 'Dr. Demo Administrator', email: 'admin@demo-praxis.de', role: 'admin' },
-            { name: 'Dr. Sarah Therapeutin', email: 'therapeut@demo-praxis.de', role: 'therapeut' },
-            { name: 'Lisa Assistenz', email: 'assistenz@demo-praxis.de', role: 'assistenz' },
-            { name: 'Tom Praktikant', email: 'praktikant@demo-praxis.de', role: 'praktikant' }
-        ];
-        
-        const userStmt = db.prepare(`
-            INSERT INTO users (praxis_id, name, email, password_hash, role, is_active, created_at)
-            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-        `);
-        
-        for (const account of demoAccounts) {
-            userStmt.run(praxis.id, account.name, account.email, hashedPassword, account.role);
-            console.log(`✅ ${account.email} erstellt`);
-        }
-        
-        console.log("\n🎉 DEMO-ACCOUNTS BEREIT!");
-        console.log("🔑 Passwort für alle: demo123456");
-        
-    } catch (error) {
-        console.error("❌ Fehler:", error);
-    }
-}
-
-// Nach 4 Sekunden ausführen
+// === DEMO ACCOUNTS ERSTELLEN BEI SERVER-START === //
 setTimeout(async () => {
-    await createWorkingDemoAccounts();
-}, 4000);
+  await createStableDemoAccounts();
+}, 1000); // Nach 1 Sekunde statt mehrfach
+
+console.log('🔧 LOGIN-FIX GELADEN - Demo-Accounts werden erstellt...');
 
 module.exports = app;
