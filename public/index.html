@@ -5002,7 +5002,26 @@ async function performRegistration() {
         showAuthTab('login');
     }, 2000);
 }
+    function showAuthTab(tab) {
+    const tabs = document.querySelectorAll('.auth-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
 
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    if (tab === 'login') {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+    } else {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+    }
+
+    // Clear messages
+    const messageEl = document.getElementById('authMessage');
+    if (messageEl) messageEl.innerHTML = '';
+}
 async function performLogout() {
     if (!confirm('Wirklich abmelden?')) return;
 
@@ -7525,7 +7544,29 @@ function generateDemoAIResponse(message, attachedFiles) {
                 userAvatarEl.textContent = initials;
             }
         }
+function updateUserInfo(user) {
+    // ... die vorhandene updateUserInfo Funktion ...
+}
 
+function showAuthScreen() {
+    document.getElementById('authContainer').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+}
+
+function showMainApp() {
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'grid';
+}
+
+function showSuccess(message) {
+    console.log('✅ SUCCESS:', message);
+    alert('✅ ' + message);
+}
+
+// === NAVIGATION === //
+function showSection(sectionId, tabElement) {
+    // ... nächste Funktion ...
+}
         // === NAVIGATION === //
         function showSection(sectionId, tabElement) {
             console.log('📖 Navigiere zu:', sectionId);
@@ -8477,83 +8518,6 @@ function generateDemoAIResponse(message, attachedFiles) {
             `;
             messages.appendChild(typingMessage);
             messages.scrollTop = messages.scrollHeight;
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const messages = document.getElementById('chatMessages');
-    
-            if (!input || !messages) return;
-    
-            const messageText = input.value.trim();
-            const hasAttachments = chatAttachments.length > 0;
-    
-            if (messageText === '' && !hasAttachments) return;
-    
-            console.log('💬 Sende KI-Nachricht...');
-    
-            // User message
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user';
-    
-            let attachmentsHtml = '';
-            if (hasAttachments) {
-            attachmentsHtml = chatAttachments.map(file => `
-            <div class="message-attachment">
-                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                <div class="attachment-info">
-                    <div class="attachment-name">${file.name}</div>
-                    <div class="attachment-type">${formatFileSize(file.size)}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-            userMessage.innerHTML = `
-            <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-            ${attachmentsHtml}
-            ${messageText || 'Dateianalyse angefordert'}
-        `;
-            messages.appendChild(userMessage);
-
-            input.value = '';
-            input.placeholder = 'Ihre Frage an die KI-Assistenz...';
-            const attachedFiles = chatAttachments;
-            chatAttachments = [];
-            messages.scrollTop = messages.scrollHeight;
-
-            // Typing indicator
-            const typingMessage = document.createElement('div');
-            typingMessage.className = 'message assistant';
-            typingMessage.innerHTML = `
-                <div class="message-meta">KI-Assistenz • analysiert...</div>
-                <em>Generiere professionelle Antwort...</em>
-        `;
-            messages.appendChild(typingMessage);
-            messages.scrollTop = messages.scrollHeight;
-
-            try {
-                // Echte API-Anfrage
-            const requestData = {
-            message: messageText || 'Dateianalyse angefordert',
-            client_id: selectedClientId,
-            context: attachedFiles.length > 0 ? 'Dateien angehängt' : null
-        };
-
-            const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(requestData)
-        });
-
-            if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Chat-Anfrage fehlgeschlagen');
-        }
-
-            const result = await response.json();
 
             // Remove typing indicator
             messages.removeChild(typingMessage);
