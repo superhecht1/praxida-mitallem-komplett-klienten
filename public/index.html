@@ -8199,10 +8199,6 @@
             authFields.innerHTML = authOptions[authType] || '';
         }
 
-        function continueWizard() {
-            showSuccess('▶️ Setup-Assistent: Schritt 3 - Daten-Mapping wird geladen... (Demo)');
-        }
-
         // === UTILITY FUNCTIONS === //
 
         function formatFileSize(bytes) {
@@ -8247,48 +8243,12 @@
             }
         }
 
-        // Integration functions
-        function testAPIConnection() {
-            showSuccess('✅ API-Verbindung getestet (Demo)');
-        }
-
-        function showDSGVOReport() {
-            showSuccess('🔒 DSGVO-Status: Alle Systeme sicher (Demo)');
-        }
-
-        function testIntegration(event, system) {
-            if (event) event.preventDefault();
-            showSuccess(`🔗 ${system} Integration getestet (Demo)`);
-            const modalId = event.target.closest('.modal').id;
-            hideModal(modalId);
-        }
-
         // Planning functions
-        function createPlan(event) {
-            if (event) event.preventDefault();
-            showSuccess('📋 Therapieplan erstellt (Demo)');
-            hideModal('planModal');
-        }
 
         function showPlanningTab(tabName) {
             const tabs = document.querySelectorAll('.planning-tab');
             tabs.forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            showSuccess(`📋 ${tabName} Therapiepläne anzeigen (Demo)`);
-        }
-
-        function editPlan(planId) {
-            showSuccess(`✏️ Therapieplan ${planId} bearbeiten (Demo)`);
-        }
-
-        function addMilestone(planId) {
-            showSuccess(`🎯 Neuen Meilenstein zu Plan ${planId} hinzufügen (Demo)`);
-        }
-
-        function generateReport(planId) {
-            showSuccess(`📊 Fortschrittsbericht für Plan ${planId} generieren (Demo)`);
-        }
+            event.target.classList.add('active');      
 
         // Todo functions
         function addTodo(event) {
@@ -8336,93 +8296,6 @@
                 todoItem.classList.add('completed');
                 todoItem.dataset.status = 'completed';
             }
-        }
-
-        function editTodo(todoId) {
-            showSuccess(`✏️ To-Do ${todoId} bearbeiten (Demo)`);
-        }
-
-        function deleteTodo(todoId) {
-            if (confirm('To-Do wirklich löschen?')) {
-                showSuccess(`🗑️ To-Do ${todoId} gelöscht (Demo)`);
-            }
-        }
-
-        function exportTodos() {
-            showSuccess('📄 To-Do-Liste wird exportiert... (Demo)');
-        }
-
-        // Team collaboration functions
-        function inviteTeamMember(event) {
-            event.preventDefault();
-            const email = event.target.querySelector('input[type="email"]').value;
-            showSuccess(`✉️ Einladung gesendet an: ${email} (Demo)`);
-            hideModal('inviteTeamModal');
-        }
-
-        function createWorkGroup(event) {
-            event.preventDefault();
-            const groupName = event.target.querySelector('input[type="text"]').value;
-            showSuccess(`👥 Arbeitsgruppe "${groupName}" erstellt! (Demo)`);
-            hideModal('createGroupModal');
-        }
-
-        function openChat(memberId) {
-            showSuccess(`💬 Chat mit ${memberId} öffnen (Demo)`);
-        }
-
-        function shareCase(memberId) {
-            showSuccess(`📋 Fall mit ${memberId} teilen (Demo)`);
-        }
-
-        function scheduleCall(memberId) {
-            showSuccess(`📞 Termin mit ${memberId} planen (Demo)`);
-        }
-
-        function assignTask(memberId) {
-            showSuccess(`✅ Aufgabe an ${memberId} zuweisen (Demo)`);
-        }
-
-        function startVideoCall() {
-            showSuccess('📹 Videobesprechung startet... (Demo)');
-        }
-
-        function openDocumentSharing() {
-            showSuccess('📄 Dokumente-Sharing öffnen (Demo)');
-        }
-
-        function openWhiteboard() {
-            showSuccess('🎨 Virtuelles Whiteboard starten (Demo)');
-        }
-
-        function openCalendar() {
-            showSuccess('📅 Team-Kalender öffnen (Demo)');
-        }
-
-        function openTaskManager() {
-            showSuccess('✅ Aufgaben-Manager starten (Demo)');
-        }
-
-        function openKnowledgeBase() {
-            showSuccess('📚 Wissensdatenbank öffnen (Demo)');
-        }
-
-        function openSecureChat() {
-            showSuccess('🔒 Sicherer Messenger starten (Demo)');
-        }
-
-        function openCase(caseId) {
-            showSuccess(`📖 Fall ${caseId} öffnen (Demo)`);
-        }
-
-        function revokeAccess(caseId) {
-            if (confirm('Zugriff auf diesen Fall wirklich entziehen?')) {
-                showSuccess(`🔒 Zugriff auf Fall ${caseId} entzogen (Demo)`);
-            }
-        }
-
-        function addCollaborator(caseId) {
-            showSuccess(`➕ Neuen Kollaborateur zu Fall ${caseId} hinzufügen (Demo)`);
         }
 
         console.log('✅ Frontend JavaScript mit Multi-Tenant Auth vollständig geladen!');
