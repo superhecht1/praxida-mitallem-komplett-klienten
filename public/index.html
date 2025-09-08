@@ -5217,46 +5217,6 @@
             renderCalendar(currentDate);
         }
 
-        // === TERMINMANAGEMENT FUNKTIONEN === //
-        function bookAppointment(event) {
-            if (event) event.preventDefault();
-            showSuccess('📅 Termin erfolgreich gebucht! (Demo)');
-            hideModal('appointmentModal');
-        }
-
-        function editAppointment(appointmentId) {
-            showSuccess(`✏️ Termin ${appointmentId} bearbeiten (Demo)`);
-        }
-
-        function cancelAppointment(appointmentId) {
-            if (confirm('Termin wirklich absagen?')) {
-                showSuccess(`❌ Termin ${appointmentId} abgesagt (Demo)`);
-            }
-        }
-
-        function syncCalendar() {
-            showSuccess('🔄 Kalender wird mit Google/Outlook synchronisiert... (Demo)');
-        }
-
-        function generateTimeSlots() {
-            showSuccess('🤖 KI generiert optimale Terminvorschläge... (Demo)');
-        }
-
-        function showNoShowPrediction() {
-            showSuccess('⚠️ No-Show Vorhersage: 15% Wahrscheinlichkeit für 14:00 Termin (Demo)');
-        }
-
-        function showAIScheduling() {
-            showSuccess('🤖 KI-Terminplanung aktiviert (Demo)');
-        }
-
-        function showAnalytics() {
-            showSuccess('📊 Terminanalysen: 95% Auslastung, 3% No-Show Rate (Demo)');
-        }
-
-        function showIntegrations() {
-            showSuccess('🔗 Verfügbare Integrationen: Doctolib, Jameda, Google Calendar (Demo)');
-        }
 
         // === MODAL FUNCTIONS === //
         function showModal(modalId) {
@@ -5422,21 +5382,6 @@
             selectedClientId = clientId;
         }
 
-        function editClient(clientId) {
-            console.log('✏️ Bearbeite Klient:in:', clientId);
-            showSuccess(`✏️ Klient:in ${clientId} bearbeiten (Demo-Modus)`);
-            showModal('clientModal');
-        }
-
-        function deleteClientConfirm(clientId) {
-            if (confirm('⚠️ Sind Sie sicher, dass Sie diese:n Klient:in löschen möchten?\n\nAlle zugehörigen Daten werden unwiderruflich gelöscht!')) {
-                showSuccess(`🗑️ Klient:in ${clientId} gelöscht (Demo-Modus)`);
-                // In real app would make API call
-                loadClients();
-                loadStats();
-            }
-        }
-
         function extractTherapyFromNotes(notes) {
             if (!notes) return 'VT';
             
@@ -5559,10 +5504,6 @@
                 console.error('Fehler beim Hinzufügen des Clients:', error);
                 showError('Verbindungsfehler beim Speichern');
             }
-        }
-
-        function exportClients() {
-            showSuccess('📄 Klient:innen werden exportiert... (Demo)');
         }
 
         // === AUDIO FUNCTIONALITY === //
@@ -5722,27 +5663,6 @@
             await processAudioRecording(file);
         }
 
-        async function processAudioRecording(audioBlob) {
-            try {
-                console.log('📤 Verarbeite Audio mit Whisper...');
-                
-                showSuccess('🎤 Audio wird mit Whisper KI transkribiert... (Demo)');
-                
-                // Simulate processing
-                setTimeout(() => {
-                    displayAudioTranscription({
-                        transcription: "Patient berichtet über deutliche Verbesserung der Angstsymptomatik. Exposition in vivo wurde erfolgreich durchgeführt. Nächste Schritte: Kognitive Umstrukturierung vertiefen.",
-                        analysis: "**Zusammenfassung der Sitzung:**\n\n• Fortschritt bei Angstbewältigung erkennbar\n• Expositionstherapie zeigt positive Wirkung\n• Patient entwickelt Selbstvertrauen\n• Empfehlung: Fortsetzung der kognitiven Techniken\n\n**Nächste Sitzung:** Vertiefung der kognitiven Umstrukturierung",
-                        file: { name: audioBlob.name || 'Audio-Aufnahme', size: audioBlob.size }
-                    });
-                }, 2000);
-                
-            } catch (error) {
-                console.error('❌ Audio-Verarbeitungsfehler:', error);
-                showError('Fehler bei Audio-Verarbeitung: ' + error.message);
-            }
-        }
-
         function displayAudioTranscription(result) {
             // Switch to chat section
             showSection('chat', document.querySelector('.nav-tab:nth-child(5)'));
@@ -5877,24 +5797,6 @@
             preview.classList.add('show');
         }
 
-        async function processFile() {
-            if (uploadedFiles.length === 0) {
-                showError('Keine Datei zum Verarbeiten ausgewählt');
-                return;
-            }
-
-            console.log('🤖 Verarbeite Datei mit KI...');
-            
-            showSuccess('🤖 KI analysiert Datei... (Demo)');
-            
-            // Simulate processing
-            setTimeout(() => {
-                displayFileAnalysisResults({
-                    analysis: "**Datei-Analyse:**\n\n• Dokument enthält therapeutisch relevante Informationen\n• Strukturierte Aufbereitung für klinische Verwendung\n• Empfohlene nächste Schritte identifiziert\n\n**Erkenntnisse:** Das analysierte Material zeigt wichtige Aspekte für die Behandlungsplanung auf.",
-                    file: { name: uploadedFiles[0].name, size: uploadedFiles[0].size }
-                });
-            }, 1500);
-        }
 
         function displayFileAnalysisResults(result) {
             showSection('chat', document.querySelector('.nav-tab:nth-child(5)'));
@@ -6035,57 +5937,8 @@
                 email: formData.get('email') || event.target.querySelector('input[type="email"]').value,
                 role: event.target.querySelector('select').value
             };
-            
-            showSuccess(`👤 Benutzer "${userData.name}" erfolgreich hinzugefügt! (Demo)`);
-            hideModal('userModal');
-        }
 
-        function editUser(userId) {
-            showSuccess(`✏️ Benutzer ${userId} bearbeiten (Demo)`);
-        }
-
-        function viewUserActivity(userId) {
-            showSuccess(`📊 Aktivitätsbericht für Benutzer ${userId}: 47 Logins, 8h Arbeitszeit heute (Demo)`);
-        }
-
-        function resetUserPassword(userId) {
-            if (confirm('Passwort für diesen Benutzer zurücksetzen?')) {
-                showSuccess(`🔑 Neues Passwort für Benutzer ${userId} generiert und per E-Mail versandt (Demo)`);
-            }
-        }
-
-        function sendMessage(userId) {
-            showSuccess(`💬 Nachricht an Benutzer ${userId} senden (Demo)`);
-        }
-
-        function enable2FA(userId) {
-            showSuccess(`🔐 2FA-Setup für Benutzer ${userId} eingeleitet - QR-Code per E-Mail versandt (Demo)`);
-        }
-
-        function extendAccess(userId) {
-            showSuccess(`⏰ Zugang für Benutzer ${userId} um 6 Monate verlängert (Demo)`);
-        }
-
-        function exportUserActivity() {
-            showSuccess('📊 Aktivitätsbericht wird generiert... (Demo)');
-        }
-
-        function show2FASetup() {
-            showSuccess('🔐 2FA-Konfiguration: 6/8 Benutzer aktiviert, 2 ausstehend (Demo)');
-        }
-
-        function loadRolePermissions(role) {
-            showSuccess(`🎭 Lade Berechtigungen für Rolle: ${role} (Demo)`);
-        }
-
-        function saveRolePermissions() {
-            showSuccess('🎭 Rollen-Berechtigungen erfolgreich gespeichert! (Demo)');
-            hideModal('roleModal');
-        }
-
-        function remind2FA(userId) {
-            showSuccess(`📧 2FA-Erinnerung an Benutzer ${userId} gesendet (Demo)`);
-        }
+        
 
         // === ENHANCED SYSTEM INTEGRATION FUNCTIONS === //
 
@@ -6114,43 +5967,7 @@
                 'ti-infrastructure': 'Setup noch nicht abgeschlossen'
             };
             
-            const result = results[integrationId] || 'Verbindung getestet';
-            showSuccess(`🔗 ${integrationId}: ${result} (Demo)`);
-        }
-
-        function viewLogs(integrationId) {
-            showSuccess(`📋 Logs für ${integrationId}: 247 Entries, 3 Warnings, 1 Error (Demo)`);
-        }
-
-        function submitBilling(integrationId) {
-            showSuccess(`📤 Abrechnung übermittelt an ${integrationId} - 42 Positionen, €2,847 (Demo)`);
-        }
-
-        function upgradePlan(integrationId) {
-            showSuccess(`⬆️ Plan-Upgrade für ${integrationId}: Professional (5000 Requests/h) verfügbar (Demo)`);
-        }
-
-        function reconnectIntegration(integrationId) {
-            showSuccess(`🔄 Verbindung zu ${integrationId} wird wiederhergestellt... (Demo)`);
-        }
-
-        function troubleshoot(integrationId) {
-            showSuccess(`🔧 Diagnose für ${integrationId}: SSL-Zertifikat abgelaufen, Update verfügbar (Demo)`);
-        }
-
-        function continueSetup(integrationId) {
-            showSuccess(`▶️ Setup für ${integrationId} wird fortgesetzt... Nächster Schritt: Zertifikat installieren (Demo)`);
-        }
-
-        function getHelp(integrationId) {
-            showSuccess(`❓ Hilfe für ${integrationId}: Support-Ticket erstellt, Antwort in 2-4h (Demo)`);
-        }
-
-        function addIntegration(event) {
-            event.preventDefault();
-            const systemType = event.target.querySelector('select').value;
-            showSuccess(`➕ Integration "${systemType}" wird hinzugefügt... Setup-Assistent gestartet (Demo)`);
-            hideModal('newIntegrationModal');
+          
         }
 
         function updateIntegrationFields(systemType) {
@@ -6186,10 +6003,6 @@
             };
             
             authFields.innerHTML = authOptions[authType] || '';
-        }
-
-        function continueWizard() {
-            showSuccess('▶️ Setup-Assistent: Schritt 3 - Daten-Mapping wird geladen... (Demo)');
         }
 
         // === UTILITY FUNCTIONS === //
@@ -6237,65 +6050,13 @@
         }
 
         // Integration functions
-        function testAPIConnection() {
-            showSuccess('✅ API-Verbindung getestet (Demo)');
-        }
-
-        function showDSGVOReport() {
-            showSuccess('🔒 DSGVO-Status: Alle Systeme sicher (Demo)');
-        }
-
-        function testIntegration(event, system) {
-            if (event) event.preventDefault();
-            showSuccess(`🔗 ${system} Integration getestet (Demo)`);
-            const modalId = event.target.closest('.modal').id;
-            hideModal(modalId);
-        }
 
         // Planning functions
-        function createPlan(event) {
-            if (event) event.preventDefault();
-            showSuccess('📋 Therapieplan erstellt (Demo)');
-            hideModal('planModal');
-        }
-
-        function generateAIPlan() {
-            showSuccess('🤖 KI generiert intelligenten Therapieplan... (Demo)');
-        }
-
+    
         function showPlanningTab(tabName) {
             const tabs = document.querySelectorAll('.planning-tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             event.target.classList.add('active');
-            
-            showSuccess(`📋 ${tabName} Therapiepläne anzeigen (Demo)`);
-        }
-
-        function createFromTemplate(event) {
-            event.preventDefault();
-            const template = event.target.querySelector('select').value;
-            showSuccess(`📋 Therapieplan aus Vorlage "${template}" erstellt! (Demo)`);
-            hideModal('templateModal');
-        }
-
-        function editPlan(planId) {
-            showSuccess(`✏️ Therapieplan ${planId} bearbeiten (Demo)`);
-        }
-
-        function addMilestone(planId) {
-            showSuccess(`🎯 Neuen Meilenstein zu Plan ${planId} hinzufügen (Demo)`);
-        }
-
-        function generateReport(planId) {
-            showSuccess(`📊 Fortschrittsbericht für Plan ${planId} generieren (Demo)`);
-        }
-
-        // Todo functions
-        function addTodo(event) {
-            if (event) event.preventDefault();
-            showSuccess('✅ To-Do hinzugefügt (Demo)');
-            hideModal('todoModal');
-        }
 
         function filterTodos(filter) {
             const filterBtns = document.querySelectorAll('.filter-btn');
@@ -6338,110 +6099,8 @@
             }
         }
 
-        function editTodo(todoId) {
-            showSuccess(`✏️ To-Do ${todoId} bearbeiten (Demo)`);
-        }
-
-        function deleteTodo(todoId) {
-            if (confirm('To-Do wirklich löschen?')) {
-                showSuccess(`🗑️ To-Do ${todoId} gelöscht (Demo)`);
-            }
-        }
-
-        function generateAutomaticTodos() {
-            showSuccess('🤖 KI generiert automatisch To-Dos... (Demo)');
-        }
-
-        function exportTodos() {
-            showSuccess('📄 To-Do-Liste wird exportiert... (Demo)');
-        }
-
         // Team collaboration functions
-        function inviteTeamMember(event) {
-            event.preventDefault();
-            const email = event.target.querySelector('input[type="email"]').value;
-            showSuccess(`✉️ Einladung gesendet an: ${email} (Demo)`);
-            hideModal('inviteTeamModal');
-        }
-
-        function createWorkGroup(event) {
-            event.preventDefault();
-            const groupName = event.target.querySelector('input[type="text"]').value;
-            showSuccess(`👥 Arbeitsgruppe "${groupName}" erstellt! (Demo)`);
-            hideModal('createGroupModal');
-        }
-
-        function openChat(memberId) {
-            showSuccess(`💬 Chat mit ${memberId} öffnen (Demo)`);
-        }
-
-        function shareCase(memberId) {
-            showSuccess(`📋 Fall mit ${memberId} teilen (Demo)`);
-        }
-
-        function scheduleCall(memberId) {
-            showSuccess(`📞 Termin mit ${memberId} planen (Demo)`);
-        }
-
-        function assignTask(memberId) {
-            showSuccess(`✅ Aufgabe an ${memberId} zuweisen (Demo)`);
-        }
-
-        function startVideoCall() {
-            showSuccess('📹 Videobesprechung startet... (Demo)');
-        }
-
-        function openDocumentSharing() {
-            showSuccess('📄 Dokumente-Sharing öffnen (Demo)');
-        }
-
-        function openWhiteboard() {
-            showSuccess('🎨 Virtuelles Whiteboard starten (Demo)');
-        }
-
-        function openCalendar() {
-            showSuccess('📅 Team-Kalender öffnen (Demo)');
-        }
-
-        function openTaskManager() {
-            showSuccess('✅ Aufgaben-Manager starten (Demo)');
-        }
-
-        function openKnowledgeBase() {
-            showSuccess('📚 Wissensdatenbank öffnen (Demo)');
-        }
-
-        function openSecureChat() {
-            showSuccess('🔒 Sicherer Messenger starten (Demo)');
-        }
-
-        function openCase(caseId) {
-            showSuccess(`📖 Fall ${caseId} öffnen (Demo)`);
-        }
-
-        function revokeAccess(caseId) {
-            if (confirm('Zugriff auf diesen Fall wirklich entziehen?')) {
-                showSuccess(`🔒 Zugriff auf Fall ${caseId} entzogen (Demo)`);
-            }
-        }
-
-        function addCollaborator(caseId) {
-            showSuccess(`➕ Neuen Kollaborateur zu Fall ${caseId} hinzufügen (Demo)`);
-        }
-
-        // Summary functions
-        function generateWeeklyReport() {
-            showSuccess('📊 Wochenbericht wird generiert... (Demo)');
-        }
-
-        function generateProgressReport() {
-            showSuccess('📈 Fortschrittsbericht wird erstellt... (Demo)');
-        }
-
-        function exportForInsurance() {
-            showSuccess('📄 Export für Kostenträger wird vorbereitet... (Demo)');
-        }
-
+       
         console.log('✅ Frontend JavaScript mit Multi-Tenant Auth vollständig geladen!');
 </script>
 </body>
@@ -7104,46 +6763,7 @@
         }
 
         // === TERMINMANAGEMENT FUNKTIONEN === //
-        function bookAppointment(event) {
-            if (event) event.preventDefault();
-            showSuccess('📅 Termin erfolgreich gebucht! (Demo)');
-            hideModal('appointmentModal');
-        }
-
-        function editAppointment(appointmentId) {
-            showSuccess(`✏️ Termin ${appointmentId} bearbeiten (Demo)`);
-        }
-
-        function cancelAppointment(appointmentId) {
-            if (confirm('Termin wirklich absagen?')) {
-                showSuccess(`❌ Termin ${appointmentId} abgesagt (Demo)`);
-            }
-        }
-
-        function syncCalendar() {
-            showSuccess('🔄 Kalender wird mit Google/Outlook synchronisiert... (Demo)');
-        }
-
-        function generateTimeSlots() {
-            showSuccess('🤖 KI generiert optimale Terminvorschläge... (Demo)');
-        }
-
-        function showNoShowPrediction() {
-            showSuccess('⚠️ No-Show Vorhersage: 15% Wahrscheinlichkeit für 14:00 Termin (Demo)');
-        }
-
-        function showAIScheduling() {
-            showSuccess('🤖 KI-Terminplanung aktiviert (Demo)');
-        }
-
-        function showAnalytics() {
-            showSuccess('📊 Terminanalysen: 95% Auslastung, 3% No-Show Rate (Demo)');
-        }
-
-        function showIntegrations() {
-            showSuccess('🔗 Verfügbare Integrationen: Doctolib, Jameda, Google Calendar (Demo)');
-        }
-
+        
         // === MODAL FUNCTIONS === //
         function showModal(modalId) {
             console.log('📖 Öffne Modal:', modalId);
@@ -7447,10 +7067,6 @@
             }
         }
 
-        function exportClients() {
-            showSuccess('📄 Klient:innen werden exportiert... (Demo)');
-        }
-
         // === AUDIO FUNCTIONALITY === //
 
         function checkMicrophoneAvailability() {
@@ -7608,13 +7224,8 @@
             await processAudioRecording(file);
         }
 
+                
         async function processAudioRecording(audioBlob) {
-            try {
-                console.log('📤 Verarbeite Audio mit Whisper...');
-                
-                showSuccess('🎤 Audio wird mit Whisper KI transkribiert... (Demo)');
-                
-                async function processAudioRecording(audioBlob) {
     try {
         console.log('📤 Verarbeite Audio mit Whisper...');
         
@@ -7790,16 +7401,6 @@
             preview.classList.add('show');
         }
 
-        async function processFile() {
-            if (uploadedFiles.length === 0) {
-                showError('Keine Datei zum Verarbeiten ausgewählt');
-                return;
-            }
-
-            console.log('🤖 Verarbeite Datei mit KI...');
-            
-            showSuccess('🤖 KI analysiert Datei... (Demo)');
-            
             async function processFile() {
     if (uploadedFiles.length === 0) {
         showError('Keine Datei zum Verarbeiten ausgewählt');
@@ -8059,109 +7660,6 @@
             }
             
             event.target.value = '';
-        }
-
-        // === MULTI-USER MANAGEMENT FUNCTIONS === //
-
-        function addUser(event) {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            const userData = {
-                name: formData.get('name') || event.target.querySelector('input[placeholder*="Schmidt"]').value,
-                email: formData.get('email') || event.target.querySelector('input[type="email"]').value,
-                role: event.target.querySelector('select').value
-            };
-            
-            showSuccess(`👤 Benutzer "${userData.name}" erfolgreich hinzugefügt! (Demo)`);
-            hideModal('userModal');
-        }
-
-        function editUser(userId) {
-            showSuccess(`✏️ Benutzer ${userId} bearbeiten (Demo)`);
-        }
-
-        function viewUserActivity(userId) {
-            showSuccess(`📊 Aktivitätsbericht für Benutzer ${userId}: 47 Logins, 8h Arbeitszeit heute (Demo)`);
-        }
-
-        function resetUserPassword(userId) {
-            if (confirm('Passwort für diesen Benutzer zurücksetzen?')) {
-                showSuccess(`🔑 Neues Passwort für Benutzer ${userId} generiert und per E-Mail versandt (Demo)`);
-            }
-        }
-
-        function sendMessage(userId) {
-            showSuccess(`💬 Nachricht an Benutzer ${userId} senden (Demo)`);
-        }
-
-        function enable2FA(userId) {
-            showSuccess(`🔐 2FA-Setup für Benutzer ${userId} eingeleitet - QR-Code per E-Mail versandt (Demo)`);
-        }
-
-        function extendAccess(userId) {
-            showSuccess(`⏰ Zugang für Benutzer ${userId} um 6 Monate verlängert (Demo)`);
-        }
-
-        function exportUserActivity() {
-            showSuccess('📊 Aktivitätsbericht wird generiert... (Demo)');
-        }
-
-        function show2FASetup() {
-            showSuccess('🔐 2FA-Konfiguration: 6/8 Benutzer aktiviert, 2 ausstehend (Demo)');
-        }
-
-        function loadRolePermissions(role) {
-            showSuccess(`🎭 Lade Berechtigungen für Rolle: ${role} (Demo)`);
-        }
-
-        function saveRolePermissions() {
-            showSuccess('🎭 Rollen-Berechtigungen erfolgreich gespeichert! (Demo)');
-            hideModal('roleModal');
-        }
-
-        function remind2FA(userId) {
-            showSuccess(`📧 2FA-Erinnerung an Benutzer ${userId} gesendet (Demo)`);
-        }
-
-        // === ENHANCED SYSTEM INTEGRATION FUNCTIONS === //
-            
-            const result = results[integrationId] || 'Verbindung getestet';
-            showSuccess(`🔗 ${integrationId}: ${result} (Demo)`);
-        }
-
-        function viewLogs(integrationId) {
-            showSuccess(`📋 Logs für ${integrationId}: 247 Entries, 3 Warnings, 1 Error (Demo)`);
-        }
-
-        function submitBilling(integrationId) {
-            showSuccess(`📤 Abrechnung übermittelt an ${integrationId} - 42 Positionen, €2,847 (Demo)`);
-        }
-
-        function upgradePlan(integrationId) {
-            showSuccess(`⬆️ Plan-Upgrade für ${integrationId}: Professional (5000 Requests/h) verfügbar (Demo)`);
-        }
-
-        function reconnectIntegration(integrationId) {
-            showSuccess(`🔄 Verbindung zu ${integrationId} wird wiederhergestellt... (Demo)`);
-        }
-
-        function troubleshoot(integrationId) {
-            showSuccess(`🔧 Diagnose für ${integrationId}: SSL-Zertifikat abgelaufen, Update verfügbar (Demo)`);
-        }
-
-        function continueSetup(integrationId) {
-            showSuccess(`▶️ Setup für ${integrationId} wird fortgesetzt... Nächster Schritt: Zertifikat installieren (Demo)`);
-        }
-
-        function getHelp(integrationId) {
-            showSuccess(`❓ Hilfe für ${integrationId}: Support-Ticket erstellt, Antwort in 2-4h (Demo)`);
-        }
-
-        function addIntegration(event) {
-            event.preventDefault();
-            const systemType = event.target.querySelector('select').value;
-            showSuccess(`➕ Integration "${systemType}" wird hinzugefügt... Setup-Assistent gestartet (Demo)`);
-            hideModal('newIntegrationModal');
         }
 
         function updateIntegrationFields(systemType) {
