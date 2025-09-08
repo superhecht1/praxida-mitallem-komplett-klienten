@@ -5942,34 +5942,117 @@
         // === CHAT FUNCTIONALITY === //
 
         async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const messages = document.getElementById('chatMessages');
-            
-            if (!input || !messages) return;
-            
-            const messageText = input.value.trim();
-            const hasAttachments = chatAttachments.length > 0;
-            
-            if (messageText === '' && !hasAttachments) return;
-            
-            console.log('💬 Sende KI-Nachricht...');
-            
-            // User message
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user';
-            
-            let attachmentsHtml = '';
-            if (hasAttachments) {
-                attachmentsHtml = chatAttachments.map(file => `
-                    <div class="message-attachment">
-                        <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                        <div class="attachment-info">
-                            <div class="attachment-name">${file.name}</div>
-                            <div class="attachment-type">${formatFileSize(file.size)}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (!input || !messages) return;
+    
+    const messageText = input.value.trim();
+    const hasAttachments = chatAttachments.length > 0;
+    
+    if (messageText === '' && !hasAttachments) return;
+    
+    console.log('💬 Sende KI-Nachricht...');
+    
+    // User message
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (hasAttachments) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${messageText || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
+
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    const attachedFiles = chatAttachments;
+    chatAttachments = [];
+    messages.scrollTop = messages.scrollHeight;
+
+    // Typing indicator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • analysiert...</div>
+        <em>Generiere professionelle Antwort...</em>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        // Echte API-Anfrage
+        const requestData = {
+            message: messageText || 'Dateianalyse angefordert',
+            client_id: selectedClientId,
+            context: attachedFiles.length > 0 ? 'Dateien angehängt' : null
+        };
+
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Chat-Anfrage fehlgeschlagen');
+        }
+
+        const result = await response.json();
+
+        // Remove typing indicator
+        messages.removeChild(typingMessage);
+
+        // Add AI response
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${result.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        console.error('❌ Chat-Fehler:', error);
+        
+        // Remove typing indicator
+        if (messages.contains(typingMessage)) {
+            messages.removeChild(typingMessage);
+        }
+
+        // Show error message
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message assistant';
+        errorMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; border-left: 4px solid #d63031;">
+                <strong>⚠️ Fehler:</strong> ${error.message}<br>
+                Bitte versuchen Sie es erneut oder wenden Sie sich an den Support.
+            </div>
+        `;
+        messages.appendChild(errorMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
             
             userMessage.innerHTML = `
                 <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
