@@ -5736,14 +5736,41 @@
                 
                 showSuccess('🎤 Audio wird mit Whisper KI transkribiert... (Demo)');
                 
-                // Simulate processing
-                setTimeout(() => {
-                    displayAudioTranscription({
-                        transcription: "Patient berichtet über deutliche Verbesserung der Angstsymptomatik. Exposition in vivo wurde erfolgreich durchgeführt. Nächste Schritte: Kognitive Umstrukturierung vertiefen.",
-                        analysis: "**Zusammenfassung der Sitzung:**\n\n• Fortschritt bei Angstbewältigung erkennbar\n• Expositionstherapie zeigt positive Wirkung\n• Patient entwickelt Selbstvertrauen\n• Empfehlung: Fortsetzung der kognitiven Techniken\n\n**Nächste Sitzung:** Vertiefung der kognitiven Umstrukturierung",
-                        file: { name: audioBlob.name || 'Audio-Aufnahme', size: audioBlob.size }
-                    });
-                }, 2000);
+                async function processAudioRecording(audioBlob) {
+    try {
+        console.log('📤 Verarbeite Audio mit Whisper...');
+        
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        if (selectedClientId) {
+            formData.append('client_id', selectedClientId);
+        }
+        formData.append('analysis_type', 'protocol');
+
+        const response = await fetch('/api/audio/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Audio-Verarbeitung fehlgeschlagen');
+        }
+
+        const result = await response.json();
+        
+        displayAudioTranscription({
+            transcription: result.transcription,
+            analysis: result.analysis,
+            file: result.file
+        });
+        
+    } catch (error) {
+        console.error('❌ Audio-Verarbeitungsfehler:', error);
+        showError('Fehler bei Audio-Verarbeitung: ' + error.message);
+    }
+}
                 
             } catch (error) {
                 console.error('❌ Audio-Verarbeitungsfehler:', error);
@@ -5886,10 +5913,43 @@
         }
 
         async function processFile() {
-            if (uploadedFiles.length === 0) {
-                showError('Keine Datei zum Verarbeiten ausgewählt');
-                return;
-            }
+    if (uploadedFiles.length === 0) {
+        showError('Keine Datei zum Verarbeiten ausgewählt');
+        return;
+    }
+
+    try {
+        console.log('🤖 Verarbeite Datei mit KI...');
+        
+        const formData = new FormData();
+        formData.append('file', uploadedFiles[0]);
+        if (selectedClientId) {
+            formData.append('client_id', selectedClientId);
+        }
+
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Datei-Verarbeitung fehlgeschlagen');
+        }
+
+        const result = await response.json();
+        
+        displayFileAnalysisResults({
+            analysis: result.analysis,
+            file: result.file
+        });
+        
+    } catch (error) {
+        console.error('❌ Datei-Verarbeitungsfehler:', error);
+        showError('Fehler bei Datei-Verarbeitung: ' + error.message);
+    }
+}
 
             console.log('🤖 Verarbeite Datei mit KI...');
             
