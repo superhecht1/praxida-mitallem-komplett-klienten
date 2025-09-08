@@ -7622,14 +7622,41 @@
                 
                 showSuccess('🎤 Audio wird mit Whisper KI transkribiert... (Demo)');
                 
-                // Simulate processing
-                setTimeout(() => {
-                    displayAudioTranscription({
-                        transcription: "Patient berichtet über deutliche Verbesserung der Angstsymptomatik. Exposition in vivo wurde erfolgreich durchgeführt. Nächste Schritte: Kognitive Umstrukturierung vertiefen.",
-                        analysis: "**Zusammenfassung der Sitzung:**\n\n• Fortschritt bei Angstbewältigung erkennbar\n• Expositionstherapie zeigt positive Wirkung\n• Patient entwickelt Selbstvertrauen\n• Empfehlung: Fortsetzung der kognitiven Techniken\n\n**Nächste Sitzung:** Vertiefung der kognitiven Umstrukturierung",
-                        file: { name: audioBlob.name || 'Audio-Aufnahme', size: audioBlob.size }
-                    });
-                }, 2000);
+                async function processAudioRecording(audioBlob) {
+    try {
+        console.log('📤 Verarbeite Audio mit Whisper...');
+        
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        if (selectedClientId) {
+            formData.append('client_id', selectedClientId);
+        }
+        formData.append('analysis_type', 'protocol');
+
+        const response = await fetch('/api/audio/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Audio-Verarbeitung fehlgeschlagen');
+        }
+
+        const result = await response.json();
+        
+        displayAudioTranscription({
+            transcription: result.transcription,
+            analysis: result.analysis,
+            file: result.file
+        });
+        
+    } catch (error) {
+        console.error('❌ Audio-Verarbeitungsfehler:', error);
+        showError('Fehler bei Audio-Verarbeitung: ' + error.message);
+    }
+}
                 
             } catch (error) {
                 console.error('❌ Audio-Verarbeitungsfehler:', error);
@@ -7781,14 +7808,44 @@
             
             showSuccess('🤖 KI analysiert Datei... (Demo)');
             
-            // Simulate processing
-            setTimeout(() => {
-                displayFileAnalysisResults({
-                    analysis: "**Datei-Analyse:**\n\n• Dokument enthält therapeutisch relevante Informationen\n• Strukturierte Aufbereitung für klinische Verwendung\n• Empfohlene nächste Schritte identifiziert\n\n**Erkenntnisse:** Das analysierte Material zeigt wichtige Aspekte für die Behandlungsplanung auf.",
-                    file: { name: uploadedFiles[0].name, size: uploadedFiles[0].size }
-                });
-            }, 1500);
+            async function processFile() {
+    if (uploadedFiles.length === 0) {
+        showError('Keine Datei zum Verarbeiten ausgewählt');
+        return;
+    }
+
+    try {
+        console.log('🤖 Verarbeite Datei mit KI...');
+        
+        const formData = new FormData();
+        formData.append('file', uploadedFiles[0]);
+        if (selectedClientId) {
+            formData.append('client_id', selectedClientId);
         }
+
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Datei-Verarbeitung fehlgeschlagen');
+        }
+
+        const result = await response.json();
+        
+        displayFileAnalysisResults({
+            analysis: result.analysis,
+            file: result.file
+        });
+        
+    } catch (error) {
+        console.error('❌ Datei-Verarbeitungsfehler:', error);
+        showError('Fehler bei Datei-Verarbeitung: ' + error.message);
+    }
+}
 
         function displayFileAnalysisResults(result) {
             showSection('chat', document.querySelector('.nav-tab:nth-child(5)'));
@@ -7879,25 +7936,118 @@
             messages.appendChild(typingMessage);
             messages.scrollTop = messages.scrollHeight;
 
-            // Simulate AI response
-            setTimeout(() => {
-                messages.removeChild(typingMessage);
+            async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (!input || !messages) return;
+    
+    const messageText = input.value.trim();
+    const hasAttachments = chatAttachments.length > 0;
+    
+    if (messageText === '' && !hasAttachments) return;
+    
+    console.log('💬 Sende KI-Nachricht...');
+    
+    // User message
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (hasAttachments) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${messageText || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
 
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'message assistant';
-                aiMessage.innerHTML = `
-                    <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
-                    Das ist eine sehr interessante Frage zu "${messageText}". In der therapeutischen Praxis empfehle ich folgende Ansätze:
-                    <br><br>
-                    • <strong>Evidenzbasierte Methoden:</strong> Orientierung an aktuellen Leitlinien<br>
-                    • <strong>Individualisierung:</strong> Anpassung an den spezifischen Fall<br>
-                    • <strong>Verlaufskontrolle:</strong> Regelmäßige Bewertung der Fortschritte<br><br>
-                    Haben Sie spezifische Aspekte, die Sie vertiefen möchten?
-                `;
-                messages.appendChild(aiMessage);
-                messages.scrollTop = messages.scrollHeight;
-            }, 1500);
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    const attachedFiles = chatAttachments;
+    chatAttachments = [];
+    messages.scrollTop = messages.scrollHeight;
+
+    // Typing indicator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • analysiert...</div>
+        <em>Generiere professionelle Antwort...</em>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        // Echte API-Anfrage
+        const requestData = {
+            message: messageText || 'Dateianalyse angefordert',
+            client_id: selectedClientId,
+            context: attachedFiles.length > 0 ? 'Dateien angehängt' : null
+        };
+
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Chat-Anfrage fehlgeschlagen');
         }
+
+        const result = await response.json();
+
+        // Remove typing indicator
+        messages.removeChild(typingMessage);
+
+        // Add AI response
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${result.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        console.error('❌ Chat-Fehler:', error);
+        
+        // Remove typing indicator
+        if (messages.contains(typingMessage)) {
+            messages.removeChild(typingMessage);
+        }
+
+        // Show error message
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message assistant';
+        errorMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; border-left: 4px solid #d63031;">
+                <strong>⚠️ Fehler:</strong> ${error.message}<br>
+                Bitte versuchen Sie es erneut oder wenden Sie sich an den Support.
+            </div>
+        `;
+        messages.appendChild(errorMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
 
         function attachFileToChat() {
             const fileInput = document.getElementById('chatFileInput');
@@ -7982,31 +8132,6 @@
         }
 
         // === ENHANCED SYSTEM INTEGRATION FUNCTIONS === //
-
-        function scanNetworkSystems() {
-            showSuccess('🔍 Netzwerk-Scan gestartet... Gefunden: CGM ALBIS (192.168.1.100), TurboMed (192.168.1.101) (Demo)');
-        }
-
-        function testAllConnections() {
-            showSuccess('🔗 Teste alle Verbindungen... 4 erfolgreich, 2 Warnungen, 1 Fehler (Demo)');
-        }
-
-        function generateIntegrationReport() {
-            showSuccess('📊 Integrations-Bericht wird erstellt... Verfügbarkeit: 97.3%, Latenz: 150ms Ø (Demo)');
-        }
-
-        function configureIntegration(integrationId) {
-            showSuccess(`⚙️ Konfiguration für ${integrationId} öffnen (Demo)`);
-        }
-
-        function testConnection(integrationId) {
-            const results = {
-                'cgm-albis': 'Verbindung erfolgreich - Latenz: 45ms',
-                'kv-nordrhein': 'Verbindung OK - Letzter Datenaustausch: vor 2 Min',
-                'doctolib': 'Rate Limit Warning - 980/1000 Requests verbraucht',
-                'apple-health': 'Timeout Error - Server nicht erreichbar',
-                'ti-infrastructure': 'Setup noch nicht abgeschlossen'
-            };
             
             const result = results[integrationId] || 'Verbindung getestet';
             showSuccess(`🔗 ${integrationId}: ${result} (Demo)`);
@@ -8153,23 +8278,12 @@
             hideModal('planModal');
         }
 
-        function generateAIPlan() {
-            showSuccess('🤖 KI generiert intelligenten Therapieplan... (Demo)');
-        }
-
         function showPlanningTab(tabName) {
             const tabs = document.querySelectorAll('.planning-tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             event.target.classList.add('active');
             
             showSuccess(`📋 ${tabName} Therapiepläne anzeigen (Demo)`);
-        }
-
-        function createFromTemplate(event) {
-            event.preventDefault();
-            const template = event.target.querySelector('select').value;
-            showSuccess(`📋 Therapieplan aus Vorlage "${template}" erstellt! (Demo)`);
-            hideModal('templateModal');
         }
 
         function editPlan(planId) {
@@ -8240,10 +8354,6 @@
             if (confirm('To-Do wirklich löschen?')) {
                 showSuccess(`🗑️ To-Do ${todoId} gelöscht (Demo)`);
             }
-        }
-
-        function generateAutomaticTodos() {
-            showSuccess('🤖 KI generiert automatisch To-Dos... (Demo)');
         }
 
         function exportTodos() {
@@ -8321,19 +8431,6 @@
 
         function addCollaborator(caseId) {
             showSuccess(`➕ Neuen Kollaborateur zu Fall ${caseId} hinzufügen (Demo)`);
-        }
-
-        // Summary functions
-        function generateWeeklyReport() {
-            showSuccess('📊 Wochenbericht wird generiert... (Demo)');
-        }
-
-        function generateProgressReport() {
-            showSuccess('📈 Fortschrittsbericht wird erstellt... (Demo)');
-        }
-
-        function exportForInsurance() {
-            showSuccess('📄 Export für Kostenträger wird vorbereitet... (Demo)');
         }
 
         console.log('✅ Frontend JavaScript mit Multi-Tenant Auth vollständig geladen!');
