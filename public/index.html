@@ -4869,59 +4869,458 @@
             console.log('✅ App erfolgreich initialisiert');
         });
 
-        async function checkAuthStatus() {
-            try {
-                const response = await fetch('/api/auth/me', {
-                    method: 'GET',
-                    credentials: 'include'
-                });
+        // === KORRIGIERTE AUTHENTICATION FUNCTIONS === //
 
-                if (response.ok) {
-                    const data = await response.json();
-                    currentUser = data.user;
-                    showMainApp();
-                    updateUserInfo(data.user);
-                    loadClients();
-                    loadStats();
-                } else {
-                    showAuthScreen();
-                }
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                showAuthScreen();
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            showMainApp();
+            updateUserInfo(data.user);
+            loadClients();
+            loadStats();
+            console.log('✅ Benutzer bereits eingeloggt:', data.user.name);
+        } else {
+            console.log('📝 Kein aktiver Login gefunden');
+            showAuthScreen();
+        }
+    } catch (error) {
+        console.log('⚠️ Backend nicht erreichbar - Demo-Modus verfügbar');
+        showAuthScreen();
+    }
+}
+
+async function performLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const praxisName = document.getElementById('loginPraxis').value;
+    const btnText = document.getElementById('loginBtnText');
+
+    if (!email || !password) {
+        showAuthMessage('E-Mail und Passwort sind erforderlich', 'error');
+        return;
+    }
+
+    btnText.innerHTML = '<span class="loading-spinner"></span>Anmeldung läuft...';
+
+    try {
+        // Versuche echte API-Anfrage
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                email: email,
+                password: password,
+                praxis_name: praxisName
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            showAuthMessage('Anmeldung erfolgreich! Lade Daten...', 'success');
+            currentUser = data.user;
+            
+            setTimeout(() => {
+                showMainApp();
+                updateUserInfo(data.user);
+                loadClients();
+                loadStats();
+            }, 1000);
+        } else {
+            const data = await response.json();
+            showAuthMessage(data.error || 'Anmeldung fehlgeschlagen', 'error');
+        }
+    } catch (error) {
+        console.log('🔄 Backend nicht erreichbar - versuche Demo-Login...');
+        
+        // Demo-Login Fallback
+        const demoAccounts = {
+            'admin@demo-praxis.de': { 
+                name: 'Dr. Demo User', 
+                role: 'Administrator', 
+                praxis_name: 'Demo Praxis Köln',
+                password: 'demo123456'
+            },
+            'therapeut@demo-praxis.de': { 
+                name: 'Dr. Sarah Therapeutin', 
+                role: 'Therapeut:in', 
+                praxis_name: 'Demo Praxis Köln',
+                password: 'demo123456'
+            },
+            'assistenz@demo-praxis.de': { 
+                name: 'Lisa Assistenz', 
+                role: 'Assistenz', 
+                praxis_name: 'Demo Praxis Köln',
+                password: 'demo123456'
             }
+        };
+
+        const account = demoAccounts[email.toLowerCase()];
+        
+        if (account && password === account.password) {
+            showAuthMessage('Demo-Login erfolgreich! Lade Demo-Daten...', 'success');
+            currentUser = {
+                id: 1,
+                name: account.name,
+                role: account.role,
+                praxis_name: account.praxis_name,
+                email: email
+            };
+            
+            setTimeout(() => {
+                showMainApp();
+                updateUserInfo(currentUser);
+                loadClients();
+                loadStats();
+                showSuccess('🎭 Demo-Modus aktiv - Alle Daten sind Beispieldaten');
+            }, 1000);
+        } else {
+            showAuthMessage('Ungültige Demo-Anmeldedaten. Versuchen Sie: admin@demo-praxis.de / demo123456', 'error');
         }
+    } finally {
+        btnText.textContent = 'Anmelden';
+    }
+}
 
-        function showAuthScreen() {
-            document.getElementById('authContainer').style.display = 'flex';
-            document.getElementById('mainApp').style.display = 'none';
+async function performRegistration() {
+    showAuthMessage('Registrierung nur im Backend-Modus verfügbar. Nutzen Sie Demo-Accounts zum Testen.', 'error');
+    
+    // Auto-fill demo login
+    document.getElementById('loginEmail').value = 'admin@demo-praxis.de';
+    document.getElementById('loginPraxis').value = 'Demo Praxis Köln';
+    
+    setTimeout(() => {
+        showAuthTab('login');
+    }, 2000);
+}
+
+async function performLogout() {
+    if (!confirm('Wirklich abmelden?')) return;
+
+    try {
+        const response = await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        // Logout immer erfolgreich, auch ohne Backend
+        currentUser = null;
+        showAuthScreen();
+        
+        // Clear forms
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginPraxis').value = '';
+        
+        showSuccess('Erfolgreich abgemeldet');
+    } catch (error) {
+        // Auch bei Fehlern erfolgreich abmelden (lokaler State)
+        currentUser = null;
+        showAuthScreen();
+        showSuccess('Abgemeldet (Offline-Modus)');
+    }
+}
+
+// === IMPROVED LOAD FUNCTIONS === //
+
+async function loadClients() {
+    console.log('👥 Lade Klient:innen...');
+    
+    try {
+        const response = await fetch('/api/clients', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const clients = await response.json();
+            displayClients(clients);
+            updateQuickSearch(clients);
+            updateSearchDropdown(clients);
+            const badge = document.getElementById('clientsBadge');
+            if (badge) badge.textContent = clients.length;
+            console.log('✅ Clients vom Backend geladen');
+        } else {
+            throw new Error('Backend nicht verfügbar');
         }
-
-        function showMainApp() {
-            document.getElementById('authContainer').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'grid';
-        }
-
-        function showAuthTab(tab) {
-            const tabs = document.querySelectorAll('.auth-tab');
-            tabs.forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-
-            if (tab === 'login') {
-                loginForm.style.display = 'block';
-                registerForm.style.display = 'none';
-            } else {
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
+    } catch (error) {
+        console.log('🎭 Lade Demo-Clients...');
+        
+        // Demo fallback clients
+        const demoClients = [
+            {
+                id: 1,
+                name: 'A.M.',
+                diagnosis: 'Angststörung',
+                email: '',
+                phone: '',
+                sessions: 12,
+                last_session: '18.08.2025',
+                notes: 'Therapie: Verhaltenstherapie (VT). Gute Fortschritte in der Expositionstherapie.'
+            },
+            {
+                id: 2,
+                name: 'B.S.',
+                diagnosis: 'Depression',
+                email: '',
+                phone: '',
+                sessions: 8,
+                last_session: '20.08.2025',
+                notes: 'Therapie: Tiefenpsychologie (TP). Arbeitet an Bindungsmustern.'
+            },
+            {
+                id: 3,
+                name: 'C.K.',
+                diagnosis: 'PTSD',
+                email: '',
+                phone: '',
+                sessions: 4,
+                last_session: '15.08.2025',
+                notes: 'Therapie: Traumatherapie. EMDR-Behandlung läuft.'
             }
+        ];
+        
+        displayClients(demoClients);
+        updateQuickSearch(demoClients);
+        updateSearchDropdown(demoClients);
+        const badge = document.getElementById('clientsBadge');
+        if (badge) badge.textContent = demoClients.length;
+    }
+}
 
-            // Clear messages
-            const messageEl = document.getElementById('authMessage');
-            if (messageEl) messageEl.innerHTML = '';
+async function loadStats() {
+    console.log('📊 Lade Statistiken...');
+    
+    try {
+        const response = await fetch('/api/stats', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            updateStatsDisplay(stats);
+            console.log('✅ Stats vom Backend geladen');
+        } else {
+            throw new Error('Backend nicht verfügbar');
         }
+    } catch (error) {
+        console.log('🎭 Lade Demo-Stats...');
+        
+        // Demo fallback stats
+        const demoStats = {
+            totalClients: 12,
+            totalSessions: 248,
+            pendingTodos: 5,
+            activePlans: 3
+        };
+        
+        updateStatsDisplay(demoStats);
+    }
+}
+
+function updateStatsDisplay(stats) {
+    const totalClientsEl = document.getElementById('totalClients');
+    const totalSessionsEl = document.getElementById('totalSessions');
+    const pendingTodosEl = document.getElementById('pendingTodos');
+    const activePlansEl = document.getElementById('activePlans');
+    const todosBadgeEl = document.getElementById('todosBadge');
+    
+    if (totalClientsEl) totalClientsEl.textContent = stats.totalClients;
+    if (totalSessionsEl) totalSessionsEl.textContent = stats.totalSessions;
+    if (pendingTodosEl) pendingTodosEl.textContent = stats.pendingTodos;
+    if (activePlansEl) activePlansEl.textContent = stats.activePlans;
+    if (todosBadgeEl) todosBadgeEl.textContent = stats.pendingTodos;
+}
+
+// === IMPROVED CLIENT FUNCTIONS === //
+
+async function addClient(event) {
+    event.preventDefault();
+    console.log('➕ Verarbeite Klient:in...');
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const clientData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        diagnosis: formData.get('diagnosis'),
+        notes: formData.get('notes') ? `Therapie: ${formData.get('therapy')}. ${formData.get('notes')}` : `Therapie: ${formData.get('therapy')}`
+    };
+
+    try {
+        const response = await fetch('/api/clients', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(clientData)
+        });
+
+        if (response.ok) {
+            hideModal('clientModal');
+            showSuccess('Klient:in erfolgreich hinzugefügt!');
+            loadClients();
+            loadStats();
+        } else {
+            const error = await response.json();
+            showError(error.error || 'Fehler beim Speichern');
+        }
+    } catch (error) {
+        console.log('🎭 Demo-Modus: Client wird lokal hinzugefügt');
+        hideModal('clientModal');
+        showSuccess(`Klient:in "${clientData.name}" hinzugefügt (Demo-Modus)`);
+        loadClients(); // Reload demo data
+        loadStats();
+    }
+}
+
+// === IMPROVED CHAT FUNCTION === //
+
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    
+    if (!input || !messages) return;
+    
+    const messageText = input.value.trim();
+    const hasAttachments = chatAttachments.length > 0;
+    
+    if (messageText === '' && !hasAttachments) return;
+    
+    console.log('💬 Sende KI-Nachricht...');
+    
+    // User message
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    
+    let attachmentsHtml = '';
+    if (hasAttachments) {
+        attachmentsHtml = chatAttachments.map(file => `
+            <div class="message-attachment">
+                <div class="attachment-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
+                <div class="attachment-info">
+                    <div class="attachment-name">${file.name}</div>
+                    <div class="attachment-type">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    userMessage.innerHTML = `
+        <div class="message-meta">Sie • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+        ${attachmentsHtml}
+        ${messageText || 'Dateianalyse angefordert'}
+    `;
+    messages.appendChild(userMessage);
+
+    input.value = '';
+    input.placeholder = 'Ihre Frage an die KI-Assistenz...';
+    const attachedFiles = chatAttachments;
+    chatAttachments = [];
+    messages.scrollTop = messages.scrollHeight;
+
+    // Typing indicator
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'message assistant';
+    typingMessage.innerHTML = `
+        <div class="message-meta">KI-Assistenz • analysiert...</div>
+        <em>Generiere professionelle Antwort...</em>
+    `;
+    messages.appendChild(typingMessage);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+        // Versuche echte API-Anfrage
+        const requestData = {
+            message: messageText || 'Dateianalyse angefordert',
+            client_id: selectedClientId,
+            context: attachedFiles.length > 0 ? 'Dateien angehängt' : null
+        };
+
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Backend nicht verfügbar');
+        }
+
+        const result = await response.json();
+
+        // Remove typing indicator
+        messages.removeChild(typingMessage);
+
+        // Add AI response
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${result.reply}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        console.log('🎭 Backend nicht verfügbar - Demo-Antwort');
+        
+        // Remove typing indicator
+        if (messages.contains(typingMessage)) {
+            messages.removeChild(typingMessage);
+        }
+
+        // Generate demo response
+        const demoResponse = generateDemoAIResponse(messageText, attachedFiles);
+        
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message assistant';
+        aiMessage.innerHTML = `
+            <div class="message-meta">KI-Assistenz • ${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+            ${demoResponse}
+        `;
+        messages.appendChild(aiMessage);
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+function generateDemoAIResponse(message, attachedFiles) {
+    const responses = [
+        `Das ist eine sehr interessante therapeutische Fragestellung zu "${message}". In der Praxis empfehle ich folgende Ansätze:<br><br>
+        • <strong>Evidenzbasierte Methoden:</strong> Orientierung an aktuellen Leitlinien<br>
+        • <strong>Individualisierung:</strong> Anpassung an den spezifischen Fall<br>
+        • <strong>Verlaufskontrolle:</strong> Regelmäßige Bewertung der Fortschritte<br><br>
+        <em>💡 Demo-Modus: Für vollständige KI-Analyse Backend-Server starten.</em>`,
+        
+        `Ihre Anfrage zu "${message}" zeigt wichtige therapeutische Überlegungen auf:<br><br>
+        • <strong>Diagnose:</strong> Differentialdiagnostische Abklärung empfohlen<br>
+        • <strong>Intervention:</strong> Multimodale Behandlungsansätze berücksichtigen<br>
+        • <strong>Prognose:</strong> Verlaufsdokumentation für Therapieplanung nutzen<br><br>
+        <em>💡 Demo-Modus: OpenAI API Key für echte KI-Analyse hinzufügen.</em>`,
+        
+        `Bezüglich "${message}" kann ich folgende fachliche Einschätzung geben:<br><br>
+        • <strong>Therapeutische Allianz:</strong> Vertrauensvolle Beziehung aufbauen<br>
+        • <strong>Ressourcenorientierung:</strong> Stärken des Klienten nutzen<br>
+        • <strong>Zielerreichung:</strong> SMART-Ziele definieren und überprüfen<br><br>
+        <em>💡 Demo-Modus: Für Whisper-Transkription Backend erforderlich.</em>`
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+}
 
         async function performLogin() {
             const email = document.getElementById('loginEmail').value;
