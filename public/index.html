@@ -2637,7 +2637,42 @@
             padding-top: 20px;
             border-top: 2px solid #eef2ff;
         }
+        }
         
+        /* Registrierungs-Modal Animation */
+        #registrationSuccessModal {
+            animation: modalAppear 0.5s ease-out;
+        }
+
+        @keyframes modalAppear {
+            from { 
+                opacity: 0; 
+                transform: scale(0.8); 
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+
+        #registrationSuccessModal .modal-content {
+            animation: modalSlideUp 0.6s ease-out;
+        }
+
+        @keyframes modalSlideUp {
+            from { 
+                transform: translateY(50px); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateY(0); 
+                opacity: 1; 
+            }
+        }
+        
+        /* Loading States */    ← Das bleibt so stehen
+        .loading {
+            opacity: 0.6;
         /* Loading States */
         .loading {
             opacity: 0.6;
@@ -5024,16 +5059,16 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAuthMessage('Praxis erfolgreich registriert! Sie können sich jetzt anmelden.', 'success');
-                    
-                    // Auto-fill login form
-                    document.getElementById('loginEmail').value = adminEmail;
-                    document.getElementById('loginPraxis').value = praxisName;
-                    
-                    setTimeout(() => {
-                        showAuthTab('login');
-                    }, 2000);
-                } else {
+                // Modal-Bestätigung anzeigen
+                showRegistrationModal(praxisName, adminName, adminEmail);
+    
+                // Auto-fill login form
+                document.getElementById('loginEmail').value = adminEmail;
+                document.getElementById('loginPraxis').value = praxisName;
+    
+                // Form zurücksetzen
+                document.getElementById('registerForm').reset();
+}             else {
                     showAuthMessage(data.error || 'Registrierung fehlgeschlagen', 'error');
                 }
             } catch (error) {
@@ -8335,7 +8370,58 @@
         function exportForInsurance() {
             showSuccess('📄 Export für Kostenträger wird vorbereitet... (Demo)');
         }
+        // NEUE FUNKTIONEN FÜR MODAL-BESTÄTIGUNG
+        function showRegistrationModal(praxisName, adminName, adminEmail) {
+        // Modal HTML erstellen
+        const modalHTML = `
+        <div class="modal show" id="registrationSuccessModal" style="z-index: 3000;">
+            <div class="modal-content" style="max-width: 600px; text-align: center;">
+                <div style="background: linear-gradient(135deg, #00b894, #55a3ff); color: white; padding: 30px; border-radius: 20px 20px 0 0; margin: -40px -40px 30px -40px;">
+                    <div style="font-size: 60px; margin-bottom: 15px;">🎉</div>
+                    <h2 style="margin: 0; font-size: 28px;">Herzlich willkommen!</h2>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Ihre Praxis wurde erfolgreich bei Praxida registriert</p>
+                </div>
+                
+                <div style="text-align: left; margin-bottom: 30px;">
+                    <div style="background: #f8f9ff; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <strong style="color: #333; font-size: 16px;">🏥 Praxis-Details:</strong>
+                        <div style="margin-top: 10px; color: #666;">
+                            <div><strong>Name:</strong> ${praxisName}</div>
+                            <div><strong>Administrator:</strong> ${adminName}</div>
+                            <div><strong>E-Mail:</strong> ${adminEmail}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; border-left: 4px solid #00b894;">
+                        <strong style="color: #00b894; font-size: 16px;">📧 Was passiert als nächstes?</strong>
+                        <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333; line-height: 1.6;">
+                            <li>Bestätigungs-E-Mail wurde versandt</li>
+                            <li>Sie können sich sofort anmelden</li>
+                            <li>Ihre Login-Daten wurden bereits ausgefüllt</li>
+                            <li>Team-Mitglieder können nach dem Login hinzugefügt werden</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="closeRegistrationModal()" style="padding: 15px 30px; font-size: 16px;">
+                    ✨ Jetzt anmelden
+                </button>
+            </div>
+        </div>
+    `;
+    
+        // Modal zum Body hinzufügen
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
 
+        function closeRegistrationModal() {
+        const modal = document.getElementById('registrationSuccessModal');
+        if (modal) {
+        modal.remove();
+    }
+            showAuthTab('login');
+            showAuthMessage('Sie können sich jetzt mit Ihren Zugangsdaten anmelden.', 'success');
+    }
         console.log('✅ Frontend JavaScript mit Multi-Tenant Auth vollständig geladen!');
 </script>
 </body>
