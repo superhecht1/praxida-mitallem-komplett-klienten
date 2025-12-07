@@ -73,32 +73,6 @@ const upload = multer({
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, "public")));
-
-// === ROUTING === //
-
-// Landing Page als Root (öffentlich)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
-
-// Dashboard/App (mit Authentication)
-app.get('/app', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Legacy Support für index.html
-app.get('/index.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// 🔍 DEBUG
-app.get('/', (req, res) => {
-  console.log('🎯 Root-Route aufgerufen!');
-  console.log('📁 Versuche zu laden:', path.join(__dirname, 'public', 'landing.html'));
-  console.log('📂 Datei existiert:', fs.existsSync(path.join(__dirname, 'public', 'landing.html')));
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
 
 // --- Database Import --- //
 const {
@@ -580,7 +554,7 @@ app.use(session({
   saveUninitialized: false,
   name: 'praxida.sid',
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // ✅ FALSE für localhost! In production auf true setzen
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax'
@@ -728,6 +702,31 @@ function requirePraxis(req, res, next) {
   next();
 }
 
+// === ROUTING - MUSS VOR express.static() KOMMEN === //
+
+// Landing Page als Root (öffentlich)
+app.get('/', (req, res) => {
+  console.log('🎯 Landing Page Route aufgerufen');
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+
+// Dashboard/App (mit Authentication)
+app.get('/app', requireAuth, (req, res) => {
+  console.log('🎯 Dashboard Route aufgerufen für:', req.user.name);
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Legacy Support für index.html
+app.get('/index.html', requireAuth, (req, res) => {
+  console.log('🎯 Legacy index.html Route aufgerufen');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Static Files NACH den Routes, mit index: false
+app.use(express.static(path.join(__dirname, "public"), {
+  index: false // ✅ Verhindert automatisches Serving von index.html
+}));
+
 // === AUTHENTICATION ROUTES === //
 
 // Register new praxis (initial setup)
@@ -828,6 +827,8 @@ app.post('/api/auth/login', async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress;
     const userAgent = req.get('User-Agent');
 
+    console.log('🔐 Login-Versuch:', email);
+
     // Validation
     if (!email || !password) {
       return res.status(400).json({ 
@@ -871,42 +872,47 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // Successful login
-createLoginAttempt(email, true, ip, userAgent);
+    createLoginAttempt(email, true, ip, userAgent);
 
-// Create session
-req.session.user = {
-  id: user.id,
-  name: user.name,
-  email: user.email,
-  role: user.role,
-  praxis_id: user.praxis_id,
-  praxis_name: user.praxis_name
-};
-
-req.session.login_time = new Date().toISOString();
-req.session.ip = ip;
-
-// ✅ SESSION EXPLIZIT SPEICHERN!
-req.session.save((err) => {
-  if (err) {
-    console.error('❌ Session-Speicher-Fehler:', err);
-    return res.status(500).json({ error: 'Fehler beim Speichern der Session' });
-  }
-
-  console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
-
-  res.json({
-    success: true,
-    user: {
+    // Create session
+    req.session.user = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      praxis_id: user.praxis_id,
       praxis_name: user.praxis_name
-    },
-    message: 'Erfolgreich angemeldet'
-  });
-});
+    };
+
+    req.session.login_time = new Date().toISOString();
+    req.session.ip = ip;
+
+    console.log('🔍 Session vor dem Speichern:', req.session.user);
+    console.log('🔍 Session ID:', req.sessionID);
+
+    // ✅ SESSION EXPLIZIT SPEICHERN!
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session-Speicher-Fehler:', err);
+        return res.status(500).json({ error: 'Fehler beim Speichern der Session' });
+      }
+
+      console.log('✅ Session erfolgreich gespeichert:', req.sessionID);
+      console.log('🍪 Session User:', req.session.user);
+      console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          praxis_name: user.praxis_name
+        },
+        message: 'Erfolgreich angemeldet'
+      });
+    });
 
   } catch (error) {
     console.error('❌ Login-Fehler:', error);
@@ -936,6 +942,7 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Get current user info
 app.get('/api/auth/me', requireAuth, (req, res) => {
+  console.log('🔍 /api/auth/me aufgerufen für:', req.user.name);
   res.json({
     user: {
       id: req.user.id,
@@ -1996,8 +2003,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: message });
 });
 
-// 404 handler
+// 404 handler - muss NACH allen anderen Routes kommen
 app.use((req, res) => {
+  console.log('❌ 404 für:', req.url);
   res.status(404).json({ error: 'Endpoint nicht gefunden' });
 });
 
