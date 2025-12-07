@@ -3,794 +3,811 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Praxida 2.0 - KI-Assistenz für Therapeuten | Intelligente Praxisverwaltung</title>
-    <meta name="description" content="Praxida 2.0 - Die intelligente KI-gestützte Praxisverwaltung für Therapeuten. DSGVO-konform, Multi-User-fähig, mit Audio-Transkription und System-Integration.">
+    <title>Praxida 2.0 - KI-gestützte Praxisverwaltung für Therapeuten</title>
+    <meta name="description" content="Sparen Sie über 10 Stunden pro Woche mit KI-gestützter Transkription, automatischer Dokumentation und intelligenter Praxisverwaltung. DSGVO-konform und sicher.">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #45a049;
+            --secondary: #A8E6CF;
+            --accent: #667eea;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --bg-light: #f7fafc;
+            --white: #ffffff;
+            --border: #e2e8f0;
+            --shadow: 0 10px 40px rgba(0,0,0,0.1);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
+            color: var(--text-dark);
             overflow-x: hidden;
         }
-        
-        /* Navigation */
+
+        /* Navbar */
         .navbar {
             position: fixed;
             top: 0;
             width: 100%;
-            background: rgba(255, 255, 255, 0.98);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
             z-index: 1000;
-            padding: 20px 0;
             transition: all 0.3s ease;
+            border-bottom: 1px solid transparent;
         }
-        
+
         .navbar.scrolled {
-            padding: 15px 0;
-            box-shadow: 0 2px 30px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow);
+            border-bottom-color: var(--border);
         }
-        
+
         .nav-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 30px;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 28px;
-            font-weight: 800;
-            color: #4CAF50;
-            text-decoration: none;
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #4CAF50, #A8E6CF);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-        
+
         .nav-links {
             display: flex;
-            gap: 35px;
+            gap: 2rem;
+            align-items: center;
             list-style: none;
         }
-        
+
         .nav-links a {
-            color: #333;
             text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
-            font-size: 16px;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: color 0.3s;
         }
-        
+
         .nav-links a:hover {
-            color: #4CAF50;
+            color: var(--primary);
         }
-        
-        .nav-cta {
+
+        .nav-buttons {
             display: flex;
-            gap: 15px;
+            gap: 1rem;
         }
-        
+
         .btn {
-            padding: 12px 28px;
-            border-radius: 12px;
-            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
             font-weight: 600;
-            transition: all 0.3s ease;
-            font-size: 16px;
-            border: none;
+            text-decoration: none;
+            transition: all 0.3s;
             cursor: pointer;
+            border: none;
+            font-size: 1rem;
             display: inline-block;
         }
-        
+
         .btn-primary {
-            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(76, 175, 80, 0.4);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
-        
+
         .btn-secondary {
             background: white;
-            color: #4CAF50;
-            border: 2px solid #4CAF50;
+            color: var(--primary);
+            border: 2px solid var(--primary);
         }
-        
+
         .btn-secondary:hover {
-            background: #4CAF50;
+            background: var(--primary);
             color: white;
         }
-        
+
+        .btn-demo {
+            background: linear-gradient(135deg, var(--accent), #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-demo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
         /* Hero Section */
         .hero {
-            padding: 150px 30px 100px;
-            background: linear-gradient(135deg, #A8E6CF 0%, #4CAF50 100%);
+            margin-top: 80px;
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            text-align: center;
             position: relative;
             overflow: hidden;
         }
-        
+
         .hero::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
-            animation: float 20s infinite ease-in-out;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.3;
         }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(30px, 30px); }
-        }
-        
+
         .hero-content {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
+            text-align: center;
             position: relative;
             z-index: 1;
         }
-        
+
         .hero h1 {
-            font-size: 56px;
+            font-size: 3.5rem;
             font-weight: 800;
-            margin-bottom: 25px;
+            margin-bottom: 1.5rem;
             line-height: 1.2;
         }
-        
-        .hero .subtitle {
-            font-size: 24px;
-            margin-bottom: 40px;
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2.5rem;
             opacity: 0.95;
-            line-height: 1.5;
         }
-        
-        .hero-cta {
+
+        .hero-buttons {
             display: flex;
-            gap: 20px;
+            gap: 1rem;
             justify-content: center;
-            margin-bottom: 50px;
+            flex-wrap: wrap;
         }
-        
-        .hero-cta .btn {
-            padding: 18px 40px;
-            font-size: 18px;
-        }
-        
+
         .hero-stats {
             display: flex;
-            gap: 50px;
             justify-content: center;
-            margin-top: 60px;
+            gap: 3rem;
+            margin-top: 4rem;
+            flex-wrap: wrap;
         }
-        
-        .hero-stat {
+
+        .stat {
             text-align: center;
         }
-        
-        .hero-stat-number {
-            font-size: 42px;
-            font-weight: 800;
-            margin-bottom: 8px;
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: block;
         }
-        
-        .hero-stat-label {
-            font-size: 16px;
+
+        .stat-label {
             opacity: 0.9;
+            margin-top: 0.5rem;
         }
-        
+
         /* Features Section */
-        .section {
-            padding: 100px 30px;
+        .features {
+            padding: 6rem 2rem;
+            background: var(--bg-light);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: var(--text-dark);
+        }
+
+        .features-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .feature-card p {
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 6rem 2rem;
             max-width: 1200px;
             margin: 0 auto;
         }
-        
-        .section-header {
-            text-align: center;
-            margin-bottom: 70px;
-        }
-        
-        .section-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #4CAF50, #A8E6CF);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .section-title {
-            font-size: 48px;
-            font-weight: 800;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        
-        .section-subtitle {
-            font-size: 20px;
-            color: #666;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 40px;
-        }
-        
-        .feature-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-            border: 2px solid #f5f5f5;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(76, 175, 80, 0.15);
-            border-color: #4CAF50;
-        }
-        
-        .feature-icon {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #4CAF50, #A8E6CF);
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            margin-bottom: 25px;
-        }
-        
-        .feature-card h3 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 15px;
-        }
-        
-        .feature-card p {
-            color: #666;
-            line-height: 1.8;
-            font-size: 16px;
-        }
-        
-        /* How It Works */
-        .how-it-works {
-            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
-        }
-        
+
         .steps {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-top: 60px;
+            gap: 3rem;
+            margin-top: 3rem;
         }
-        
+
         .step {
             text-align: center;
-            position: relative;
         }
-        
+
         .step-number {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
-            font-weight: 800;
-            margin: 0 auto 25px;
-            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
-        }
-        
-        .step h3 {
-            font-size: 22px;
+            font-size: 1.5rem;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 15px;
+            margin: 0 auto 1.5rem;
         }
-        
-        .step p {
-            color: #666;
-            line-height: 1.7;
+
+        .step h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
         }
-        
+
         /* Pricing */
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 35px;
-            margin-top: 60px;
+        .pricing {
+            padding: 6rem 2rem;
+            background: var(--bg-light);
         }
-        
+
+        .pricing-grid {
+            max-width: 1200px;
+            margin: 3rem auto 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
         .pricing-card {
             background: white;
-            border-radius: 25px;
-            padding: 45px 35px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            border: 3px solid #f5f5f5;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
             position: relative;
+            transition: all 0.3s;
         }
-        
-        .pricing-card.popular {
-            border-color: #4CAF50;
-            transform: scale(1.05);
-            box-shadow: 0 15px 50px rgba(76, 175, 80, 0.25);
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
         }
-        
+
+        .pricing-card.featured {
+            border: 3px solid var(--primary);
+        }
+
         .pricing-badge {
             position: absolute;
             top: -15px;
-            right: 30px;
-            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
             color: white;
-            padding: 8px 20px;
-            border-radius: 25px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        
-        .pricing-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-        }
-        
-        .pricing-card h3 {
-            font-size: 28px;
-            font-weight: 800;
-            color: #333;
-            margin-bottom: 15px;
-        }
-        
-        .pricing-price {
-            font-size: 48px;
-            font-weight: 800;
-            color: #4CAF50;
-            margin-bottom: 10px;
-        }
-        
-        .pricing-price span {
-            font-size: 20px;
-            color: #666;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
             font-weight: 600;
+            font-size: 0.9rem;
         }
-        
-        .pricing-features {
+
+        .pricing-card h3 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+
+        .price-period {
+            font-size: 1rem;
+            color: var(--text-light);
+        }
+
+        .features-list {
             list-style: none;
-            margin: 30px 0;
-            padding: 0;
+            margin: 2rem 0;
+            text-align: left;
         }
-        
-        .pricing-features li {
-            padding: 12px 0;
-            color: #666;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+
+        .features-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
         }
-        
-        .pricing-features li::before {
-            content: '✓';
-            color: #4CAF50;
-            font-weight: 800;
-            font-size: 20px;
+
+        .features-list li:before {
+            content: "✓ ";
+            color: var(--primary);
+            font-weight: bold;
+            margin-right: 0.5rem;
         }
-        
+
         /* Testimonials */
         .testimonials {
-            background: white;
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        
+
         .testimonials-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 35px;
-            margin-top: 60px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
         }
-        
-        .testimonial-card {
-            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
-            padding: 40px;
-            border-radius: 20px;
-            border: 2px solid #eef2ff;
-            transition: all 0.3s ease;
+
+        .testimonial {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
         }
-        
-        .testimonial-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-        }
-        
+
         .testimonial-rating {
-            color: #FFD700;
-            font-size: 24px;
-            margin-bottom: 20px;
+            color: #ffa500;
+            margin-bottom: 1rem;
         }
-        
+
         .testimonial-text {
-            font-size: 17px;
-            line-height: 1.8;
-            color: #444;
-            margin-bottom: 25px;
             font-style: italic;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
         }
-        
+
         .testimonial-author {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 1rem;
         }
-        
+
         .testimonial-avatar {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: 800;
-            font-size: 22px;
-        }
-        
-        .testimonial-info h4 {
-            font-size: 18px;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 5px;
         }
-        
+
+        .testimonial-info h4 {
+            font-weight: 600;
+        }
+
         .testimonial-info p {
-            font-size: 14px;
-            color: #666;
+            font-size: 0.9rem;
+            color: var(--text-light);
         }
-        
+
         /* FAQ */
         .faq {
-            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            padding: 6rem 2rem;
+            background: var(--bg-light);
         }
-        
-        .faq-list {
+
+        .faq-container {
             max-width: 800px;
-            margin: 60px auto 0;
+            margin: 3rem auto 0;
         }
-        
+
         .faq-item {
             background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-            cursor: pointer;
-            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        
-        .faq-item:hover {
-            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
-        }
-        
+
         .faq-question {
-            font-size: 20px;
-            font-weight: 700;
-            color: #333;
+            padding: 1.5rem;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-weight: 600;
+            transition: background 0.3s;
         }
-        
-        .faq-icon {
-            font-size: 24px;
-            color: #4CAF50;
-            transition: transform 0.3s ease;
+
+        .faq-question:hover {
+            background: var(--bg-light);
         }
-        
-        .faq-item.active .faq-icon {
-            transform: rotate(180deg);
+
+        .faq-question::after {
+            content: '+';
+            font-size: 1.5rem;
+            font-weight: 300;
+            transition: transform 0.3s;
         }
-        
+
+        .faq-question.active::after {
+            transform: rotate(45deg);
+        }
+
         .faq-answer {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
-            color: #666;
-            line-height: 1.8;
-            font-size: 16px;
         }
-        
-        .faq-item.active .faq-answer {
-            max-height: 500px;
-            margin-top: 20px;
+
+        .faq-answer-content {
+            padding: 0 1.5rem 1.5rem;
+            color: var(--text-light);
+            line-height: 1.7;
         }
-        
+
         /* CTA Section */
-        .cta-section {
-            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+        .cta {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
-            padding: 100px 30px;
             text-align: center;
-            position: relative;
-            overflow: hidden;
         }
-        
-        .cta-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
-            animation: rotate 30s infinite linear;
+
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
         }
-        
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .cta-content {
-            max-width: 700px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .cta-section h2 {
-            font-size: 48px;
-            font-weight: 800;
-            margin-bottom: 25px;
-        }
-        
-        .cta-section p {
-            font-size: 22px;
-            margin-bottom: 40px;
+
+        .cta p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
             opacity: 0.95;
         }
-        
-        .cta-section .btn {
-            padding: 20px 50px;
-            font-size: 20px;
-            background: white;
-            color: #4CAF50;
-        }
-        
-        .cta-section .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 40px rgba(255,255,255,0.3);
-        }
-        
+
         /* Footer */
         .footer {
-            background: #1a1a1a;
+            background: var(--text-dark);
             color: white;
-            padding: 60px 30px 30px;
+            padding: 4rem 2rem 2rem;
         }
-        
+
         .footer-content {
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 50px;
-            margin-bottom: 50px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            margin-bottom: 2rem;
         }
-        
-        .footer-section h3 {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #4CAF50;
+
+        .footer-section h4 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
         }
-        
-        .footer-section p,
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
         .footer-section a {
-            color: #ccc;
+            color: rgba(255,255,255,0.8);
             text-decoration: none;
-            display: block;
-            margin-bottom: 12px;
-            line-height: 1.7;
+            transition: color 0.3s;
         }
-        
+
         .footer-section a:hover {
-            color: #4CAF50;
+            color: white;
         }
-        
+
         .footer-bottom {
             text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid #333;
-            color: #888;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.6);
         }
-        
-        .social-links {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s;
         }
-        
-        .social-link {
-            width: 45px;
-            height: 45px;
-            background: #333;
-            border-radius: 50%;
+
+        .modal.active {
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
-            font-size: 20px;
         }
-        
-        .social-link:hover {
-            background: #4CAF50;
-            transform: translateY(-3px);
+
+        .modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s;
         }
-        
-        /* Mobile Menu */
-        .mobile-menu-btn {
-            display: none;
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.75rem;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
             background: none;
             border: none;
-            font-size: 28px;
+            font-size: 2rem;
             cursor: pointer;
-            color: #333;
+            color: var(--text-light);
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
         }
-        
-        /* Responsive */
-        @media (max-width: 968px) {
-            .nav-links {
-                display: none;
+
+        .modal-close:hover {
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal-switch {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-light);
+        }
+
+        .modal-switch a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-switch a:hover {
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
             }
-            
-            .mobile-menu-btn {
-                display: block;
-            }
-            
-            .hero h1 {
-                font-size: 42px;
-            }
-            
-            .hero .subtitle {
-                font-size: 20px;
-            }
-            
-            .hero-cta {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .hero-stats {
-                flex-direction: column;
-                gap: 30px;
-            }
-            
-            .section-title {
-                font-size: 36px;
-            }
-            
-            .features-grid,
-            .pricing-grid,
-            .testimonials-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .pricing-card.popular {
-                transform: none;
-            }
-            
-            .footer-content {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-            
-            .social-links {
-                justify-content: center;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
-        
-        @media (max-width: 640px) {
-            .hero {
-                padding: 120px 20px 80px;
-            }
-            
-            .hero h1 {
-                font-size: 32px;
-            }
-            
-            .hero .subtitle {
-                font-size: 18px;
-            }
-            
-            .section {
-                padding: 60px 20px;
-            }
-            
-            .section-title {
-                font-size: 28px;
-            }
-            
-            .btn {
-                padding: 12px 24px;
-                font-size: 14px;
-            }
-            
-            .cta-section h2 {
-                font-size: 32px;
-            }
-            
-            .cta-section p {
-                font-size: 18px;
-            }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-        
-        /* Smooth Scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
-        
-        /* Animation on Scroll */
+
         .fade-in {
             opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
+            transform: translateY(20px);
+            transition: opacity 0.6s, transform 0.6s;
         }
-        
+
         .fade-in.visible {
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.25rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .hero-buttons .btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar" id="navbar">
+    <!-- Navbar -->
+    <nav class="navbar">
         <div class="nav-container">
-            <a href="#" class="logo">
-                <div class="logo-icon">🏥</div>
-                Praxida 2.0
-            </a>
+            <div class="logo">Praxida 2.0</div>
             <ul class="nav-links">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#how-it-works">So funktioniert's</a></li>
@@ -798,241 +815,200 @@
                 <li><a href="#testimonials">Referenzen</a></li>
                 <li><a href="#faq">FAQ</a></li>
             </ul>
-            <div class="nav-cta">
-                <a href="index.html" class="btn btn-secondary">Login</a>
-                <a href="index.html#register" class="btn btn-primary">Kostenlos testen</a>
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="openLoginModal()">Login</button>
+                <button class="btn btn-primary" onclick="openRegisterModal()">Jetzt starten</button>
             </div>
-            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
         </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-content">
-            <h1>KI-gestützte Praxisverwaltung für moderne Therapeuten</h1>
-            <p class="subtitle">
-                Sparen Sie 10+ Stunden pro Woche mit intelligenter Automatisierung. 
-                DSGVO-konform, einfach zu bedienen, speziell für Therapeuten entwickelt.
-            </p>
-            <div class="hero-cta">
-                <a href="index.html#register" class="btn btn-primary">Jetzt kostenlos testen</a>
-                <a href="#how-it-works" class="btn btn-secondary">Demo ansehen</a>
+        <div class="hero-content fade-in">
+            <h1>Mehr Zeit für Ihre Patienten</h1>
+            <p>Sparen Sie über 10 Stunden pro Woche mit KI-gestützter Praxisverwaltung</p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="openRegisterModal()" style="font-size: 1.1rem; padding: 1rem 2rem;">
+                    🚀 Kostenlos testen (30 Tage)
+                </button>
+                <button class="btn btn-demo" onclick="loginDemo()" style="font-size: 1.1rem; padding: 1rem 2rem;">
+                    🎯 Demo-Account testen
+                </button>
             </div>
             <div class="hero-stats">
-                <div class="hero-stat">
-                    <div class="hero-stat-number">10+</div>
-                    <div class="hero-stat-label">Stunden gespart/Woche</div>
+                <div class="stat">
+                    <span class="stat-number">10+</span>
+                    <span class="stat-label">Stunden gespart pro Woche</span>
                 </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number">95%</div>
-                    <div class="hero-stat-label">Zeiteinsparung Dokumentation</div>
+                <div class="stat">
+                    <span class="stat-number">95%</span>
+                    <span class="stat-label">Zeitersparnis bei Dokumentation</span>
                 </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number">100%</div>
-                    <div class="hero-stat-label">DSGVO-konform</div>
+                <div class="stat">
+                    <span class="stat-number">100%</span>
+                    <span class="stat-label">DSGVO-konform</span>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="section" id="features">
-        <div class="section-header fade-in">
-            <div class="section-badge">Features</div>
-            <h2 class="section-title">Alles, was Ihre Praxis braucht</h2>
-            <p class="section-subtitle">
-                Von KI-gestützter Protokollerstellung bis zu intelligenter Terminplanung – 
-                Praxida vereint alle wichtigen Funktionen in einer Plattform.
-            </p>
-        </div>
+    <section id="features" class="features">
+        <h2 class="section-title fade-in">Funktionen, die Ihren Praxisalltag revolutionieren</h2>
         <div class="features-grid">
             <div class="feature-card fade-in">
                 <div class="feature-icon">🎤</div>
                 <h3>Audio-Transkription</h3>
-                <p>Sprechen Sie während der Sitzung – Praxida erstellt automatisch strukturierte Therapieprotokolle mit Whisper-KI. Keine manuelle Nacharbeit mehr.</p>
+                <p>Whisper AI wandelt Ihre Aufnahmen automatisch in Text um. Deutsche Sprache, höchste Genauigkeit.</p>
             </div>
             <div class="feature-card fade-in">
                 <div class="feature-icon">🤖</div>
-                <h3>KI-Assistenz</h3>
-                <p>Intelligente Vorschläge für Therapiepläne, automatische Zusammenfassungen und fachliche Unterstützung basierend auf aktuellen Leitlinien.</p>
+                <h3>KI-Assistent</h3>
+                <p>Intelligente Unterstützung bei Diagnose, Therapieplanung und Dokumentation durch GPT-4.</p>
             </div>
             <div class="feature-card fade-in">
                 <div class="feature-icon">📅</div>
-                <h3>Intelligentes Terminmanagement</h3>
-                <p>KI-gestützte Terminvorschläge, No-Show-Vorhersage, automatische Erinnerungen und nahtlose Kalender-Integration.</p>
+                <h3>Terminverwaltung</h3>
+                <p>Übersichtliche Kalenderansicht mit automatischen Erinnerungen und Konflikt-Erkennung.</p>
             </div>
             <div class="feature-card fade-in">
                 <div class="feature-icon">👥</div>
                 <h3>Multi-User & Teams</h3>
-                <p>Sichere rollenbasierte Zugriffe, Team-Kollaboration, Supervision und DSGVO-konforme Datenteilung zwischen Kollegen.</p>
+                <p>Mehrere Therapeuten, eine Plattform. Mit Rechteverwaltung und Team-Funktionen.</p>
             </div>
             <div class="feature-card fade-in">
-                <div class="feature-icon">🔗</div>
+                <div class="feature-icon">🔄</div>
                 <h3>System-Integration</h3>
-                <p>Nahtlose Anbindung an CGM ALBIS, KV-Systeme, Doctolib und weitere Praxissoftware. Keine Doppelerfassung mehr.</p>
+                <p>Nahtlose Anbindung an bestehende Praxis-Software und KV-Systeme.</p>
             </div>
             <div class="feature-card fade-in">
-                <div class="feature-icon">🔍</div>
+                <div class="feature-icon">📊</div>
                 <h3>Datei-Analyse</h3>
-                <p>Laden Sie Bilder, PDFs oder Dokumente hoch – die KI analysiert und strukturiert therapeutisch relevante Informationen.</p>
+                <p>Automatische Auswertung von Befunden, Berichten und Testergebnissen.</p>
             </div>
             <div class="feature-card fade-in">
-                <div class="feature-icon">📋</div>
+                <div class="feature-icon">🎯</div>
                 <h3>Therapieplanung</h3>
-                <p>Erstellen Sie evidenzbasierte Therapiepläne mit Meilensteinen, Fortschrittstracking und automatischen Verlaufsberichten.</p>
+                <p>Strukturierte Behandlungspläne mit Zielverfolgung und Fortschrittsmessung.</p>
             </div>
             <div class="feature-card fade-in">
-                <div class="feature-icon">🔐</div>
+                <div class="feature-icon">🔒</div>
                 <h3>DSGVO & Sicherheit</h3>
-                <p>Höchste Sicherheitsstandards, AES-256-Verschlüsselung, 2FA-Authentifizierung und vollständige DSGVO-Konformität.</p>
+                <p>Höchste Datenschutzstandards. Server in Deutschland. Ende-zu-Ende verschlüsselt.</p>
             </div>
             <div class="feature-card fade-in">
                 <div class="feature-icon">✅</div>
-                <h3>To-Dos & Erinnerungen</h3>
-                <p>Intelligente Aufgabenverwaltung mit automatischer Generierung aus Therapiesitzungen. Nie wieder etwas vergessen.</p>
+                <h3>Aufgaben-Management</h3>
+                <p>To-Dos, Erinnerungen und Workflows für effizientes Praxismanagement.</p>
             </div>
         </div>
     </section>
 
     <!-- How It Works -->
-    <section class="section how-it-works" id="how-it-works">
-        <div class="section-header fade-in">
-            <div class="section-badge">So einfach geht's</div>
-            <h2 class="section-title">In 3 Schritten zur digitalen Praxis</h2>
-            <p class="section-subtitle">
-                Starten Sie in wenigen Minuten – keine komplizierte Einrichtung, keine Schulungen erforderlich.
-            </p>
-        </div>
+    <section id="how-it-works" class="how-it-works">
+        <h2 class="section-title fade-in">So einfach geht's</h2>
         <div class="steps">
             <div class="step fade-in">
                 <div class="step-number">1</div>
                 <h3>Praxis registrieren</h3>
-                <p>Erstellen Sie Ihren Account in 2 Minuten. Fügen Sie Team-Mitglieder hinzu und legen Sie Berechtigungen fest.</p>
+                <p>Kostenlose Anmeldung in 2 Minuten. Keine Kreditkarte erforderlich für die Testphase.</p>
             </div>
             <div class="step fade-in">
                 <div class="step-number">2</div>
-                <h3>Klienten importieren</h3>
-                <p>Importieren Sie bestehende Klientendaten oder legen Sie neue an. Optional: Verbinden Sie Ihre Praxissoftware.</p>
+                <h3>Patienten importieren</h3>
+                <p>Daten aus bestehenden Systemen übernehmen oder manuell anlegen. DSGVO-konform.</p>
             </div>
             <div class="step fade-in">
                 <div class="step-number">3</div>
-                <h3>Loslegen & Zeit sparen</h3>
-                <p>Nutzen Sie Audio-Transkription, KI-Assistenz und alle Features. Sparen Sie ab dem ersten Tag Zeit.</p>
+                <h3>Zeit sparen</h3>
+                <p>Sofort loslegen mit KI-gestützter Dokumentation und automatisierten Workflows.</p>
             </div>
         </div>
     </section>
 
     <!-- Pricing -->
-    <section class="section" id="pricing">
-        <div class="section-header fade-in">
-            <div class="section-badge">Preise</div>
-            <h2 class="section-title">Transparent & fair</h2>
-            <p class="section-subtitle">
-                Keine versteckten Kosten. Jederzeit kündbar. 30 Tage Geld-zurück-Garantie.
-            </p>
-        </div>
+    <section id="pricing" class="pricing">
+        <h2 class="section-title fade-in">Transparente Preise</h2>
         <div class="pricing-grid">
             <div class="pricing-card fade-in">
                 <h3>Starter</h3>
-                <div class="pricing-price">49€<span>/Monat</span></div>
-                <ul class="pricing-features">
-                    <li>1 Benutzer</li>
-                    <li>Bis zu 20 Klienten</li>
-                    <li>Audio-Transkription</li>
-                    <li>KI-Assistenz</li>
-                    <li>Basis-Terminverwaltung</li>
-                    <li>DSGVO-konform</li>
-                    <li>Email-Support</li>
+                <div class="price">49€<span class="price-period">/Monat</span></div>
+                <ul class="features-list">
+                    <li>1 Therapeut</li>
+                    <li>Bis zu 20 Patienten</li>
+                    <li>Audio-Transkription (10h/Monat)</li>
+                    <li>Basis KI-Assistent</li>
+                    <li>Standard Support</li>
                 </ul>
-                <a href="index.html#register" class="btn btn-secondary" style="width: 100%;">Jetzt starten</a>
+                <button class="btn btn-secondary" onclick="openRegisterModal()" style="width: 100%;">Jetzt starten</button>
             </div>
-            
-            <div class="pricing-card popular fade-in">
-                <div class="pricing-badge">Beliebteste</div>
+            <div class="pricing-card featured fade-in">
+                <div class="pricing-badge">Beliebteste Wahl</div>
                 <h3>Professional</h3>
-                <div class="pricing-price">99€<span>/Monat</span></div>
-                <ul class="pricing-features">
-                    <li>Bis zu 5 Benutzer</li>
-                    <li>Unbegrenzte Klienten</li>
-                    <li>Alle Starter-Features</li>
-                    <li>System-Integration</li>
-                    <li>Team-Kollaboration</li>
-                    <li>Erweiterte Therapieplanung</li>
-                    <li>No-Show-Vorhersage</li>
-                    <li>Priority Support</li>
+                <div class="price">99€<span class="price-period">/Monat</span></div>
+                <ul class="features-list">
+                    <li>Bis zu 5 Therapeuten</li>
+                    <li>Unbegrenzt Patienten</li>
+                    <li>Audio-Transkription (50h/Monat)</li>
+                    <li>Premium KI-Assistent (GPT-4)</li>
+                    <li>Team-Funktionen</li>
+                    <li>Prioritäts-Support</li>
+                    <li>API-Zugang</li>
                 </ul>
-                <a href="index.html#register" class="btn btn-primary" style="width: 100%;">Jetzt starten</a>
+                <button class="btn btn-primary" onclick="openRegisterModal()" style="width: 100%;">Jetzt starten</button>
             </div>
-            
             <div class="pricing-card fade-in">
                 <h3>Enterprise</h3>
-                <div class="pricing-price">249€<span>/Monat</span></div>
-                <ul class="pricing-features">
-                    <li>Unbegrenzte Benutzer</li>
-                    <li>Unbegrenzte Klienten</li>
-                    <li>Alle Professional-Features</li>
-                    <li>Dedizierter Account Manager</li>
-                    <li>Custom-Integration</li>
-                    <li>On-Premise Option</li>
-                    <li>Individuelle Schulungen</li>
+                <div class="price">249€<span class="price-period">/Monat</span></div>
+                <ul class="features-list">
+                    <li>Unbegrenzt Therapeuten</li>
+                    <li>Unbegrenzt Patienten</li>
+                    <li>Audio-Transkription (unbegrenzt)</li>
+                    <li>Dedizierte KI-Instanz</li>
+                    <li>White-Label Option</li>
+                    <li>Eigener Server möglich</li>
                     <li>24/7 Premium Support</li>
+                    <li>Individuelle Anpassungen</li>
                 </ul>
-                <a href="#contact" class="btn btn-secondary" style="width: 100%;">Kontakt aufnehmen</a>
+                <button class="btn btn-secondary" onclick="openRegisterModal()" style="width: 100%;">Kontakt aufnehmen</button>
             </div>
         </div>
     </section>
 
     <!-- Testimonials -->
-    <section class="section testimonials" id="testimonials">
-        <div class="section-header fade-in">
-            <div class="section-badge">Referenzen</div>
-            <h2 class="section-title">Was unsere Kunden sagen</h2>
-            <p class="section-subtitle">
-                Über 500 Therapeuten vertrauen bereits auf Praxida 2.0
-            </p>
-        </div>
+    <section id="testimonials" class="testimonials">
+        <h2 class="section-title fade-in">Das sagen unsere Nutzer</h2>
         <div class="testimonials-grid">
-            <div class="testimonial-card fade-in">
+            <div class="testimonial fade-in">
                 <div class="testimonial-rating">★★★★★</div>
-                <p class="testimonial-text">
-                    "Praxida hat meine Praxis revolutioniert. Die Audio-Transkription spart mir mindestens 
-                    2 Stunden täglich. Ich kann mich endlich wieder auf das Wesentliche konzentrieren."
-                </p>
+                <p class="testimonial-text">"Praxida hat meinen Arbeitsalltag komplett verändert. Die Zeitersparnis ist enorm und ich kann mich endlich wieder auf das Wesentliche konzentrieren."</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar">SM</div>
+                    <div class="testimonial-avatar">DS</div>
                     <div class="testimonial-info">
                         <h4>Dr. Sarah Müller</h4>
-                        <p>Psychotherapeutin, Köln</p>
+                        <p>Psychotherapeutin, München</p>
                     </div>
                 </div>
             </div>
-            
-            <div class="testimonial-card fade-in">
+            <div class="testimonial fade-in">
                 <div class="testimonial-rating">★★★★★</div>
-                <p class="testimonial-text">
-                    "Die System-Integration mit unserer bestehenden Software funktioniert perfekt. 
-                    Keine Doppelerfassung mehr. Das Team-Management ist hervorragend."
-                </p>
+                <p class="testimonial-text">"Die Audio-Transkription ist unglaublich genau. Spart mir mehrere Stunden Dokumentation pro Woche. Und alles DSGVO-konform!"</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar">TK</div>
+                    <div class="testimonial-avatar">MK</div>
                     <div class="testimonial-info">
-                        <h4>Thomas Klein</h4>
-                        <p>Praxisleiter, München</p>
+                        <h4>Michael Klein</h4>
+                        <p>Verhaltenstherapeut, Berlin</p>
                     </div>
                 </div>
             </div>
-            
-            <div class="testimonial-card fade-in">
+            <div class="testimonial fade-in">
                 <div class="testimonial-rating">★★★★★</div>
-                <p class="testimonial-text">
-                    "Als Einzelkämpferin war ich skeptisch. Aber Praxida ist so intuitiv, 
-                    dass ich nach 10 Minuten produktiv arbeiten konnte. Der Support ist fantastisch!"
-                </p>
+                <p class="testimonial-text">"Besonders die Team-Funktionen sind hervorragend. Wir können jetzt viel besser zusammenarbeiten und haben alle Infos zentral."</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar">LW</div>
+                    <div class="testimonial-avatar">LP</div>
                     <div class="testimonial-info">
-                        <h4>Lisa Wagner</h4>
-                        <p>Verhaltenstherapeutin, Berlin</p>
+                        <h4>Lisa Peters</h4>
+                        <p>Praxisleitung, Hamburg</p>
                     </div>
                 </div>
             </div>
@@ -1040,150 +1016,223 @@
     </section>
 
     <!-- FAQ -->
-    <section class="section faq" id="faq">
-        <div class="section-header fade-in">
-            <div class="section-badge">FAQ</div>
-            <h2 class="section-title">Häufig gestellte Fragen</h2>
-            <p class="section-subtitle">
-                Hier finden Sie Antworten auf die wichtigsten Fragen zu Praxida 2.0
-            </p>
-        </div>
-        <div class="faq-list">
-            <div class="faq-item" onclick="toggleFaq(this)">
+    <section id="faq" class="faq">
+        <h2 class="section-title fade-in">Häufig gestellte Fragen</h2>
+        <div class="faq-container">
+            <div class="faq-item fade-in">
                 <div class="faq-question">
                     Ist Praxida DSGVO-konform?
-                    <span class="faq-icon">▼</span>
                 </div>
                 <div class="faq-answer">
-                    Ja, Praxida 2.0 ist vollständig DSGVO-konform. Alle Daten werden in Deutschland gespeichert, 
-                    mit AES-256 verschlüsselt und unterliegen höchsten Sicherheitsstandards. Wir haben einen 
-                    Auftragsverarbeitungsvertrag (AVV) für alle Kunden.
+                    <div class="faq-answer-content">
+                        Ja, absolut. Alle Server stehen in Deutschland, alle Daten werden verschlüsselt gespeichert und wir erfüllen alle Anforderungen der DSGVO. Sie erhalten von uns einen AVV (Auftragsverarbeitungsvertrag) und haben jederzeit volle Kontrolle über Ihre Daten.
+                    </div>
                 </div>
             </div>
-            
-            <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-item fade-in">
                 <div class="faq-question">
                     Wie funktioniert die Audio-Transkription?
-                    <span class="faq-icon">▼</span>
                 </div>
                 <div class="faq-answer">
-                    Die Audio-Transkription nutzt OpenAI's Whisper-Technologie. Sie können während oder nach der 
-                    Sitzung sprechen, und Praxida erstellt automatisch ein strukturiertes Therapieprotokoll. 
-                    Die KI erkennt Fachbegriffe und formatiert das Protokoll therapeutisch sinnvoll.
+                    <div class="faq-answer-content">
+                        Sie laden einfach Ihre Audioaufnahme (MP3, WAV, M4A etc.) hoch. Unsere KI (OpenAI Whisper) transkribiert diese automatisch in Text - mit hoher Genauigkeit auch bei Fachbegriffen. Anschließend können Sie den Text bearbeiten und als Sitzungsprotokoll speichern.
+                    </div>
                 </div>
             </div>
-            
-            <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-item fade-in">
                 <div class="faq-question">
-                    Kann ich meine bestehende Praxissoftware weiter nutzen?
-                    <span class="faq-icon">▼</span>
+                    Kann ich meine bestehende Software weiter nutzen?
                 </div>
                 <div class="faq-answer">
-                    Ja! Praxida integriert sich mit den meisten Praxisverwaltungssystemen wie CGM ALBIS, TurboMed, 
-                    medistar und vielen weiteren. Die Integration erfolgt über sichere APIs und vermeidet 
-                    Doppelerfassungen.
+                    <div class="faq-answer-content">
+                        Ja! Praxida lässt sich über unsere API in bestehende Systeme integrieren. Wir bieten auch Datenimport aus gängigen Praxisverwaltungssystemen an. Kontaktieren Sie uns für individuelle Integration.
+                    </div>
                 </div>
             </div>
-            
-            <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-item fade-in">
                 <div class="faq-question">
-                    Gibt es eine Testphase?
-                    <span class="faq-icon">▼</span>
+                    Gibt es eine kostenlose Testphase?
                 </div>
                 <div class="faq-answer">
-                    Ja, Sie können Praxida 30 Tage kostenlos testen – ohne Kreditkarte, ohne Verpflichtung. 
-                    Sie haben vollen Zugriff auf alle Features. Nach der Testphase entscheiden Sie, 
-                    ob Sie weitermachen möchten.
+                    <div class="faq-answer-content">
+                        Ja, Sie können Praxida 30 Tage lang vollkommen kostenlos und unverbindlich testen. Alle Features sind verfügbar, keine Kreditkarte erforderlich. Nach der Testphase wählen Sie das für Sie passende Abo-Modell.
+                    </div>
                 </div>
             </div>
-            
-            <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-item fade-in">
                 <div class="faq-question">
-                    Wie schnell kann ich starten?
-                    <span class="faq-icon">▼</span>
+                    Wie schnell kann ich loslegen?
                 </div>
                 <div class="faq-answer">
-                    Sie können sofort loslegen! Die Registrierung dauert 2 Minuten, und Sie können direkt 
-                    mit der Arbeit beginnen. Für komplexere Integrationen bieten wir kostenlose Onboarding-Sessions an.
+                    <div class="faq-answer-content">
+                        Die Einrichtung dauert nur 2-5 Minuten. Nach der Registrierung können Sie sofort Patienten anlegen und mit der Dokumentation beginnen. Wir bieten auch kostenlose Onboarding-Calls an, um Sie optimal zu unterstützen.
+                    </div>
                 </div>
             </div>
-            
-            <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-item fade-in">
                 <div class="faq-question">
                     Was passiert mit meinen Daten bei Kündigung?
-                    <span class="faq-icon">▼</span>
                 </div>
                 <div class="faq-answer">
-                    Bei Kündigung können Sie alle Ihre Daten exportieren. Wir behalten die Daten noch 90 Tage 
-                    gespeichert (falls Sie zurückkommen möchten), danach werden sie unwiderruflich gelöscht. 
-                    Sie haben jederzeit volle Kontrolle über Ihre Daten.
+                    <div class="faq-answer-content">
+                        Sie können jederzeit alle Ihre Daten vollständig exportieren (PDF, DOCX, CSV). Bei Kündigung bleiben Ihre Daten noch 90 Tage gespeichert, danach werden sie unwiderruflich gelöscht - oder auf Wunsch sofort.
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="cta-content">
-            <h2>Bereit für die digitale Zukunft Ihrer Praxis?</h2>
-            <p>Starten Sie jetzt kostenlos und erleben Sie, wie Praxida Ihren Arbeitsalltag verändert.</p>
-            <a href="index.html#register" class="btn">30 Tage kostenlos testen</a>
-        </div>
+    <section class="cta">
+        <h2>Bereit für mehr Zeit für Ihre Patienten?</h2>
+        <p>Starten Sie jetzt Ihre 30-tägige kostenlose Testphase</p>
+        <button class="btn btn-primary" onclick="openRegisterModal()" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
+            Jetzt kostenlos testen
+        </button>
     </section>
 
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
-                <h3>Praxida 2.0</h3>
-                <p>Die intelligente KI-Assistenz für moderne Therapeuten. DSGVO-konform, intuitiv, effizient.</p>
-                <div class="social-links">
-                    <a href="#" class="social-link">📘</a>
-                    <a href="#" class="social-link">🐦</a>
-                    <a href="#" class="social-link">💼</a>
-                </div>
+                <h4>Über Praxida</h4>
+                <ul>
+                    <li><a href="#">Über uns</a></li>
+                    <li><a href="#">Team</a></li>
+                    <li><a href="#">Karriere</a></li>
+                    <li><a href="#">Presse</a></li>
+                </ul>
             </div>
-            
             <div class="footer-section">
-                <h3>Produkt</h3>
-                <a href="#features">Features</a>
-                <a href="#pricing">Preise</a>
-                <a href="#how-it-works">Demo</a>
-                <a href="index.html">Login</a>
+                <h4>Produkt</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Preise</a></li>
+                    <li><a href="#">API-Dokumentation</a></li>
+                    <li><a href="#">Roadmap</a></li>
+                </ul>
             </div>
-            
             <div class="footer-section">
-                <h3>Unternehmen</h3>
-                <a href="#about">Über uns</a>
-                <a href="#careers">Karriere</a>
-                <a href="#press">Presse</a>
-                <a href="#partners">Partner</a>
+                <h4>Unternehmen</h4>
+                <ul>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Kundenreferenzen</a></li>
+                    <li><a href="#">Partner</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
             </div>
-            
             <div class="footer-section">
-                <h3>Rechtliches</h3>
-                <a href="#privacy">Datenschutz</a>
-                <a href="#terms">AGB</a>
-                <a href="#imprint">Impressum</a>
-                <a href="#avv">AVV</a>
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Datenschutz</a></li>
+                    <li><a href="#">AGB</a></li>
+                    <li><a href="#">Impressum</a></li>
+                    <li><a href="#">AVV</a></li>
+                </ul>
             </div>
-            
             <div class="footer-section">
-                <h3>Kontakt</h3>
-                <p>📧 info@praxida.de</p>
-                <p>📞 +49 221 123 456 78</p>
-                <p>📍 Musterstraße 123<br>50667 Köln</p>
+                <h4>Kontakt</h4>
+                <ul>
+                    <li><a href="mailto:info@praxida.de">info@praxida.de</a></li>
+                    <li><a href="tel:+4922112345678">+49 221 1234 5678</a></li>
+                    <li>Musterstraße 123</li>
+                    <li>50667 Köln</li>
+                </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 Praxida 2.0. Alle Rechte vorbehalten. Made with ❤️ in Köln</p>
+            <p>&copy; 2024 Praxida. Alle Rechte vorbehalten.</p>
         </div>
     </footer>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Login</h2>
+                <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div id="loginAlert" class="alert"></div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-email">E-Mail</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Passwort</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn" style="width: 100%;">
+                    Anmelden
+                </button>
+            </form>
+            <div class="modal-switch">
+                Noch kein Account? <a onclick="switchToRegister()">Jetzt registrieren</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Praxis registrieren</h2>
+                <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <div id="registerAlert" class="alert"></div>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="praxis-name">Praxis-Name *</label>
+                    <input type="text" id="praxis-name" required>
+                    <small>Name Ihrer Praxis oder Ihrer Einrichtung</small>
+                </div>
+                <div class="form-group">
+                    <label for="praxis-email">Praxis E-Mail</label>
+                    <input type="email" id="praxis-email">
+                    <small>Optional: Zentrale E-Mail-Adresse</small>
+                </div>
+                <div class="form-group">
+                    <label for="praxis-phone">Telefon</label>
+                    <input type="tel" id="praxis-phone">
+                </div>
+                <div class="form-group">
+                    <label for="praxis-address">Adresse</label>
+                    <textarea id="praxis-address" rows="2"></textarea>
+                </div>
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border);">
+                <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Administrator-Account</h3>
+                <div class="form-group">
+                    <label for="admin-name">Ihr Name *</label>
+                    <input type="text" id="admin-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-email">Ihre E-Mail *</label>
+                    <input type="email" id="admin-email" required>
+                    <small>Wird für Login verwendet</small>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Passwort *</label>
+                    <input type="password" id="admin-password" required minlength="8">
+                    <small>Mindestens 8 Zeichen</small>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password-confirm">Passwort bestätigen *</label>
+                    <input type="password" id="admin-password-confirm" required minlength="8">
+                </div>
+                <button type="submit" class="btn btn-primary" id="registerBtn" style="width: 100%;">
+                    Praxis registrieren
+                </button>
+            </form>
+            <div class="modal-switch">
+                Bereits registriert? <a onclick="switchToLogin()">Zum Login</a>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Navbar scroll effect
         window.addEventListener('scroll', function() {
-            const navbar = document.getElementById('navbar');
+            const navbar = document.querySelector('.navbar');
             if (window.scrollY > 50) {
                 navbar.classList.add('scrolled');
             } else {
@@ -1191,12 +1240,7 @@
             }
         });
 
-        // FAQ Toggle
-        function toggleFaq(element) {
-            element.classList.toggle('active');
-        }
-
-        // Fade in on scroll
+        // Scroll animations
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
@@ -1210,33 +1254,297 @@
             });
         }, observerOptions);
 
-        document.querySelectorAll('.fade-in').forEach(element => {
-            observer.observe(element);
-        });
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-        // Mobile Menu Toggle (placeholder)
-        function toggleMobileMenu() {
-            alert('Mobile Menu öffnen - In der Produktion würde hier ein Slide-in Menü erscheinen');
-        }
-
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                const href = this.getAttribute('href');
-                if (href !== '#' && href !== '#register') {
-                    e.preventDefault();
-                    const target = document.querySelector(href);
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const isActive = this.classList.contains('active');
+                
+                // Close all other FAQs
+                document.querySelectorAll('.faq-question').forEach(q => {
+                    q.classList.remove('active');
+                    q.nextElementSibling.style.maxHeight = null;
+                });
+                
+                // Toggle current FAQ
+                if (!isActive) {
+                    this.classList.add('active');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
                 }
             });
         });
 
-        console.log('🎉 Praxida 2.0 Landing Page geladen!');
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Modal Functions
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.body.style.overflow = '';
+            clearAlert('loginAlert');
+        }
+
+        function openRegisterModal() {
+            document.getElementById('registerModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.remove('active');
+            document.body.style.overflow = '';
+            clearAlert('registerAlert');
+        }
+
+        function switchToRegister() {
+            closeLoginModal();
+            openRegisterModal();
+        }
+
+        function switchToLogin() {
+            closeRegisterModal();
+            openLoginModal();
+        }
+
+        // Close modal on backdrop click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Alert Functions
+        function showAlert(elementId, message, type = 'error') {
+            const alert = document.getElementById(elementId);
+            alert.className = `alert alert-${type} active`;
+            alert.textContent = message;
+        }
+
+        function clearAlert(elementId) {
+            const alert = document.getElementById(elementId);
+            alert.className = 'alert';
+            alert.textContent = '';
+        }
+
+        // Demo Login
+        async function loginDemo() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Verbinde...';
+
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@demo-praxis.de',
+                        password: 'demo123456'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    btn.innerHTML = '✓ Erfolgreich!';
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 500);
+                } else {
+                    throw new Error(data.error || 'Login fehlgeschlagen');
+                }
+            } catch (error) {
+                console.error('Demo-Login Fehler:', error);
+                alert('Demo-Login fehlgeschlagen: ' + error.message + '\n\nBitte stellen Sie sicher, dass der Server läuft.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Handle Login
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const btn = document.getElementById('loginBtn');
+            const originalText = btn.innerHTML;
+            
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showAlert('loginAlert', 'Bitte füllen Sie alle Felder aus.', 'error');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Anmelden...';
+                clearAlert('loginAlert');
+
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showAlert('loginAlert', '✓ Login erfolgreich! Weiterleitung...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Login fehlgeschlagen');
+                }
+            } catch (error) {
+                console.error('Login Fehler:', error);
+                showAlert('loginAlert', error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Handle Register
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const btn = document.getElementById('registerBtn');
+            const originalText = btn.innerHTML;
+            
+            // Get form values
+            const praxisName = document.getElementById('praxis-name').value.trim();
+            const praxisEmail = document.getElementById('praxis-email').value.trim();
+            const praxisPhone = document.getElementById('praxis-phone').value.trim();
+            const praxisAddress = document.getElementById('praxis-address').value.trim();
+            const adminName = document.getElementById('admin-name').value.trim();
+            const adminEmail = document.getElementById('admin-email').value.trim();
+            const adminPassword = document.getElementById('admin-password').value;
+            const adminPasswordConfirm = document.getElementById('admin-password-confirm').value;
+
+            // Validation
+            if (!praxisName || !adminName || !adminEmail || !adminPassword) {
+                showAlert('registerAlert', 'Bitte füllen Sie alle Pflichtfelder (*) aus.', 'error');
+                return;
+            }
+
+            if (adminPassword !== adminPasswordConfirm) {
+                showAlert('registerAlert', 'Die Passwörter stimmen nicht überein.', 'error');
+                return;
+            }
+
+            if (adminPassword.length < 8) {
+                showAlert('registerAlert', 'Das Passwort muss mindestens 8 Zeichen lang sein.', 'error');
+                return;
+            }
+
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(adminEmail)) {
+                showAlert('registerAlert', 'Bitte geben Sie eine gültige E-Mail-Adresse ein.', 'error');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Registriere...';
+                clearAlert('registerAlert');
+
+                const response = await fetch('/api/auth/register-praxis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        praxis_name: praxisName,
+                        praxis_email: praxisEmail,
+                        praxis_telefon: praxisPhone,
+                        praxis_adresse: praxisAddress,
+                        admin_name: adminName,
+                        admin_email: adminEmail,
+                        admin_password: adminPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showAlert('registerAlert', '✓ Registrierung erfolgreich! Melde Sie an...', 'success');
+                    
+                    // Auto-login after successful registration
+                    setTimeout(async () => {
+                        try {
+                            const loginResponse = await fetch('/api/auth/login', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    email: adminEmail,
+                                    password: adminPassword
+                                })
+                            });
+
+                            if (loginResponse.ok) {
+                                window.location.href = '/index.html';
+                            } else {
+                                showAlert('registerAlert', 'Registrierung erfolgreich! Bitte melden Sie sich an.', 'success');
+                                setTimeout(() => {
+                                    switchToLogin();
+                                    document.getElementById('login-email').value = adminEmail;
+                                }, 2000);
+                            }
+                        } catch (error) {
+                            showAlert('registerAlert', 'Registrierung erfolgreich! Bitte melden Sie sich an.', 'success');
+                            setTimeout(() => switchToLogin(), 2000);
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Registrierung fehlgeschlagen');
+                }
+            } catch (error) {
+                console.error('Registrierung Fehler:', error);
+                showAlert('registerAlert', error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // ESC to close modals
+            if (event.key === 'Escape') {
+                closeLoginModal();
+                closeRegisterModal();
+            }
+        });
+
+        console.log('🚀 Praxida 2.0 Landing Page geladen!');
+        console.log('✅ Login/Register System aktiv');
+        console.log('🎯 Demo-Account: admin@demo-praxis.de / demo123456');
     </script>
 </body>
 </html>
