@@ -1344,7 +1344,7 @@
             alert.textContent = '';
         }
 
-        // Demo Login
+        // Demo Login - REDIRECT TO /app
         async function loginDemo() {
             const btn = event.target;
             const originalText = btn.innerHTML;
@@ -1369,7 +1369,7 @@
                 if (response.ok && data.success) {
                     btn.innerHTML = '✓ Erfolgreich!';
                     setTimeout(() => {
-                        window.location.href = '/index.html';
+                        window.location.href = '/app';
                     }, 500);
                 } else {
                     throw new Error(data.error || 'Login fehlgeschlagen');
@@ -1382,7 +1382,7 @@
             }
         }
 
-        // Handle Login
+        // Handle Login - REDIRECT TO /app
         async function handleLogin(event) {
             event.preventDefault();
             
@@ -1415,7 +1415,7 @@
                 if (response.ok && data.success) {
                     showAlert('loginAlert', '✓ Login erfolgreich! Weiterleitung...', 'success');
                     setTimeout(() => {
-                        window.location.href = '/index.html';
+                        window.location.href = '/app';
                     }, 1000);
                 } else {
                     throw new Error(data.error || 'Login fehlgeschlagen');
@@ -1428,7 +1428,7 @@
             }
         }
 
-        // Handle Register
+        // Handle Register - REDIRECT TO /app
         async function handleRegister(event) {
             event.preventDefault();
             
@@ -1509,7 +1509,7 @@
                             });
 
                             if (loginResponse.ok) {
-                                window.location.href = '/index.html';
+                                window.location.href = '/app';
                             } else {
                                 showAlert('registerAlert', 'Registrierung erfolgreich! Bitte melden Sie sich an.', 'success');
                                 setTimeout(() => {
@@ -1545,6 +1545,7 @@
         console.log('🚀 Praxida 2.0 Landing Page geladen!');
         console.log('✅ Login/Register System aktiv');
         console.log('🎯 Demo-Account: admin@demo-praxis.de / demo123456');
+        console.log('🔗 Redirects: Alle logins gehen zu /app');
     </script>
 </body>
 </html>
