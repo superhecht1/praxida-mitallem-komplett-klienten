@@ -1985,28 +1985,6 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint nicht gefunden' });
 });
 
-// === ROUTING === //
-
-// Landing Page als Root (öffentlich zugänglich)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
-
-// Dashboard/App (benötigt Authentifizierung)
-app.get('/app', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Legacy Support für direkte index.html Aufrufe
-app.get('/index.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Fallback für unbekannte Routes -> zur Landing Page
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
-
 console.log('🔐 Multi-Tenant Authentication System aktiviert!');
 console.log('📝 Registrierung: POST /api/auth/register-praxis');
 console.log('🔑 Login: POST /api/auth/login');
