@@ -871,34 +871,42 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // Successful login
-    createLoginAttempt(email, true, ip, userAgent);
+createLoginAttempt(email, true, ip, userAgent);
 
-    // Create session
-    req.session.user = {
+// Create session
+req.session.user = {
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  praxis_id: user.praxis_id,
+  praxis_name: user.praxis_name
+};
+
+req.session.login_time = new Date().toISOString();
+req.session.ip = ip;
+
+// ✅ SESSION EXPLIZIT SPEICHERN!
+req.session.save((err) => {
+  if (err) {
+    console.error('❌ Session-Speicher-Fehler:', err);
+    return res.status(500).json({ error: 'Fehler beim Speichern der Session' });
+  }
+
+  console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
+
+  res.json({
+    success: true,
+    user: {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      praxis_id: user.praxis_id,
       praxis_name: user.praxis_name
-    };
-
-    req.session.login_time = new Date().toISOString();
-    req.session.ip = ip;
-
-    console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
-
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        praxis_name: user.praxis_name
-      },
-      message: 'Erfolgreich angemeldet'
-    });
+    },
+    message: 'Erfolgreich angemeldet'
+  });
+});
 
   } catch (error) {
     console.error('❌ Login-Fehler:', error);
