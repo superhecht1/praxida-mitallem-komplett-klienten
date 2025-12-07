@@ -92,6 +92,14 @@ app.get('/index.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// 🔍 DEBUG
+app.get('/', (req, res) => {
+  console.log('🎯 Root-Route aufgerufen!');
+  console.log('📁 Versuche zu laden:', path.join(__dirname, 'public', 'landing.html'));
+  console.log('📂 Datei existiert:', fs.existsSync(path.join(__dirname, 'public', 'landing.html')));
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+
 // --- Database Import --- //
 const {
   db,
