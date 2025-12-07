@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxida 2.0 - KI-Assistenz für Therapeuten | Intelligente Praxisverwaltung</title>
+    <meta name="description" content="Praxida 2.0 - Die intelligente KI-gestützte Praxisverwaltung für Therapeuten. DSGVO-konform, Multi-User-fähig, mit Audio-Transkription und System-Integration.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 20px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar.scrolled {
+            padding: 15px 0;
+            box-shadow: 0 2px 30px rgba(0,0,0,0.15);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 28px;
+            font-weight: 800;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #4CAF50, #A8E6CF);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 35px;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+            font-size: 16px;
+        }
+        
+        .nav-links a:hover {
+            color: #4CAF50;
+        }
+        
+        .nav-cta {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 12px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(76, 175, 80, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+        }
+        
+        .btn-secondary:hover {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 150px 30px 100px;
+            background: linear-gradient(135deg, #A8E6CF 0%, #4CAF50 100%);
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 30px); }
+        }
+        
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 25px;
+            line-height: 1.2;
+        }
+        
+        .hero .subtitle {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.95;
+            line-height: 1.5;
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 50px;
+        }
+        
+        .hero-cta .btn {
+            padding: 18px 40px;
+            font-size: 18px;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 50px;
+            justify-content: center;
+            margin-top: 60px;
+        }
+        
+        .hero-stat {
+            text-align: center;
+        }
+        
+        .hero-stat-number {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        
+        .hero-stat-label {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        /* Features Section */
+        .section {
+            padding: 100px 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+        
+        .section-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #4CAF50, #A8E6CF);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .section-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .section-subtitle {
+            font-size: 20px;
+            color: #666;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 2px solid #f5f5f5;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(76, 175, 80, 0.15);
+            border-color: #4CAF50;
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #4CAF50, #A8E6CF);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 25px;
+        }
+        
+        .feature-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card p {
+            color: #666;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        
+        /* How It Works */
+        .how-it-works {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+        }
+        
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+        
+        .step {
+            text-align: center;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: 800;
+            margin: 0 auto 25px;
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+        }
+        
+        .step h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .step p {
+            color: #666;
+            line-height: 1.7;
+        }
+        
+        /* Pricing */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 35px;
+            margin-top: 60px;
+        }
+        
+        .pricing-card {
+            background: white;
+            border-radius: 25px;
+            padding: 45px 35px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 3px solid #f5f5f5;
+            position: relative;
+        }
+        
+        .pricing-card.popular {
+            border-color: #4CAF50;
+            transform: scale(1.05);
+            box-shadow: 0 15px 50px rgba(76, 175, 80, 0.25);
+        }
+        
+        .pricing-badge {
+            position: absolute;
+            top: -15px;
+            right: 30px;
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        
+        .pricing-card h3 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .pricing-price {
+            font-size: 48px;
+            font-weight: 800;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .pricing-price span {
+            font-size: 20px;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .pricing-features {
+            list-style: none;
+            margin: 30px 0;
+            padding: 0;
+        }
+        
+        .pricing-features li {
+            padding: 12px 0;
+            color: #666;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .pricing-features li::before {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: 800;
+            font-size: 20px;
+        }
+        
+        /* Testimonials */
+        .testimonials {
+            background: white;
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 35px;
+            margin-top: 60px;
+        }
+        
+        .testimonial-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #eef2ff;
+            transition: all 0.3s ease;
+        }
+        
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+        }
+        
+        .testimonial-rating {
+            color: #FFD700;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .testimonial-text {
+            font-size: 17px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .testimonial-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 22px;
+        }
+        
+        .testimonial-info h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .testimonial-info p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* FAQ */
+        .faq {
+            background: linear-gradient(135deg, #f8f9ff, #eef2ff);
+        }
+        
+        .faq-list {
+            max-width: 800px;
+            margin: 60px auto 0;
+        }
+        
+        .faq-item {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-item:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+        
+        .faq-question {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .faq-icon {
+            font-size: 24px;
+            color: #4CAF50;
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            color: #666;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            margin-top: 20px;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            padding: 100px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
+            animation: rotate 30s infinite linear;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .cta-content {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .cta-section h2 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 25px;
+        }
+        
+        .cta-section p {
+            font-size: 22px;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+        
+        .cta-section .btn {
+            padding: 20px 50px;
+            font-size: 20px;
+            background: white;
+            color: #4CAF50;
+        }
+        
+        .cta-section .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(255,255,255,0.3);
+        }
+        
+        /* Footer */
+        .footer {
+            background: #1a1a1a;
+            color: white;
+            padding: 60px 30px 30px;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 50px;
+            margin-bottom: 50px;
+        }
+        
+        .footer-section h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+        
+        .footer-section p,
+        .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 12px;
+            line-height: 1.7;
+        }
+        
+        .footer-section a:hover {
+            color: #4CAF50;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #333;
+            color: #888;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .social-link {
+            width: 45px;
+            height: 45px;
+            background: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 20px;
+        }
+        
+        .social-link:hover {
+            background: #4CAF50;
+            transform: translateY(-3px);
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #333;
+        }
+        
+        /* Responsive */
+        @media (max-width: 968px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .hero h1 {
+                font-size: 42px;
+            }
+            
+            .hero .subtitle {
+                font-size: 20px;
+            }
+            
+            .hero-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 30px;
+            }
+            
+            .section-title {
+                font-size: 36px;
+            }
+            
+            .features-grid,
+            .pricing-grid,
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pricing-card.popular {
+                transform: none;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .social-links {
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .hero {
+                padding: 120px 20px 80px;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .hero .subtitle {
+                font-size: 18px;
+            }
+            
+            .section {
+                padding: 60px 20px;
+            }
+            
+            .section-title {
+                font-size: 28px;
+            }
+            
+            .btn {
+                padding: 12px 24px;
+                font-size: 14px;
+            }
+            
+            .cta-section h2 {
+                font-size: 32px;
+            }
+            
+            .cta-section p {
+                font-size: 18px;
+            }
+        }
+        
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Animation on Scroll */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+        
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <div class="logo-icon">🏥</div>
+                Praxida 2.0
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">So funktioniert's</a></li>
+                <li><a href="#pricing">Preise</a></li>
+                <li><a href="#testimonials">Referenzen</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <div class="nav-cta">
+                <a href="index.html" class="btn btn-secondary">Login</a>
+                <a href="index.html#register" class="btn btn-primary">Kostenlos testen</a>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>KI-gestützte Praxisverwaltung für moderne Therapeuten</h1>
+            <p class="subtitle">
+                Sparen Sie 10+ Stunden pro Woche mit intelligenter Automatisierung. 
+                DSGVO-konform, einfach zu bedienen, speziell für Therapeuten entwickelt.
+            </p>
+            <div class="hero-cta">
+                <a href="index.html#register" class="btn btn-primary">Jetzt kostenlos testen</a>
+                <a href="#how-it-works" class="btn btn-secondary">Demo ansehen</a>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-number">10+</div>
+                    <div class="hero-stat-label">Stunden gespart/Woche</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">95%</div>
+                    <div class="hero-stat-label">Zeiteinsparung Dokumentation</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">100%</div>
+                    <div class="hero-stat-label">DSGVO-konform</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+        <div class="section-header fade-in">
+            <div class="section-badge">Features</div>
+            <h2 class="section-title">Alles, was Ihre Praxis braucht</h2>
+            <p class="section-subtitle">
+                Von KI-gestützter Protokollerstellung bis zu intelligenter Terminplanung – 
+                Praxida vereint alle wichtigen Funktionen in einer Plattform.
+            </p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🎤</div>
+                <h3>Audio-Transkription</h3>
+                <p>Sprechen Sie während der Sitzung – Praxida erstellt automatisch strukturierte Therapieprotokolle mit Whisper-KI. Keine manuelle Nacharbeit mehr.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🤖</div>
+                <h3>KI-Assistenz</h3>
+                <p>Intelligente Vorschläge für Therapiepläne, automatische Zusammenfassungen und fachliche Unterstützung basierend auf aktuellen Leitlinien.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">📅</div>
+                <h3>Intelligentes Terminmanagement</h3>
+                <p>KI-gestützte Terminvorschläge, No-Show-Vorhersage, automatische Erinnerungen und nahtlose Kalender-Integration.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">👥</div>
+                <h3>Multi-User & Teams</h3>
+                <p>Sichere rollenbasierte Zugriffe, Team-Kollaboration, Supervision und DSGVO-konforme Datenteilung zwischen Kollegen.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🔗</div>
+                <h3>System-Integration</h3>
+                <p>Nahtlose Anbindung an CGM ALBIS, KV-Systeme, Doctolib und weitere Praxissoftware. Keine Doppelerfassung mehr.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🔍</div>
+                <h3>Datei-Analyse</h3>
+                <p>Laden Sie Bilder, PDFs oder Dokumente hoch – die KI analysiert und strukturiert therapeutisch relevante Informationen.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">📋</div>
+                <h3>Therapieplanung</h3>
+                <p>Erstellen Sie evidenzbasierte Therapiepläne mit Meilensteinen, Fortschrittstracking und automatischen Verlaufsberichten.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🔐</div>
+                <h3>DSGVO & Sicherheit</h3>
+                <p>Höchste Sicherheitsstandards, AES-256-Verschlüsselung, 2FA-Authentifizierung und vollständige DSGVO-Konformität.</p>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">✅</div>
+                <h3>To-Dos & Erinnerungen</h3>
+                <p>Intelligente Aufgabenverwaltung mit automatischer Generierung aus Therapiesitzungen. Nie wieder etwas vergessen.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section how-it-works" id="how-it-works">
+        <div class="section-header fade-in">
+            <div class="section-badge">So einfach geht's</div>
+            <h2 class="section-title">In 3 Schritten zur digitalen Praxis</h2>
+            <p class="section-subtitle">
+                Starten Sie in wenigen Minuten – keine komplizierte Einrichtung, keine Schulungen erforderlich.
+            </p>
+        </div>
+        <div class="steps">
+            <div class="step fade-in">
+                <div class="step-number">1</div>
+                <h3>Praxis registrieren</h3>
+                <p>Erstellen Sie Ihren Account in 2 Minuten. Fügen Sie Team-Mitglieder hinzu und legen Sie Berechtigungen fest.</p>
+            </div>
+            <div class="step fade-in">
+                <div class="step-number">2</div>
+                <h3>Klienten importieren</h3>
+                <p>Importieren Sie bestehende Klientendaten oder legen Sie neue an. Optional: Verbinden Sie Ihre Praxissoftware.</p>
+            </div>
+            <div class="step fade-in">
+                <div class="step-number">3</div>
+                <h3>Loslegen & Zeit sparen</h3>
+                <p>Nutzen Sie Audio-Transkription, KI-Assistenz und alle Features. Sparen Sie ab dem ersten Tag Zeit.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section" id="pricing">
+        <div class="section-header fade-in">
+            <div class="section-badge">Preise</div>
+            <h2 class="section-title">Transparent & fair</h2>
+            <p class="section-subtitle">
+                Keine versteckten Kosten. Jederzeit kündbar. 30 Tage Geld-zurück-Garantie.
+            </p>
+        </div>
+        <div class="pricing-grid">
+            <div class="pricing-card fade-in">
+                <h3>Starter</h3>
+                <div class="pricing-price">49€<span>/Monat</span></div>
+                <ul class="pricing-features">
+                    <li>1 Benutzer</li>
+                    <li>Bis zu 20 Klienten</li>
+                    <li>Audio-Transkription</li>
+                    <li>KI-Assistenz</li>
+                    <li>Basis-Terminverwaltung</li>
+                    <li>DSGVO-konform</li>
+                    <li>Email-Support</li>
+                </ul>
+                <a href="index.html#register" class="btn btn-secondary" style="width: 100%;">Jetzt starten</a>
+            </div>
+            
+            <div class="pricing-card popular fade-in">
+                <div class="pricing-badge">Beliebteste</div>
+                <h3>Professional</h3>
+                <div class="pricing-price">99€<span>/Monat</span></div>
+                <ul class="pricing-features">
+                    <li>Bis zu 5 Benutzer</li>
+                    <li>Unbegrenzte Klienten</li>
+                    <li>Alle Starter-Features</li>
+                    <li>System-Integration</li>
+                    <li>Team-Kollaboration</li>
+                    <li>Erweiterte Therapieplanung</li>
+                    <li>No-Show-Vorhersage</li>
+                    <li>Priority Support</li>
+                </ul>
+                <a href="index.html#register" class="btn btn-primary" style="width: 100%;">Jetzt starten</a>
+            </div>
+            
+            <div class="pricing-card fade-in">
+                <h3>Enterprise</h3>
+                <div class="pricing-price">249€<span>/Monat</span></div>
+                <ul class="pricing-features">
+                    <li>Unbegrenzte Benutzer</li>
+                    <li>Unbegrenzte Klienten</li>
+                    <li>Alle Professional-Features</li>
+                    <li>Dedizierter Account Manager</li>
+                    <li>Custom-Integration</li>
+                    <li>On-Premise Option</li>
+                    <li>Individuelle Schulungen</li>
+                    <li>24/7 Premium Support</li>
+                </ul>
+                <a href="#contact" class="btn btn-secondary" style="width: 100%;">Kontakt aufnehmen</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section testimonials" id="testimonials">
+        <div class="section-header fade-in">
+            <div class="section-badge">Referenzen</div>
+            <h2 class="section-title">Was unsere Kunden sagen</h2>
+            <p class="section-subtitle">
+                Über 500 Therapeuten vertrauen bereits auf Praxida 2.0
+            </p>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card fade-in">
+                <div class="testimonial-rating">★★★★★</div>
+                <p class="testimonial-text">
+                    "Praxida hat meine Praxis revolutioniert. Die Audio-Transkription spart mir mindestens 
+                    2 Stunden täglich. Ich kann mich endlich wieder auf das Wesentliche konzentrieren."
+                </p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">SM</div>
+                    <div class="testimonial-info">
+                        <h4>Dr. Sarah Müller</h4>
+                        <p>Psychotherapeutin, Köln</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card fade-in">
+                <div class="testimonial-rating">★★★★★</div>
+                <p class="testimonial-text">
+                    "Die System-Integration mit unserer bestehenden Software funktioniert perfekt. 
+                    Keine Doppelerfassung mehr. Das Team-Management ist hervorragend."
+                </p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">TK</div>
+                    <div class="testimonial-info">
+                        <h4>Thomas Klein</h4>
+                        <p>Praxisleiter, München</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card fade-in">
+                <div class="testimonial-rating">★★★★★</div>
+                <p class="testimonial-text">
+                    "Als Einzelkämpferin war ich skeptisch. Aber Praxida ist so intuitiv, 
+                    dass ich nach 10 Minuten produktiv arbeiten konnte. Der Support ist fantastisch!"
+                </p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">LW</div>
+                    <div class="testimonial-info">
+                        <h4>Lisa Wagner</h4>
+                        <p>Verhaltenstherapeutin, Berlin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section faq" id="faq">
+        <div class="section-header fade-in">
+            <div class="section-badge">FAQ</div>
+            <h2 class="section-title">Häufig gestellte Fragen</h2>
+            <p class="section-subtitle">
+                Hier finden Sie Antworten auf die wichtigsten Fragen zu Praxida 2.0
+            </p>
+        </div>
+        <div class="faq-list">
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    Ist Praxida DSGVO-konform?
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Ja, Praxida 2.0 ist vollständig DSGVO-konform. Alle Daten werden in Deutschland gespeichert, 
+                    mit AES-256 verschlüsselt und unterliegen höchsten Sicherheitsstandards. Wir haben einen 
+                    Auftragsverarbeitungsvertrag (AVV) für alle Kunden.
+                </div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    Wie funktioniert die Audio-Transkription?
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Die Audio-Transkription nutzt OpenAI's Whisper-Technologie. Sie können während oder nach der 
+                    Sitzung sprechen, und Praxida erstellt automatisch ein strukturiertes Therapieprotokoll. 
+                    Die KI erkennt Fachbegriffe und formatiert das Protokoll therapeutisch sinnvoll.
+                </div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    Kann ich meine bestehende Praxissoftware weiter nutzen?
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Ja! Praxida integriert sich mit den meisten Praxisverwaltungssystemen wie CGM ALBIS, TurboMed, 
+                    medistar und vielen weiteren. Die Integration erfolgt über sichere APIs und vermeidet 
+                    Doppelerfassungen.
+                </div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    Gibt es eine Testphase?
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Ja, Sie können Praxida 30 Tage kostenlos testen – ohne Kreditkarte, ohne Verpflichtung. 
+                    Sie haben vollen Zugriff auf alle Features. Nach der Testphase entscheiden Sie, 
+                    ob Sie weitermachen möchten.
+                </div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    Wie schnell kann ich starten?
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Sie können sofort loslegen! Die Registrierung dauert 2 Minuten, und Sie können direkt 
+                    mit der Arbeit beginnen. Für komplexere Integrationen bieten wir kostenlose Onboarding-Sessions an.
+                </div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    Was passiert mit meinen Daten bei Kündigung?
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Bei Kündigung können Sie alle Ihre Daten exportieren. Wir behalten die Daten noch 90 Tage 
+                    gespeichert (falls Sie zurückkommen möchten), danach werden sie unwiderruflich gelöscht. 
+                    Sie haben jederzeit volle Kontrolle über Ihre Daten.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Bereit für die digitale Zukunft Ihrer Praxis?</h2>
+            <p>Starten Sie jetzt kostenlos und erleben Sie, wie Praxida Ihren Arbeitsalltag verändert.</p>
+            <a href="index.html#register" class="btn">30 Tage kostenlos testen</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Praxida 2.0</h3>
+                <p>Die intelligente KI-Assistenz für moderne Therapeuten. DSGVO-konform, intuitiv, effizient.</p>
+                <div class="social-links">
+                    <a href="#" class="social-link">📘</a>
+                    <a href="#" class="social-link">🐦</a>
+                    <a href="#" class="social-link">💼</a>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Produkt</h3>
+                <a href="#features">Features</a>
+                <a href="#pricing">Preise</a>
+                <a href="#how-it-works">Demo</a>
+                <a href="index.html">Login</a>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Unternehmen</h3>
+                <a href="#about">Über uns</a>
+                <a href="#careers">Karriere</a>
+                <a href="#press">Presse</a>
+                <a href="#partners">Partner</a>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Rechtliches</h3>
+                <a href="#privacy">Datenschutz</a>
+                <a href="#terms">AGB</a>
+                <a href="#imprint">Impressum</a>
+                <a href="#avv">AVV</a>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Kontakt</h3>
+                <p>📧 info@praxida.de</p>
+                <p>📞 +49 221 123 456 78</p>
+                <p>📍 Musterstraße 123<br>50667 Köln</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Praxida 2.0. Alle Rechte vorbehalten. Made with ❤️ in Köln</p>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // FAQ Toggle
+        function toggleFaq(element) {
+            element.classList.toggle('active');
+        }
+
+        // Fade in on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(element => {
+            observer.observe(element);
+        });
+
+        // Mobile Menu Toggle (placeholder)
+        function toggleMobileMenu() {
+            alert('Mobile Menu öffnen - In der Produktion würde hier ein Slide-in Menü erscheinen');
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#' && href !== '#register') {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            });
+        });
+
+        console.log('🎉 Praxida 2.0 Landing Page geladen!');
+    </script>
+</body>
+</html>
