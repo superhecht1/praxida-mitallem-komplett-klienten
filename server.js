@@ -518,6 +518,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"], // ✅ DIES HINZUFÜGEN!
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", "https://api.openai.com"]
     }
