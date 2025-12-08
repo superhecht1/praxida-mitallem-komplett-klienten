@@ -713,13 +713,13 @@ app.get('/', (req, res) => {
 // Dashboard/App (mit Authentication)
 app.get('/app', requireAuth, (req, res) => {
   console.log('🎯 Dashboard Route aufgerufen für:', req.user.name);
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Legacy Support für index.html
 app.get('/index.html', requireAuth, (req, res) => {
   console.log('🎯 Legacy index.html Route aufgerufen');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Static Files NACH den Routes, mit index: false
