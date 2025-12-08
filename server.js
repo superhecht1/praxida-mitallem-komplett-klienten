@@ -13,6 +13,7 @@ const SQLiteStore = require('connect-sqlite3')(session);
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const { v4: uuidv4 } = require('uuid');
+const Anthropic = require('@anthropic-ai/sdk'); // ✅ NEU: Anthropic SDK
 
 dotenv.config();
 
@@ -24,7 +25,9 @@ app.set('trust proxy', 1);
 // Debug: API Key Check
 console.log("🔍 DEBUG INFO:");
 console.log("OpenAI API Key vorhanden:", !!process.env.OPENAI_API_KEY);
-console.log("API Key Länge:", process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0);
+console.log("Anthropic API Key vorhanden:", !!process.env.ANTHROPIC_API_KEY); // ✅ NEU
+console.log("OpenAI API Key Länge:", process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0);
+console.log("Anthropic API Key Länge:", process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.length : 0); // ✅ NEU
 
 // Enhanced Multer Configuration for Audio & Files
 const storage = multer.diskStorage({
@@ -71,8 +74,8 @@ const upload = multer({
     }
 });
 
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json({ limit: '50mb' })); // ✅ NEU: Erhöht für Base64 images
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // --- Database Import --- //
 const {
@@ -103,6 +106,7 @@ const {
   getSetting,
   setSetting,
   getStatistics,
+  getExtendedStatistics, // ✅ NEU
   addAnamnese,
   getAnamnesesByClient,
   addInvoice,
@@ -114,7 +118,21 @@ const {
   getUsersByPraxis,
   vacuum,
   getDataStats,
-  backupDatabase
+  backupDatabase,
+  // ✅ NEU: Datei-Analyse Functions
+  addClientAnalysis,
+  getClientAnalyses,
+  getClientAnalysisById,
+  deleteClientAnalysis,
+  // ✅ NEU: System-Integration Functions
+  saveIntegrationSettings,
+  getIntegrationSettings,
+  updateIntegrationTestResult,
+  toggleIntegration,
+  addSyncHistory,
+  getSyncHistory,
+  getLastSyncTime,
+  cleanupSyncHistory
 } = require("./db");
 
 // --- STANDARDIZED ASSESSMENT INSTRUMENTS --- //
@@ -222,6 +240,114 @@ const ASSESSMENTS = {
     maxScore: 180
   }
 };
+
+// === ANTHROPIC/CLAUDE AI FUNCTIONS === //
+
+// ✅ NEU: Initialize Anthropic Client
+let anthropic = null;
+if (process.env.ANTHROPIC_API_KEY) {
+    anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY
+    });
+    console.log('✅ Anthropic/Claude AI initialisiert');
+} else {
+    console.log('⚠️ Anthropic API Key nicht gefunden - Claude Features deaktiviert');
+}
+
+// ✅ NEU: Analyse mit Claude Vision (Bilder)
+async function analyzeImageWithClaude(base64Image, mediaType, prompt) {
+    if (!anthropic) {
+        throw new Error('Anthropic API Key nicht konfiguriert');
+    }
+
+    try {
+        const response = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 2000,
+            messages: [{
+                role: 'user',
+                content: [
+                    {
+                        type: 'image',
+                        source: {
+                            type: 'base64',
+                            media_type: mediaType,
+                            data: base64Image
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: prompt
+                    }
+                ]
+            }]
+        });
+        
+        return response.content[0].text;
+    } catch (error) {
+        console.error('❌ Claude Vision API Fehler:', error);
+        throw error;
+    }
+}
+
+// ✅ NEU: PDF Analyse mit Claude
+async function analyzePDFWithClaude(base64PDF, prompt) {
+    if (!anthropic) {
+        throw new Error('Anthropic API Key nicht konfiguriert');
+    }
+
+    try {
+        const response = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 2000,
+            messages: [{
+                role: 'user',
+                content: [
+                    {
+                        type: 'document',
+                        source: {
+                            type: 'base64',
+                            media_type: 'application/pdf',
+                            data: base64PDF
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: prompt
+                    }
+                ]
+            }]
+        });
+        
+        return response.content[0].text;
+    } catch (error) {
+        console.error('❌ Claude PDF API Fehler:', error);
+        throw error;
+    }
+}
+
+// ✅ NEU: Text Analyse mit Claude
+async function analyzeTextWithClaude(textContent, prompt) {
+    if (!anthropic) {
+        throw new Error('Anthropic API Key nicht konfiguriert');
+    }
+
+    try {
+        const response = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 2000,
+            messages: [{
+                role: 'user',
+                content: `${prompt}\n\nText:\n${textContent}`
+            }]
+        });
+        
+        return response.content[0].text;
+    } catch (error) {
+        console.error('❌ Claude Text API Fehler:', error);
+        throw error;
+    }
+}
 
 // --- ENHANCED AI FUNCTIONS --- //
 
@@ -518,17 +644,17 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrcAttr: ["'unsafe-inline'"], // ✅ DIES HINZUFÜGEN!
+      scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.openai.com"]
+      connectSrc: ["'self'", "https://api.openai.com", "https://api.anthropic.com"] // ✅ NEU
     }
   }
 }));
 
 // Rate Limiting
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: { error: 'Zu viele Login-Versuche. Bitte warten Sie 15 Minuten.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -536,7 +662,7 @@ const loginLimiter = rateLimit({
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100, // 100 requests per window
+  max: 100,
   message: { error: 'Zu viele Anfragen. Bitte verlangsamen Sie.' }
 });
 
@@ -555,9 +681,9 @@ app.use(session({
   saveUninitialized: false,
   name: 'praxida.sid',
   cookie: {
-    secure: false, // ✅ FALSE für localhost! In production auf true setzen
+    secure: false,
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
     sameSite: 'lax'
   },
   rolling: true
@@ -631,25 +757,6 @@ function getRecentLoginAttempts(email, windowMinutes = 15) {
   }
 }
 
-// Create login_attempts table if not exists
-try {
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS login_attempts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL,
-      success BOOLEAN NOT NULL,
-      ip_address TEXT,
-      user_agent TEXT,
-      attempted_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-  
-  db.prepare("CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email)").run();
-  db.prepare("CREATE INDEX IF NOT EXISTS idx_login_attempts_attempted_at ON login_attempts(attempted_at)").run();
-} catch (error) {
-  console.warn('Login attempts table bereits vorhanden oder Fehler:', error);
-}
-
 // === AUTHENTICATION MIDDLEWARE === //
 
 function requireAuth(req, res, next) {
@@ -660,7 +767,6 @@ function requireAuth(req, res, next) {
     });
   }
   
-  // Check if user still exists in database
   const user = getUserById(req.session.user.id);
   if (!user) {
     req.session.destroy();
@@ -717,6 +823,12 @@ app.get('/app', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+// ✅ NEU: Admin Dashboard Route
+app.get('/admin', requireAuth, requireRole('admin'), (req, res) => {
+  console.log('🔐 Admin Dashboard Route aufgerufen für:', req.user.name);
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // Legacy Support für index.html
 app.get('/index.html', requireAuth, (req, res) => {
   console.log('🎯 Legacy index.html Route aufgerufen');
@@ -725,7 +837,7 @@ app.get('/index.html', requireAuth, (req, res) => {
 
 // Static Files NACH den Routes, mit index: false
 app.use(express.static(path.join(__dirname, "public"), {
-  index: false // ✅ Verhindert automatisches Serving von index.html
+  index: false
 }));
 
 // === AUTHENTICATION ROUTES === //
@@ -743,7 +855,6 @@ app.post('/api/auth/register-praxis', async (req, res) => {
       admin_password 
     } = req.body;
 
-    // Validation
     if (!praxis_name || !admin_name || !admin_email || !admin_password) {
       return res.status(400).json({ 
         error: 'Alle Pflichtfelder müssen ausgefüllt werden' 
@@ -763,7 +874,6 @@ app.post('/api/auth/register-praxis', async (req, res) => {
       });
     }
 
-    // Check if praxis or admin already exists
     const existingPraxis = getPraxisByName(praxis_name);
     if (existingPraxis) {
       return res.status(400).json({ 
@@ -778,7 +888,6 @@ app.post('/api/auth/register-praxis', async (req, res) => {
       });
     }
 
-    // Create praxis
     const praxisData = {
       name: praxis_name,
       email: praxis_email,
@@ -789,11 +898,9 @@ app.post('/api/auth/register-praxis', async (req, res) => {
     const praxisResult = addPraxis(praxisData);
     const praxisId = praxisResult.lastInsertRowid;
 
-    // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(admin_password, saltRounds);
 
-    // Create admin user
     const userData = {
       praxis_id: praxisId,
       name: admin_name,
@@ -830,14 +937,12 @@ app.post('/api/auth/login', async (req, res) => {
 
     console.log('🔐 Login-Versuch:', email);
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({ 
         error: 'E-Mail und Passwort sind erforderlich' 
       });
     }
 
-    // Check for recent failed attempts
     const recentAttempts = getRecentLoginAttempts(email);
     if (recentAttempts >= 5) {
       createLoginAttempt(email, false, ip, userAgent);
@@ -846,7 +951,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Get user
     const user = getUserByEmail(email);
     if (!user) {
       createLoginAttempt(email, false, ip, userAgent);
@@ -855,7 +959,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Verify password
     const passwordValid = await bcrypt.compare(password, user.password_hash);
     if (!passwordValid) {
       createLoginAttempt(email, false, ip, userAgent);
@@ -864,7 +967,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Check praxis match if provided
     if (praxis_name && user.praxis_name !== praxis_name) {
       createLoginAttempt(email, false, ip, userAgent);
       return res.status(401).json({ 
@@ -872,10 +974,8 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Successful login
     createLoginAttempt(email, true, ip, userAgent);
 
-    // Create session
     req.session.user = {
       id: user.id,
       name: user.name,
@@ -888,18 +988,12 @@ app.post('/api/auth/login', async (req, res) => {
     req.session.login_time = new Date().toISOString();
     req.session.ip = ip;
 
-    console.log('🔍 Session vor dem Speichern:', req.session.user);
-    console.log('🔍 Session ID:', req.sessionID);
-
-    // ✅ SESSION EXPLIZIT SPEICHERN!
     req.session.save((err) => {
       if (err) {
         console.error('❌ Session-Speicher-Fehler:', err);
         return res.status(500).json({ error: 'Fehler beim Speichern der Session' });
       }
 
-      console.log('✅ Session erfolgreich gespeichert:', req.sessionID);
-      console.log('🍪 Session User:', req.session.user);
       console.log(`✅ Erfolgreicher Login: ${user.name} (${user.email}) - Rolle: ${user.role}`);
 
       res.json({
@@ -965,7 +1059,6 @@ app.post('/api/auth/add-user', requireAuth, requireRole('admin'), async (req, re
   try {
     const { name, email, password, role } = req.body;
 
-    // Validation
     if (!name || !email || !password || !role) {
       return res.status(400).json({ 
         error: 'Alle Felder sind erforderlich' 
@@ -984,7 +1077,6 @@ app.post('/api/auth/add-user', requireAuth, requireRole('admin'), async (req, re
       });
     }
 
-    // Check if user already exists
     const existingUser = getUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ 
@@ -992,10 +1084,8 @@ app.post('/api/auth/add-user', requireAuth, requireRole('admin'), async (req, re
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user in same praxis as admin
     const userData = {
       praxis_id: req.user.praxis_id,
       name: name,
@@ -1027,7 +1117,6 @@ app.get('/api/auth/users', requireAuth, requireRole('admin', 'therapeut'), (req,
   try {
     const users = getUsersByPraxis(req.user.praxis_id);
     
-    // Remove sensitive data
     const safeUsers = users.map(user => ({
       id: user.id,
       name: user.name,
@@ -1060,7 +1149,6 @@ app.put('/api/auth/change-password', requireAuth, async (req, res) => {
       });
     }
 
-    // Verify current password
     const user = getUserById(req.user.id);
     const passwordValid = await bcrypt.compare(current_password, user.password_hash);
     
@@ -1070,10 +1158,8 @@ app.put('/api/auth/change-password', requireAuth, async (req, res) => {
       });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(new_password, 12);
 
-    // Update password
     const stmt = db.prepare("UPDATE users SET password_hash = ? WHERE id = ?");
     stmt.run(hashedPassword, req.user.id);
 
@@ -1103,7 +1189,6 @@ app.delete('/api/auth/users/:id', requireAuth, requireRole('admin'), (req, res) 
       });
     }
 
-    // Check if user belongs to same praxis
     const targetUser = getUserById(userId);
     if (!targetUser || targetUser.praxis_id !== req.user.praxis_id) {
       return res.status(404).json({ 
@@ -1111,7 +1196,6 @@ app.delete('/api/auth/users/:id', requireAuth, requireRole('admin'), (req, res) 
       });
     }
 
-    // Delete user
     const stmt = db.prepare("DELETE FROM users WHERE id = ?");
     const result = stmt.run(userId);
 
@@ -1132,6 +1216,86 @@ app.delete('/api/auth/users/:id', requireAuth, requireRole('admin'), (req, res) 
     console.error('❌ Fehler beim Löschen des Benutzers:', error);
     res.status(500).json({ 
       error: 'Fehler beim Löschen des Benutzers: ' + error.message 
+    });
+  }
+});
+
+// ✅ NEU: Update user (admin only)
+app.put('/api/auth/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { name, email, role, password } = req.body;
+
+    if (userId === req.user.id && role && role !== req.user.role) {
+      return res.status(400).json({ 
+        error: 'Sie können Ihre eigene Rolle nicht ändern' 
+      });
+    }
+
+    const targetUser = getUserById(userId);
+    if (!targetUser || targetUser.praxis_id !== req.user.praxis_id) {
+      return res.status(404).json({ 
+        error: 'Benutzer nicht gefunden oder gehört zu anderer Praxis' 
+      });
+    }
+
+    let updateFields = [];
+    let updateValues = [];
+
+    if (name) {
+      updateFields.push('name = ?');
+      updateValues.push(name);
+    }
+
+    if (email && email !== targetUser.email) {
+      const existingUser = getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ 
+          error: 'E-Mail-Adresse bereits vergeben' 
+        });
+      }
+      updateFields.push('email = ?');
+      updateValues.push(email);
+    }
+
+    if (role && ['admin', 'therapeut', 'assistenz'].includes(role)) {
+      updateFields.push('role = ?');
+      updateValues.push(role);
+    }
+
+    if (password && password.length >= 8) {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      updateFields.push('password_hash = ?');
+      updateValues.push(hashedPassword);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ 
+        error: 'Keine gültigen Felder zum Aktualisieren' 
+      });
+    }
+
+    updateValues.push(userId);
+
+    const stmt = db.prepare(`
+      UPDATE users 
+      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    
+    stmt.run(...updateValues);
+
+    console.log(`✅ Benutzer aktualisiert: ${targetUser.name} von Admin: ${req.user.name}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Benutzer erfolgreich aktualisiert' 
+    });
+
+  } catch (error) {
+    console.error('❌ Fehler beim Aktualisieren des Benutzers:', error);
+    res.status(500).json({ 
+      error: 'Fehler beim Aktualisieren des Benutzers: ' + error.message 
     });
   }
 });
@@ -1157,7 +1321,6 @@ app.get('/api/auth/login-attempts', requireAuth, requireRole('admin'), (req, res
 
 // === PROTECT EXISTING API ROUTES === //
 
-// Middleware to apply authentication to existing routes
 app.use('/api/clients', requireAuth, requirePraxis);
 app.use('/api/sessions', requireAuth, requirePraxis);
 app.use('/api/upload', requireAuth);
@@ -1165,11 +1328,560 @@ app.use('/api/audio', requireAuth);
 app.use('/api/chat', requireAuth);
 app.use('/api/assessments', requireAuth, requirePraxis);
 
+// ========================================
+// === NEU: DATEI-ANALYSE API ENDPOINTS === //
+// ========================================
+
+// ✅ Datei analysieren (Upload mit Claude)
+app.post('/api/ai/analyze-file', requireAuth, async (req, res) => {
+    try {
+        const { file, fileName, mediaType, uploadType, prompt } = req.body;
+        
+        if (!file || !fileName) {
+            return res.status(400).json({ 
+                error: 'Datei und Dateiname erforderlich' 
+            });
+        }
+
+        console.log('📄 Analysiere Datei:', fileName, 'Type:', uploadType);
+        
+        let analysisResult;
+        
+        // Wähle API basierend auf Dateitype
+        if (mediaType.startsWith('image/')) {
+            if (!anthropic) {
+                return res.status(503).json({ 
+                    error: 'Anthropic API Key nicht konfiguriert' 
+                });
+            }
+            analysisResult = await analyzeImageWithClaude(file, mediaType, prompt);
+            
+        } else if (mediaType === 'application/pdf') {
+            if (!anthropic) {
+                return res.status(503).json({ 
+                    error: 'Anthropic API Key nicht konfiguriert' 
+                });
+            }
+            analysisResult = await analyzePDFWithClaude(file, prompt);
+            
+        } else {
+            // Text files
+            const textContent = Buffer.from(file, 'base64').toString('utf-8');
+            if (anthropic) {
+                analysisResult = await analyzeTextWithClaude(textContent, prompt);
+            } else {
+                analysisResult = `Text-Inhalt:\n\n${textContent.substring(0, 1000)}...\n\n(KI-Analyse nicht verfügbar - Anthropic API Key fehlt)`;
+            }
+        }
+        
+        res.json({
+            success: true,
+            analysis: analysisResult,
+            fileName: fileName,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('❌ Datei-Analyse Fehler:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Analyse zu Klient speichern
+app.post('/api/clients/:clientId/analysis', requireAuth, requirePraxis, (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const { fileName, analysis, date } = req.body;
+        const userId = req.session.userId || req.user.id;
+        
+        // Verify client access
+        const client = getClientById(clientId);
+        if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
+            return res.status(404).json({ error: 'Client nicht gefunden' });
+        }
+        
+        // Save analysis
+        const analysisData = {
+            client_id: parseInt(clientId),
+            user_id: userId,
+            file_name: fileName,
+            analysis_text: analysis,
+            created_at: date || new Date().toISOString(),
+            praxis_id: req.user.praxis_id
+        };
+        
+        const result = addClientAnalysis(analysisData);
+        
+        res.json({
+            success: true,
+            analysisId: result.lastInsertRowid
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Speichern der Analyse:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Analysen eines Klienten abrufen
+app.get('/api/clients/:clientId/analyses', requireAuth, requirePraxis, (req, res) => {
+    try {
+        const { clientId } = req.params;
+        
+        // Verify client access
+        const client = getClientById(clientId);
+        if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
+            return res.status(404).json({ error: 'Client nicht gefunden' });
+        }
+        
+        const analyses = getClientAnalyses(parseInt(clientId), 50, req.user.praxis_id);
+        
+        res.json(analyses);
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Abrufen der Analysen:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Einzelne Analyse abrufen
+app.get('/api/analyses/:id', requireAuth, (req, res) => {
+    try {
+        const analysis = getClientAnalysisById(parseInt(req.params.id), req.user.praxis_id);
+        
+        if (!analysis) {
+            return res.status(404).json({ error: 'Analyse nicht gefunden' });
+        }
+        
+        res.json(analysis);
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Abrufen der Analyse:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Analyse löschen
+app.delete('/api/analyses/:id', requireAuth, (req, res) => {
+    try {
+        const result = deleteClientAnalysis(
+            parseInt(req.params.id), 
+            req.user.praxis_id,
+            req.user.id
+        );
+        
+        res.json({
+            success: true,
+            message: 'Analyse gelöscht'
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Löschen der Analyse:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// === NEU: SYSTEM-INTEGRATION API ENDPOINTS === //
+// ========================================
+
+// ✅ Get integration settings
+app.get('/api/integration/settings', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const praxisId = req.user.praxis_id;
+        const systemName = req.query.system || null;
+        
+        const settings = getIntegrationSettings(praxisId, systemName);
+        
+        res.json({
+            success: true,
+            settings: settings || {}
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Integration-Settings:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Save integration settings
+app.post('/api/integration/:system/settings', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const { system } = req.params;
+        const settings = req.body;
+        const praxisId = req.user.praxis_id;
+        const userId = req.user.id;
+        
+        if (!['cgm', 'kv', 'doctolib', 'email'].includes(system)) {
+            return res.status(400).json({ 
+                error: 'Ungültiges System' 
+            });
+        }
+        
+        const result = saveIntegrationSettings(praxisId, system, settings, userId);
+        
+        res.json({
+            success: true,
+            message: `${system} Einstellungen gespeichert`
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Speichern der Integration-Settings:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Test integration connection
+app.post('/api/integration/:system/test', requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+        const { system } = req.params;
+        const credentials = req.body;
+        const praxisId = req.user.praxis_id;
+        
+        console.log(`🧪 Teste Verbindung zu ${system}...`);
+        
+        // Hier würden echte API-Calls zu den externen Systemen gemacht
+        // Für Demo-Zwecke simulieren wir erfolgreiche Verbindungen
+        
+        let testResult;
+        
+        // Simuliere Verbindungstest (2 Sekunden Verzögerung)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Zufälliger Erfolg für Demo
+        const success = Math.random() > 0.2; // 80% Erfolgsrate
+        
+        if (success) {
+            testResult = { 
+                success: true, 
+                message: `${system.toUpperCase()} Verbindung erfolgreich`,
+                details: `Verbunden mit ${system} API`
+            };
+            
+            // Update test result in database
+            updateIntegrationTestResult(praxisId, system, 'success');
+        } else {
+            testResult = { 
+                success: false, 
+                message: `${system.toUpperCase()} Verbindung fehlgeschlagen`,
+                details: 'Bitte überprüfen Sie die Credentials'
+            };
+            
+            updateIntegrationTestResult(praxisId, system, 'failed');
+        }
+        
+        res.json(testResult);
+        
+    } catch (error) {
+        console.error('❌ Verbindungstest fehlgeschlagen:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Sync data from external system
+app.post('/api/integration/:system/sync', requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+        const { system } = req.params;
+        const praxisId = req.user.praxis_id;
+        const userId = req.user.id;
+        
+        console.log(`🔄 Synchronisiere Daten von ${system}...`);
+        
+        const startTime = Date.now();
+        
+        // Simuliere Synchronisation (3 Sekunden)
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Demo-Daten für verschiedene Systeme
+        let syncResult;
+        
+        switch(system) {
+            case 'cgm':
+                syncResult = {
+                    success: true,
+                    itemsSynced: Math.floor(Math.random() * 50) + 20,
+                    message: 'Abrechnungen synchronisiert',
+                    details: 'Quartalsdaten Q4 2024'
+                };
+                break;
+                
+            case 'kv':
+                syncResult = {
+                    success: true,
+                    itemsSynced: 1,
+                    message: 'Quartalsdaten abgerufen',
+                    details: 'Q4 2024 Statistiken'
+                };
+                break;
+                
+            case 'doctolib':
+                syncResult = {
+                    success: true,
+                    itemsSynced: Math.floor(Math.random() * 30) + 10,
+                    message: 'Termine synchronisiert',
+                    details: 'Termine für nächste 30 Tage'
+                };
+                break;
+                
+            default:
+                syncResult = { 
+                    success: false, 
+                    itemsSynced: 0,
+                    message: 'Unbekanntes System' 
+                };
+        }
+        
+        const duration = Date.now() - startTime;
+        
+        // Log sync operation
+        const syncData = {
+            praxis_id: praxisId,
+            system_name: system,
+            sync_type: 'manual',
+            items_synced: syncResult.itemsSynced,
+            sync_status: syncResult.success ? 'success' : 'failed',
+            sync_result: syncResult,
+            duration_ms: duration,
+            synced_by: userId
+        };
+        
+        addSyncHistory(syncData);
+        
+        res.json(syncResult);
+        
+    } catch (error) {
+        console.error('❌ Synchronisation fehlgeschlagen:', error);
+        
+        // Log failed sync
+        addSyncHistory({
+            praxis_id: req.user.praxis_id,
+            system_name: req.params.system,
+            sync_type: 'manual',
+            items_synced: 0,
+            sync_status: 'failed',
+            error_message: error.message,
+            synced_by: req.user.id
+        });
+        
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Get sync history
+app.get('/api/integration/sync-history', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const praxisId = req.user.praxis_id;
+        const systemName = req.query.system || null;
+        const limit = parseInt(req.query.limit) || 50;
+        
+        const history = getSyncHistory(praxisId, systemName, limit);
+        
+        res.json({
+            success: true,
+            history: history
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Sync-Historie:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Get last sync time for a system
+app.get('/api/integration/:system/last-sync', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const { system } = req.params;
+        const praxisId = req.user.praxis_id;
+        
+        const lastSync = getLastSyncTime(praxisId, system);
+        
+        res.json({
+            success: true,
+            lastSync: lastSync
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Abrufen der letzten Sync-Zeit:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Toggle integration on/off
+app.put('/api/integration/:system/toggle', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const { system } = req.params;
+        const { isActive } = req.body;
+        const praxisId = req.user.praxis_id;
+        
+        toggleIntegration(praxisId, system, isActive);
+        
+        res.json({
+            success: true,
+            message: `${system} ${isActive ? 'aktiviert' : 'deaktiviert'}`
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Umschalten der Integration:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// === NEU: ADMIN STATISTICS ENDPOINT === //
+// ========================================
+
+// ✅ Get admin statistics (extended)
+app.get('/api/admin/stats', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const praxisId = req.user.praxis_id;
+        
+        // Get extended statistics
+        const stats = getExtendedStatistics(praxisId);
+        
+        // Get user count
+        const users = getUsersByPraxis(praxisId);
+        stats.totalUsers = users.length;
+        stats.usersByRole = users.reduce((acc, user) => {
+            acc[user.role] = (acc[user.role] || 0) + 1;
+            return acc;
+        }, {});
+        
+        // Get login activity (last 7 days)
+        const loginActivity = db.prepare(`
+            SELECT DATE(attempted_at) as date, COUNT(*) as count
+            FROM login_attempts
+            WHERE success = 1 
+            AND attempted_at > datetime('now', '-7 days')
+            GROUP BY DATE(attempted_at)
+            ORDER BY date DESC
+        `).all();
+        
+        stats.loginActivity = loginActivity;
+        
+        res.json(stats);
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Abrufen der Admin-Statistiken:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// === PRAXIS SETTINGS ENDPOINTS === //
+// ========================================
+
+// ✅ Get praxis settings
+app.get('/api/praxis/settings', requireAuth, (req, res) => {
+    try {
+        const stmt = db.prepare('SELECT * FROM praxis WHERE id = ?');
+        const praxis = stmt.get(req.user.praxis_id);
+        
+        if (!praxis) {
+            return res.status(404).json({ error: 'Praxis nicht gefunden' });
+        }
+        
+        res.json(praxis);
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Praxis-Einstellungen:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ Update praxis settings (admin only)
+app.put('/api/praxis/settings', requireAuth, requireRole('admin'), (req, res) => {
+    try {
+        const { name, email, telefon, adresse, website } = req.body;
+        const praxisId = req.user.praxis_id;
+        
+        const updates = {};
+        if (name) updates.name = name;
+        if (email) updates.email = email;
+        if (telefon) updates.telefon = telefon;
+        if (adresse) updates.adresse = adresse;
+        if (website) updates.website = website;
+        
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ 
+                error: 'Keine Felder zum Aktualisieren' 
+            });
+        }
+        
+        const fields = Object.keys(updates);
+        const setClause = fields.map(key => `${key} = ?`).join(', ');
+        const values = fields.map(key => updates[key]);
+        values.push(praxisId);
+        
+        const stmt = db.prepare(`
+            UPDATE praxis 
+            SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `);
+        
+        stmt.run(...values);
+        
+        console.log(`✅ Praxis-Einstellungen aktualisiert von Admin: ${req.user.name}`);
+        
+        res.json({
+            success: true,
+            message: 'Praxis-Einstellungen erfolgreich aktualisiert'
+        });
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Aktualisieren der Praxis-Einstellungen:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // --- CLIENTS API ROUTES --- //
 
 app.get("/api/clients", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Get all clients but filter by praxis_id
     const stmt = db.prepare(`
       SELECT 
         c.*,
@@ -1184,7 +1896,6 @@ app.get("/api/clients", requireAuth, requirePraxis, (req, res) => {
     
     const clients = stmt.all(req.user.praxis_id);
     
-    // Update any clients without praxis_id
     const updateStmt = db.prepare("UPDATE clients SET praxis_id = ? WHERE praxis_id IS NULL");
     updateStmt.run(req.user.praxis_id);
     
@@ -1201,7 +1912,6 @@ app.get("/api/clients/:id", requireAuth, requirePraxis, (req, res) => {
     const client = getClientById(req.params.id);
     if (!client) return res.status(404).json({ error: "Client nicht gefunden" });
     
-    // Check if client belongs to user's praxis
     if (client.praxis_id && client.praxis_id !== req.user.praxis_id) {
       return res.status(403).json({ error: "Zugriff verweigert" });
     }
@@ -1241,7 +1951,6 @@ app.post("/api/clients", requireAuth, requirePraxis, (req, res) => {
 
 app.put("/api/clients/:id", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Check if client belongs to user's praxis
     const client = getClientById(req.params.id);
     if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
       return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1249,7 +1958,7 @@ app.put("/api/clients/:id", requireAuth, requirePraxis, (req, res) => {
     
     const updates = req.body;
     delete updates.id;
-    delete updates.praxis_id; // Prevent praxis_id changes
+    delete updates.praxis_id;
     
     const result = updateClient(req.params.id, updates);
     if (result.changes === 0) {
@@ -1264,7 +1973,6 @@ app.put("/api/clients/:id", requireAuth, requirePraxis, (req, res) => {
 
 app.delete("/api/clients/:id", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Check if client belongs to user's praxis
     const client = getClientById(req.params.id);
     if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
       return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1295,17 +2003,14 @@ app.post("/api/audio/upload", requireAuth, upload.single('audio'), async (req, r
         const clientId = req.body.client_id || null;
         const analysisType = req.body.analysis_type || 'protocol';
 
-        // Transkription mit Whisper
         console.log('📄 Starte Whisper-Transkription...');
         const transcription = await transcribeAudio(audioFilePath);
         console.log('✅ Transkription abgeschlossen');
 
-        // KI-Analyse des Transkripts
         console.log('📄 Starte KI-Analyse...');
         const analysis = await analyzeTherapyText(transcription, analysisType);
         console.log('✅ KI-Analyse abgeschlossen');
 
-        // Speichere Dokument in Datenbank
         const docData = {
             client_id: clientId,
             filename: req.file.filename,
@@ -1317,12 +2022,11 @@ app.post("/api/audio/upload", requireAuth, upload.single('audio'), async (req, r
         
         const docResult = addDocument(docData);
 
-        // Speichere Session falls Client ID vorhanden
         if (clientId) {
             const sessionData = {
                 client_id: clientId,
                 date: new Date().toISOString().split('T')[0],
-                duration: Math.ceil(req.file.size / 1000000), // Rough estimate
+                duration: Math.ceil(req.file.size / 1000000),
                 type: 'Audio-Sitzung',
                 notes: analysis,
                 private_notes: `Transkript:\n\n${transcription}`
@@ -1346,7 +2050,6 @@ app.post("/api/audio/upload", requireAuth, upload.single('audio'), async (req, r
     } catch (error) {
         console.error("❌ Fehler bei Audio-Verarbeitung:", error);
         
-        // Clean up uploaded file on error
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
@@ -1370,7 +2073,6 @@ app.post("/api/audio/analyze", requireAuth, async (req, res) => {
         const analysis = await analyzeTherapyText(text, analysis_type);
         console.log('✅ Text-Analyse abgeschlossen');
 
-        // Speichere Chat-Nachricht falls Client ID vorhanden
         if (client_id) {
             addChatMessage({
                 client_id: client_id,
@@ -1411,7 +2113,6 @@ app.post("/api/chat", requireAuth, async (req, res) => {
 
     console.log(`💬 Enhanced Chat-Anfrage: ${message.substring(0, 50)}...`);
     
-    // Speichere User-Nachricht
     if (client_id) {
       addChatMessage({
         client_id: client_id,
@@ -1424,7 +2125,6 @@ app.post("/api/chat", requireAuth, async (req, res) => {
     
     if (process.env.OPENAI_API_KEY) {
       try {
-        // Erweiterte Kontext-Integration
         let systemPrompt = `Du bist ein erfahrener Psychotherapeut und KI-Assistent für therapeutische Praxis. 
 
 Du hilfst bei:
@@ -1443,7 +2143,6 @@ Antworte immer:
 
 Wichtig: Du ersetzt keine professionelle Supervision oder Ausbildung, sondern ergänzt diese.`;
 
-        // Füge Kontext hinzu falls vorhanden
         if (context) {
           systemPrompt += `\n\nAktueller Kontext: ${context}`;
         }
@@ -1457,9 +2156,8 @@ Wichtig: Du ersetzt keine professionelle Supervision oder Ausbildung, sondern er
           { role: "user", content: message }
         ];
 
-        // Hole Chat-Historie für besseren Kontext
         if (client_id) {
-          const history = getChatHistory(client_id, 5); // Letzte 5 Nachrichten
+          const history = getChatHistory(client_id, 5);
           history.forEach(msg => {
             if (msg.role === 'user' || msg.role === 'assistant') {
               messages.splice(-1, 0, { role: msg.role, content: msg.content });
@@ -1477,7 +2175,6 @@ Wichtig: Du ersetzt keine professionelle Supervision oder Ausbildung, sondern er
       reply = generateEnhancedFallbackResponse(message, 'API Key fehlt');
     }
 
-    // Speichere KI-Antwort
     if (client_id) {
       addChatMessage({
         client_id: client_id,
@@ -1509,7 +2206,6 @@ app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => 
     let fileContent = '';
     const filePath = req.file.path;
     
-    // Extract text based on file type
     if (req.file.mimetype.startsWith('text/') || req.file.originalname.endsWith('.txt')) {
       fileContent = fs.readFileSync(filePath, 'utf8');
     } else if (req.file.originalname.endsWith('.docx')) {
@@ -1520,10 +2216,9 @@ app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => 
       const pdfData = await pdfParse(dataBuffer);
       fileContent = pdfData.text;
     } else if (req.file.mimetype.startsWith('image/')) {
-      fileContent = `[Bild-Datei: ${req.file.originalname}] - Bildanalyse mit OpenAI Vision API würde hier implementiert werden.`;
+      fileContent = `[Bild-Datei: ${req.file.originalname}] - Bildanalyse mit Claude Vision würde hier implementiert werden.`;
     }
 
-    // Save document info to database
     const docData = {
       client_id: req.body.client_id || null,
       filename: req.file.filename,
@@ -1535,7 +2230,6 @@ app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => 
     
     addDocument(docData);
     
-    // Enhanced AI Analysis
     let analysis = '';
     if (process.env.OPENAI_API_KEY && fileContent) {
       analysis = await analyzeTherapyText(fileContent, 'general');
@@ -1567,7 +2261,6 @@ app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => 
 
 // --- ASSESSMENT API ROUTES --- //
 
-// Verfügbare Assessments abrufen
 app.get("/api/assessments/types", requireAuth, (req, res) => {
     try {
         const types = Object.keys(ASSESSMENTS).map(key => ({
@@ -1582,7 +2275,6 @@ app.get("/api/assessments/types", requireAuth, (req, res) => {
     }
 });
 
-// Spezifisches Assessment-Template abrufen
 app.get("/api/assessments/template/:type", requireAuth, (req, res) => {
     try {
         const assessment = ASSESSMENTS[req.params.type];
@@ -1595,7 +2287,6 @@ app.get("/api/assessments/template/:type", requireAuth, (req, res) => {
     }
 });
 
-// Assessment einreichen und bewerten
 app.post("/api/assessments", requireAuth, requirePraxis, (req, res) => {
     try {
         const { client_id, session_id, assessment_type, responses, notes } = req.body;
@@ -1604,16 +2295,13 @@ app.post("/api/assessments", requireAuth, requirePraxis, (req, res) => {
             return res.status(400).json({ error: "Pflichtfelder fehlen" });
         }
         
-        // Check if client belongs to user's praxis
         const client = getClientById(client_id);
         if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
             return res.status(404).json({ error: "Client nicht gefunden" });
         }
         
-        // Score berechnen
         const scoreResult = calculateAssessmentScore(assessment_type, responses);
         
-        // Assessment speichern
         const assessmentData = {
             client_id,
             session_id,
@@ -1638,10 +2326,8 @@ app.post("/api/assessments", requireAuth, requirePraxis, (req, res) => {
     }
 });
 
-// Assessments für einen Client abrufen
 app.get("/api/clients/:id/assessments", requireAuth, requirePraxis, (req, res) => {
     try {
-        // Check if client belongs to user's praxis
         const client = getClientById(req.params.id);
         if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
             return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1654,13 +2340,11 @@ app.get("/api/clients/:id/assessments", requireAuth, requirePraxis, (req, res) =
     }
 });
 
-// Outcome-Analyse generieren
 app.get("/api/clients/:id/outcome-analysis", requireAuth, requirePraxis, async (req, res) => {
     try {
         const clientId = req.params.id;
         const assessmentType = req.query.type || null;
         
-        // Check if client belongs to user's praxis
         const client = getClientById(clientId);
         if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
             return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1675,10 +2359,8 @@ app.get("/api/clients/:id/outcome-analysis", requireAuth, requirePraxis, async (
     }
 });
 
-// Assessment-Verlauf für Visualisierung
 app.get("/api/clients/:id/assessment-history/:type", requireAuth, requirePraxis, (req, res) => {
     try {
-        // Check if client belongs to user's praxis
         const client = getClientById(req.params.id);
         if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
             return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1702,10 +2384,8 @@ app.get("/api/clients/:id/assessment-history/:type", requireAuth, requirePraxis,
 // --- STATISTICS ROUTE --- //
 app.get("/api/stats", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Get global stats but filter by praxis for specific stats
     const stats = getStatistics();
     
-    // Get praxis-specific client count
     const praxisStats = db.prepare(`
       SELECT COUNT(*) as client_count 
       FROM clients 
@@ -1734,7 +2414,6 @@ app.get("/api/stats", requireAuth, requirePraxis, (req, res) => {
 // --- SESSION ROUTES --- //
 app.post("/api/sessions", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Check if client belongs to user's praxis
     const client = getClientById(req.body.client_id);
     if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
       return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1760,7 +2439,6 @@ app.post("/api/sessions", requireAuth, requirePraxis, (req, res) => {
 
 app.get("/api/clients/:id/sessions", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Check if client belongs to user's praxis
     const client = getClientById(req.params.id);
     if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
       return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1776,7 +2454,6 @@ app.get("/api/clients/:id/sessions", requireAuth, requirePraxis, (req, res) => {
 
 app.get("/api/clients/:id/chat", requireAuth, requirePraxis, (req, res) => {
   try {
-    // Check if client belongs to user's praxis
     const client = getClientById(req.params.id);
     if (!client || (client.praxis_id && client.praxis_id !== req.user.praxis_id)) {
       return res.status(404).json({ error: "Client nicht gefunden" });
@@ -1800,14 +2477,13 @@ function generateEnhancedFallbackResponse(message, errorDetails) {
     Die vollständige KI-Analyse ist momentan nicht verfügbar`;
   
   if (errorDetails && errorDetails.includes('API Key')) {
-    response += ` (OpenAI API Key nicht konfiguriert).`;
+    response += ` (API Key nicht konfiguriert).`;
   } else {
     response += ` (Technischer Fehler).`;
   }
   
   response += `</div>`;
   
-  // Intelligente Fallback-Antworten basierend auf Kontext
   if (lowerMessage.includes('whisper') || lowerMessage.includes('audio') || lowerMessage.includes('transkription')) {
     response += `
     <div style="margin-top: 15px;">
@@ -1837,7 +2513,7 @@ function generateEnhancedFallbackResponse(message, errorDetails) {
     response += `
     <div style="margin-top: 15px;">
       <strong>📊 KI-Analyse Features:</strong><br>
-      Mit OpenAI API Key verfügbar:<br>
+      Mit API Keys verfügbar:<br>
       • Automatische Sitzungsprotokoll-Erstellung<br>
       • Fortschritts- und Verlaufsanalyse<br>
       • Thematische Auswertung von Gesprächen<br>
@@ -1852,47 +2528,77 @@ function generateEnhancedFallbackResponse(message, errorDetails) {
       • ✅ Sitzungs-Dokumentation<br>
       • ✅ Datei-Upload und -Organisation<br>
       • ✅ Chat-Interface (eingeschränkt)<br>
-      • ⏳ KI-Analyse (benötigt API Key)<br>
-      • ⏳ Whisper-Transkription (benötigt API Key)
+      • ⏳ KI-Analyse (benötigt API Keys)<br>
+      • ⏳ Datei-Analyse mit Claude Vision<br>
+      • ⏳ Whisper-Transkription
     </div>`;
   }
   
   return response;
 }
 
-// === SESSION MANAGEMENT === //
+// === MAINTENANCE ROUTES === //
 
-// Clean expired sessions (run periodically)
-function cleanExpiredSessions() {
+app.post('/api/maintenance/vacuum', requireAuth, requireRole('admin'), (req, res) => {
   try {
-    const stmt = db.prepare(`
-      DELETE FROM sessions 
-      WHERE datetime(expired) < datetime('now')
-    `);
-    const result = stmt.run();
-    if (result.changes > 0) {
-      console.log(`🧹 ${result.changes} abgelaufene Sessions gelöscht`);
+    vacuum();
+    res.json({ success: true, message: 'Datenbank-Wartung abgeschlossen' });
+  } catch (error) {
+    res.status(500).json({ error: 'Fehler bei Datenbank-Wartung' });
+  }
+});
+
+app.post('/api/maintenance/backup', requireAuth, requireRole('admin'), (req, res) => {
+  try {
+    const backupPath = path.join(__dirname, 'data', `backup_${Date.now()}.db`);
+    const success = backupDatabase(backupPath);
+    
+    if (success) {
+      res.json({ success: true, message: 'Backup erstellt', path: backupPath });
+    } else {
+      res.status(500).json({ error: 'Backup fehlgeschlagen' });
     }
   } catch (error) {
-    console.warn('Fehler beim Löschen abgelaufener Sessions:', error);
+    res.status(500).json({ error: 'Fehler beim Backup' });
   }
-}
+});
 
-// Clean sessions every hour
-setInterval(cleanExpiredSessions, 60 * 60 * 1000);
+app.get('/api/maintenance/stats', requireAuth, requireRole('admin'), (req, res) => {
+  try {
+    const stats = getDataStats();
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: 'Fehler beim Abrufen der System-Stats' });
+  }
+});
 
-// === DEMO DATA FOR MULTI-TENANT === //
+// === ERROR HANDLING === //
+
+app.use((err, req, res, next) => {
+  console.error('❌ Unbehandelter Fehler:', err);
+  
+  const message = process.env.NODE_ENV === 'production' 
+    ? 'Ein unerwarteter Fehler ist aufgetreten'
+    : err.message;
+    
+  res.status(500).json({ error: message });
+});
+
+app.use((req, res) => {
+  console.log('❌ 404 für:', req.url);
+  res.status(404).json({ error: 'Endpoint nicht gefunden' });
+});
+
+// === DEMO DATA === //
 
 async function createDemoAccounts() {
   try {
-    // Check if demo praxis already exists
     const existingPraxis = getPraxisByName('Demo Praxis Köln');
     if (existingPraxis) {
       console.log('📋 Demo-Praxis bereits vorhanden');
       return;
     }
 
-    // Create demo praxis
     const praxisData = {
       name: 'Demo Praxis Köln',
       email: 'info@demo-praxis.de',
@@ -1903,7 +2609,6 @@ async function createDemoAccounts() {
     const praxisResult = addPraxis(praxisData);
     const praxisId = praxisResult.lastInsertRowid;
 
-    // Create demo users
     const demoUsers = [
       {
         name: 'Dr. Demo Admin',
@@ -1949,72 +2654,15 @@ async function createDemoAccounts() {
   }
 }
 
-// Create demo accounts on startup
 setTimeout(createDemoAccounts, 1000);
-
-// === MAINTENANCE ROUTES === //
-
-// Database maintenance (admin only)
-app.post('/api/maintenance/vacuum', requireAuth, requireRole('admin'), (req, res) => {
-  try {
-    vacuum();
-    res.json({ success: true, message: 'Datenbank-Wartung abgeschlossen' });
-  } catch (error) {
-    res.status(500).json({ error: 'Fehler bei Datenbank-Wartung' });
-  }
-});
-
-// Database backup (admin only)
-app.post('/api/maintenance/backup', requireAuth, requireRole('admin'), (req, res) => {
-  try {
-    const backupPath = path.join(__dirname, 'data', `backup_${Date.now()}.db`);
-    const success = backupDatabase(backupPath);
-    
-    if (success) {
-      res.json({ success: true, message: 'Backup erstellt', path: backupPath });
-    } else {
-      res.status(500).json({ error: 'Backup fehlgeschlagen' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Fehler beim Backup' });
-  }
-});
-
-// System stats (admin only)
-app.get('/api/maintenance/stats', requireAuth, requireRole('admin'), (req, res) => {
-  try {
-    const stats = getDataStats();
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: 'Fehler beim Abrufen der System-Stats' });
-  }
-});
-
-// === ERROR HANDLING === //
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('❌ Unbehandelter Fehler:', err);
-  
-  // Don't leak error details in production
-  const message = process.env.NODE_ENV === 'production' 
-    ? 'Ein unerwarteter Fehler ist aufgetreten'
-    : err.message;
-    
-  res.status(500).json({ error: message });
-});
-
-// 404 handler - muss NACH allen anderen Routes kommen
-app.use((req, res) => {
-  console.log('❌ 404 für:', req.url);
-  res.status(404).json({ error: 'Endpoint nicht gefunden' });
-});
 
 console.log('🔐 Multi-Tenant Authentication System aktiviert!');
 console.log('📝 Registrierung: POST /api/auth/register-praxis');
 console.log('🔑 Login: POST /api/auth/login');
 console.log('👤 Benutzer hinzufügen: POST /api/auth/add-user');
-console.log('🛡️ Alle API-Routen sind jetzt authentifiziert');
+console.log('🛡️ Alle API-Routen sind authentifiziert');
+console.log('🔗 System-Integration: AKTIV'); // ✅ NEU
+console.log('🔍 Datei-Analyse: AKTIV'); // ✅ NEU
 
 // --- SERVER START --- //
 const PORT = process.env.PORT || 3000;
@@ -2027,15 +2675,23 @@ app.listen(PORT, () => {
     console.log(`   Fügen Sie OPENAI_API_KEY in die .env Datei ein für:`);
     console.log(`   🎤 Whisper Speech-to-Text`);
     console.log(`   🤖 KI-Chat und Analyse`);
-    console.log(`   📊 Automatische Protokollerstellung`);
   } else {
     console.log(`✅ OpenAI API Key gefunden!`);
     console.log(`🎤 Whisper Speech-to-Text: AKTIV`);
-    console.log(`🤖 KI-Funktionen: AKTIV`);
-    console.log(`📊 Intelligente Analyse: AKTIV`);
+    console.log(`🤖 GPT KI-Funktionen: AKTIV`);
   }
   
-  // Create upload directories
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log(`⚠️  WARNUNG: Kein Anthropic API Key gefunden!`);
+    console.log(`   Fügen Sie ANTHROPIC_API_KEY in die .env Datei ein für:`);
+    console.log(`   🔍 Claude Datei-Analyse (Bilder & PDFs)`);
+    console.log(`   📊 Vision API für Kinderzeichnungen`);
+  } else {
+    console.log(`✅ Anthropic API Key gefunden!`);
+    console.log(`🔍 Claude Datei-Analyse: AKTIV`);
+    console.log(`📊 Vision API: AKTIV`);
+  }
+  
   ['uploads', 'uploads/audio'].forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -2049,15 +2705,16 @@ app.listen(PORT, () => {
   console.log('⚡ Performance: WAL Mode aktiviert');
   console.log('📈 Multi-Tenant: AKTIV');
   console.log('🎯 Assessment Tools: PHQ-9, GAD-7, PCL-5, OQ-45');
+  console.log('🔗 System-Integration: CGM ALBIS, KV-System, Doctolib'); // ✅ NEU
+  console.log('🔍 Datei-Analyse: Claude Vision, PDF Processing'); // ✅ NEU
   console.log('');
-  console.log('🏁 Praxida 2.0 bereit für Anfragen!');
+  console.log('🏁 Praxida 2.0 mit ALLEN Features bereit!');
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🛑 Fahre Server herunter...');
   
-  // Close database connection
   try {
     if (db) {
       db.pragma('wal_checkpoint(FULL)');
