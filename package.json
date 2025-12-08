@@ -18,6 +18,7 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^8.7.0", 
     "body-parser": "^1.20.3",
