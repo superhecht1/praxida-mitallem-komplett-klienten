@@ -381,6 +381,29 @@
             border-radius: 10px;
         }
 
+        /* Connection Status */
+        .connection-status {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .connection-status.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .connection-status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .connection-status.testing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
         .chart-bar {
             display: flex;
             align-items: center;
@@ -539,6 +562,7 @@
             <button class="tab" onclick="showTab('stats')">📊 Statistiken</button>
             <button class="tab" onclick="showTab('security')">🔐 Sicherheit</button>
             <button class="tab" onclick="showTab('maintenance')">⚙️ Wartung</button>
+            <button class="tab" onclick="showTab('integration')">🔗 System-Integration</button>
             <button class="tab" onclick="showTab('settings')">🏥 Praxis-Einstellungen</button>
         </div>
 
@@ -607,6 +631,237 @@
                             <div class="spinner"></div>
                             <p>Lade System-Statistiken...</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Panel -->
+        <div id="integration" class="panel">
+            <h2>System-Integration</h2>
+            <p style="color: var(--gray); margin-bottom: 30px;">Verbinden Sie Praxida mit externen Systemen für nahtlose Workflows</p>
+
+            <div style="display: grid; gap: 25px;">
+                <!-- CGM ALBIS Integration -->
+                <div style="padding: 25px; background: white; border-radius: 12px; border: 2px solid var(--light);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <div style="font-size: 48px;">🏥</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; color: var(--dark);">CGM ALBIS</h3>
+                            <p style="margin: 0; color: var(--gray); font-size: 14px;">Praxisverwaltungssoftware</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #fee; color: #c00;">Nicht verbunden</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--gray); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                        Synchronisieren Sie Patientendaten, Termine und Abrechnungsinformationen automatisch zwischen Praxida und CGM ALBIS.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="configureIntegration('cgm')">
+                            ⚙️ Konfigurieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="testIntegration('cgm')">
+                            🧪 Verbindung testen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KV (Kassenärztliche Vereinigung) Integration -->
+                <div style="padding: 25px; background: white; border-radius: 12px; border: 2px solid var(--light);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <div style="font-size: 48px;">📋</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; color: var(--dark);">KV-SafeNet</h3>
+                            <p style="margin: 0; color: var(--gray); font-size: 14px;">Kassenärztliche Vereinigung</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #fee; color: #c00;">Nicht verbunden</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--gray); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                        Sicherer Datenaustausch mit der Kassenärztlichen Vereinigung für Abrechnungen und Qualitätssicherung.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="configureIntegration('kv')">
+                            ⚙️ Konfigurieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="testIntegration('kv')">
+                            🧪 Verbindung testen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Doctolib Integration -->
+                <div style="padding: 25px; background: white; border-radius: 12px; border: 2px solid var(--light);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <div style="font-size: 48px;">📅</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; color: var(--dark);">Doctolib</h3>
+                            <p style="margin: 0; color: var(--gray); font-size: 14px;">Online-Terminbuchung</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #fee; color: #c00;">Nicht verbunden</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--gray); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                        Automatische Synchronisation von Online-Terminen mit Ihrem Praxida-Kalender. Reduziert No-Shows und vereinfacht die Terminverwaltung.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="configureIntegration('doctolib')">
+                            ⚙️ Konfigurieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="testIntegration('doctolib')">
+                            🧪 Verbindung testen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Email Integration -->
+                <div style="padding: 25px; background: white; border-radius: 12px; border: 2px solid var(--light);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <div style="font-size: 48px;">✉️</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; color: var(--dark);">E-Mail-Server</h3>
+                            <p style="margin: 0; color: var(--gray); font-size: 14px;">SMTP & IMAP Konfiguration</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #d1fae5; color: #065f46;" id="emailStatus">Verbunden</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--gray); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                        E-Mail-Benachrichtigungen für Termine, Erinnerungen und System-Updates konfigurieren.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="configureIntegration('email')">
+                            ⚙️ Konfigurieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="testIntegration('email')">
+                            🧪 Testmail senden
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Integration Logs -->
+                <div style="padding: 25px; background: var(--light); border-radius: 12px;">
+                    <h3 style="margin: 0 0 15px 0; color: var(--dark);">📜 Integration-Logs</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <div style="padding: 12px; background: white; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-size: 13px; color: var(--gray);">08.12.2025 16:30</div>
+                            <div style="color: var(--dark); margin-top: 5px;">✅ E-Mail-Verbindung erfolgreich getestet</div>
+                        </div>
+                        <div style="padding: 12px; background: white; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-size: 13px; color: var(--gray);">07.12.2025 09:15</div>
+                            <div style="color: #c00; margin-top: 5px;">❌ CGM ALBIS Verbindung fehlgeschlagen - Timeout</div>
+                        </div>
+                        <div style="padding: 12px; background: white; border-radius: 8px;">
+                            <div style="font-size: 13px; color: var(--gray);">06.12.2025 14:22</div>
+                            <div style="color: var(--dark); margin-top: 5px;">🔄 Doctolib Termine synchronisiert (15 neue)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Panel -->
+        <div id="integration" class="panel">
+            <h2>System-Integration</h2>
+            <div style="display: grid; gap: 20px; margin-top: 20px;">
+                <!-- CGM ALBIS -->
+                <div style="padding: 25px; background: var(--light); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <h3 style="color: var(--dark); margin-bottom: 5px;">🏥 CGM ALBIS</h3>
+                            <p style="color: var(--gray); font-size: 14px;">Abrechnungssystem-Integration</p>
+                        </div>
+                        <span id="cgm-status" class="connection-status disconnected">Nicht verbunden</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Praxis-ID</label>
+                            <input type="text" id="cgm-praxis-id" placeholder="z.B. 12345">
+                        </div>
+                        <div class="form-group">
+                            <label>API-Key</label>
+                            <input type="password" id="cgm-api-key" placeholder="•••••••••••">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="testCGMConnection()">Verbindung testen</button>
+                        <button class="btn btn-success" onclick="syncCGMData()">Daten synchronisieren</button>
+                        <button class="btn btn-secondary" onclick="saveCGMSettings()">Speichern</button>
+                    </div>
+                    <div id="cgm-sync-status" style="margin-top: 15px; padding: 12px; background: white; border-radius: 8px; display: none;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="spinner" style="width: 20px; height: 20px;"></div>
+                            <span>Synchronisiere...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KV-System -->
+                <div style="padding: 25px; background: var(--light); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <h3 style="color: var(--dark); margin-bottom: 5px;">📋 KV-System</h3>
+                            <p style="color: var(--gray); font-size: 14px;">Kassenärztliche Vereinigung</p>
+                        </div>
+                        <span id="kv-status" class="connection-status disconnected">Nicht verbunden</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>LANR / BSNR</label>
+                            <input type="text" id="kv-lanr" placeholder="z.B. 123456789">
+                        </div>
+                        <div class="form-group">
+                            <label>Zugangscode</label>
+                            <input type="password" id="kv-access-code" placeholder="•••••••••••">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="testKVConnection()">Verbindung testen</button>
+                        <button class="btn btn-success" onclick="syncKVData()">Quartalsdaten abrufen</button>
+                        <button class="btn btn-secondary" onclick="saveKVSettings()">Speichern</button>
+                    </div>
+                </div>
+
+                <!-- Doctolib -->
+                <div style="padding: 25px; background: var(--light); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <h3 style="color: var(--dark); margin-bottom: 5px;">📅 Doctolib</h3>
+                            <p style="color: var(--gray); font-size: 14px;">Terminverwaltung & Online-Buchung</p>
+                        </div>
+                        <span id="doctolib-status" class="connection-status disconnected">Nicht verbunden</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Practice ID</label>
+                            <input type="text" id="doctolib-practice-id" placeholder="z.B. practice-12345">
+                        </div>
+                        <div class="form-group">
+                            <label>API-Token</label>
+                            <input type="password" id="doctolib-token" placeholder="•••••••••••">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="doctolib-auto-sync" style="width: auto;">
+                            <span>Automatische Synchronisation (alle 15 Min.)</span>
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="testDoctolibConnection()">Verbindung testen</button>
+                        <button class="btn btn-success" onclick="syncDoctolibTermine()">Termine synchronisieren</button>
+                        <button class="btn btn-secondary" onclick="saveDoctolibSettings()">Speichern</button>
+                    </div>
+                </div>
+
+                <!-- Sync History -->
+                <div style="padding: 25px; background: var(--light); border-radius: 10px;">
+                    <h3 style="color: var(--dark); margin-bottom: 15px;">🔄 Synchronisations-Verlauf</h3>
+                    <div id="sync-history">
+                        <p style="color: var(--gray); text-align: center; padding: 20px;">Noch keine Synchronisationen durchgeführt</p>
                     </div>
                 </div>
             </div>
@@ -1257,6 +1512,331 @@
                 closeUserModal();
             }
         });
+
+        // === INTEGRATION FUNCTIONS === //
+
+        function configureIntegration(system) {
+            const systemNames = {
+                'cgm': 'CGM ALBIS',
+                'kv': 'KV-SafeNet',
+                'doctolib': 'Doctolib',
+                'email': 'E-Mail-Server'
+            };
+
+            const systemName = systemNames[system] || system;
+
+            const config = {
+                'cgm': {
+                    fields: [
+                        { label: 'API-Endpunkt', type: 'text', placeholder: 'https://api.cgm-albis.de' },
+                        { label: 'Praxis-ID', type: 'text', placeholder: 'PRX-12345' },
+                        { label: 'API-Schlüssel', type: 'password', placeholder: '••••••••••••' },
+                        { label: 'Sync-Intervall (Min.)', type: 'number', placeholder: '15' }
+                    ]
+                },
+                'kv': {
+                    fields: [
+                        { label: 'KV-Bezirk', type: 'select', options: ['KV Bayern', 'KV Baden-Württemberg', 'KV Berlin', 'KV Nordrhein'] },
+                        { label: 'LANR (Lebenslange Arztnummer)', type: text', placeholder: '123456789' },
+                        { label: 'BSNR (Betriebsstättennummer)', type: 'text', placeholder: '987654321' },
+                        { label: 'Zertifikat (.p12)', type: 'file', accept: '.p12,.pfx' }
+                    ]
+                },
+                'doctolib': {
+                    fields: [
+                        { label: 'Praxis-ID', type: 'text', placeholder: 'doc-praxis-12345' },
+                        { label: 'API-Token', type: 'password', placeholder: '••••••••••••' },
+                        { label: 'Kalender-ID', type: 'text', placeholder: 'cal-abc123' },
+                        { label: 'Auto-Sync aktivieren', type: 'checkbox', checked: true }
+                    ]
+                },
+                'email': {
+                    fields: [
+                        { label: 'SMTP-Server', type: 'text', placeholder: 'smtp.gmail.com' },
+                        { label: 'Port', type: 'number', placeholder: '587' },
+                        { label: 'Benutzername', type: 'email', placeholder: 'praxis@example.de' },
+                        { label: 'Passwort', type: 'password', placeholder: '••••••••••••' },
+                        { label: 'TLS/SSL verwenden', type: 'checkbox', checked: true }
+                    ]
+                }
+            };
+
+            const systemConfig = config[system];
+            if (!systemConfig) {
+                alert('⚠️ Konfiguration für ' + systemName + ' ist noch nicht implementiert.');
+                return;
+            }
+
+            let formHtml = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px;">${systemName} konfigurieren</h3>
+                    <form id="integrationForm">
+            `;
+
+            systemConfig.fields.forEach((field, index) => {
+                formHtml += `<div style="margin-bottom: 15px;">`;
+                formHtml += `<label style="display: block; margin-bottom: 5px; font-weight: 600;">${field.label}</label>`;
+                
+                if (field.type === 'select') {
+                    formHtml += `<select style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">`;
+                    field.options.forEach(opt => {
+                        formHtml += `<option value="${opt}">${opt}</option>`;
+                    });
+                    formHtml += `</select>`;
+                } else if (field.type === 'checkbox') {
+                    formHtml += `<input type="checkbox" ${field.checked ? 'checked' : ''} style="width: 20px; height: 20px;">`;
+                } else {
+                    formHtml += `<input type="${field.type}" placeholder="${field.placeholder || ''}" 
+                                        accept="${field.accept || ''}" 
+                                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">`;
+                }
+                
+                formHtml += `</div>`;
+            });
+
+            formHtml += `
+                        <div style="display: flex; gap: 10px; margin-top: 25px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Speichern</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeConfigModal()">Abbrechen</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            // Create and show modal
+            const modal = document.createElement('div');
+            modal.id = 'configModal';
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    ${formHtml}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+
+            // Handle form submission
+            document.getElementById('integrationForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                showAlert(`${systemName} Konfiguration wird gespeichert...`, 'info');
+                
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                showAlert(`✅ ${systemName} erfolgreich konfiguriert!`, 'success');
+                closeConfigModal();
+            });
+
+            // Close on backdrop click
+            modal.addEventListener('click', (e) => {
+                if (e.target.id === 'configModal') {
+                    closeConfigModal();
+                }
+            });
+        }
+
+        function closeConfigModal() {
+            const modal = document.getElementById('configModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function testIntegration(system) {
+            const systemNames = {
+                'cgm': 'CGM ALBIS',
+                'kv': 'KV-SafeNet',
+                'doctolib': 'Doctolib',
+                'email': 'E-Mail-Server'
+            };
+
+            const systemName = systemNames[system] || system;
+
+            showAlert(`🧪 Teste Verbindung zu ${systemName}...`, 'info');
+
+            // Simulate connection test
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Random success/failure for demo
+            const success = Math.random() > 0.3;
+
+            if (success) {
+                showAlert(`✅ Verbindung zu ${systemName} erfolgreich!`, 'success');
+                
+                // Log the test
+                if (system === 'email') {
+                    document.getElementById('emailStatus').style.background = '#d1fae5';
+                    document.getElementById('emailStatus').style.color = '#065f46';
+                    document.getElementById('emailStatus').textContent = 'Verbunden';
+                }
+            } else {
+                showAlert(`❌ Verbindung zu ${systemName} fehlgeschlagen. Bitte überprüfen Sie die Konfiguration.`, 'error');
+            }
+        }
+
+        // === INTEGRATION-SPECIFIC FUNCTIONS === //
+        
+        async function testCGMConnection() {
+            const statusElement = document.getElementById('cgm-status');
+            const praxisId = document.getElementById('cgm-praxis-id').value;
+            const apiKey = document.getElementById('cgm-api-key').value;
+            
+            if (!praxisId || !apiKey) {
+                showAlert('⚠️ Bitte füllen Sie alle Felder aus', 'warning');
+                return;
+            }
+            
+            statusElement.className = 'connection-status testing';
+            statusElement.textContent = 'Teste...';
+            showAlert('🧪 Teste Verbindung zu CGM ALBIS...', 'info');
+            
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Simulate success
+            statusElement.className = 'connection-status connected';
+            statusElement.textContent = 'Verbunden';
+            showAlert('✅ Verbindung zu CGM ALBIS erfolgreich!', 'success');
+        }
+
+        async function syncCGMData() {
+            const syncStatus = document.getElementById('cgm-sync-status');
+            syncStatus.style.display = 'block';
+            showAlert('🔄 Synchronisiere CGM ALBIS Daten...', 'info');
+            
+            // Simulate sync
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            syncStatus.style.display = 'none';
+            showAlert('✅ 47 Abrechnungen erfolgreich synchronisiert!', 'success');
+            addSyncHistory('CGM ALBIS', '47 Abrechnungen');
+        }
+
+        async function saveCGMSettings() {
+            const praxisId = document.getElementById('cgm-praxis-id').value;
+            const apiKey = document.getElementById('cgm-api-key').value;
+            
+            if (!praxisId || !apiKey) {
+                showAlert('⚠️ Bitte füllen Sie alle Felder aus', 'warning');
+                return;
+            }
+            
+            showAlert('💾 Speichere CGM-Einstellungen...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            showAlert('✅ CGM-Einstellungen gespeichert!', 'success');
+        }
+
+        async function testKVConnection() {
+            const statusElement = document.getElementById('kv-status');
+            const lanr = document.getElementById('kv-lanr').value;
+            const accessCode = document.getElementById('kv-access-code').value;
+            
+            if (!lanr || !accessCode) {
+                showAlert('⚠️ Bitte füllen Sie alle Felder aus', 'warning');
+                return;
+            }
+            
+            statusElement.className = 'connection-status testing';
+            statusElement.textContent = 'Teste...';
+            showAlert('🧪 Teste Verbindung zu KV-System...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            statusElement.className = 'connection-status connected';
+            statusElement.textContent = 'Verbunden';
+            showAlert('✅ Verbindung zu KV-System erfolgreich!', 'success');
+        }
+
+        async function syncKVData() {
+            showAlert('🔄 Rufe Quartalsdaten ab...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            showAlert('✅ Q4 2024 Daten erfolgreich abgerufen!', 'success');
+            addSyncHistory('KV-System', 'Q4 2024 Quartalsdaten');
+        }
+
+        async function saveKVSettings() {
+            const lanr = document.getElementById('kv-lanr').value;
+            const accessCode = document.getElementById('kv-access-code').value;
+            
+            if (!lanr || !accessCode) {
+                showAlert('⚠️ Bitte füllen Sie alle Felder aus', 'warning');
+                return;
+            }
+            
+            showAlert('💾 Speichere KV-Einstellungen...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            showAlert('✅ KV-Einstellungen gespeichert!', 'success');
+        }
+
+        async function testDoctolibConnection() {
+            const statusElement = document.getElementById('doctolib-status');
+            const practiceId = document.getElementById('doctolib-practice-id').value;
+            const token = document.getElementById('doctolib-token').value;
+            
+            if (!practiceId || !token) {
+                showAlert('⚠️ Bitte füllen Sie alle Felder aus', 'warning');
+                return;
+            }
+            
+            statusElement.className = 'connection-status testing';
+            statusElement.textContent = 'Teste...';
+            showAlert('🧪 Teste Verbindung zu Doctolib...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            statusElement.className = 'connection-status connected';
+            statusElement.textContent = 'Verbunden';
+            showAlert('✅ Verbindung zu Doctolib erfolgreich!', 'success');
+        }
+
+        async function syncDoctolibTermine() {
+            showAlert('🔄 Synchronisiere Doctolib Termine...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            showAlert('✅ 23 Termine erfolgreich synchronisiert!', 'success');
+            addSyncHistory('Doctolib', '23 Termine');
+        }
+
+        async function saveDoctolibSettings() {
+            const practiceId = document.getElementById('doctolib-practice-id').value;
+            const token = document.getElementById('doctolib-token').value;
+            
+            if (!practiceId || !token) {
+                showAlert('⚠️ Bitte füllen Sie alle Felder aus', 'warning');
+                return;
+            }
+            
+            showAlert('💾 Speichere Doctolib-Einstellungen...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            showAlert('✅ Doctolib-Einstellungen gespeichert!', 'success');
+        }
+
+        function addSyncHistory(system, details) {
+            const historyDiv = document.getElementById('sync-history');
+            const timestamp = new Date().toLocaleString('de-DE');
+            
+            const entry = document.createElement('div');
+            entry.style.cssText = 'padding: 12px; background: white; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;';
+            entry.innerHTML = `
+                <div>
+                    <strong>${system}</strong>
+                    <div style="font-size: 13px; color: var(--gray);">${details}</div>
+                </div>
+                <div style="font-size: 12px; color: var(--gray);">${timestamp}</div>
+            `;
+            
+            if (historyDiv.querySelector('p')) {
+                historyDiv.innerHTML = '';
+            }
+            
+            historyDiv.insertBefore(entry, historyDiv.firstChild);
+            
+            // Keep only last 10 entries
+            while (historyDiv.children.length > 10) {
+                historyDiv.removeChild(historyDiv.lastChild);
+            }
+        }
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', init);
