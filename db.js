@@ -1,5 +1,6 @@
 // db.js - Praxida 2.0 Complete Database Layer
 // Multi-tenant therapy practice management system with SQLite
+// WITH System-Integration & Datei-Analyse Features
 
 const Database = require("better-sqlite3");
 const path = require("path");
@@ -64,6 +65,11 @@ function initializeDatabase() {
     createLoginAttemptsTable();
     createAuditLogTable();
     
+    // NEW: System-Integration & Datei-Analyse Tables
+    createClientAnalysesTable();
+    createIntegrationSettingsTable();
+    createSyncHistoryTable();
+    
     // Create indexes for performance
     createIndexes();
     
@@ -73,7 +79,7 @@ function initializeDatabase() {
     // Create demo data if database is empty
     const clientCount = db.prepare("SELECT COUNT(*) as count FROM clients").get().count;
     if (clientCount === 0) {
-       // createDemoData(); //
+       // createDemoData();
     }
     
     console.log("✅ Database schema initialized");
@@ -578,6 +584,69 @@ function createAuditLogTable() {
     `).run();
 }
 
+// === NEW TABLES FOR SYSTEM-INTEGRATION & DATEI-ANALYSE === //
+
+function createClientAnalysesTable() {
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS client_analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            file_name TEXT NOT NULL,
+            file_type TEXT, -- image/jpeg, application/pdf, etc.
+            file_size INTEGER,
+            analysis_text TEXT NOT NULL,
+            analysis_type TEXT CHECK (analysis_type IN ('image','pdf','text','mixed')) DEFAULT 'image',
+            ai_model TEXT DEFAULT 'claude-3-5-sonnet-20241022',
+            confidence_score REAL,
+            key_findings TEXT, -- JSON array
+            emotional_assessment TEXT,
+            recommendations TEXT,
+            is_sensitive BOOLEAN DEFAULT 1,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    `).run();
+}
+
+function createIntegrationSettingsTable() {
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS integration_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            praxis_id INTEGER NOT NULL,
+            system_name TEXT NOT NULL CHECK (system_name IN ('cgm','kv','doctolib','email')),
+            settings_json TEXT NOT NULL, -- Encrypted credentials
+            is_active BOOLEAN DEFAULT 1,
+            last_tested TEXT,
+            test_result TEXT,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (praxis_id) REFERENCES praxis(id) ON DELETE CASCADE,
+            UNIQUE(praxis_id, system_name)
+        )
+    `).run();
+}
+
+function createSyncHistoryTable() {
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS sync_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            praxis_id INTEGER NOT NULL,
+            system_name TEXT NOT NULL,
+            sync_type TEXT CHECK (sync_type IN ('manual','automatic','scheduled')) DEFAULT 'manual',
+            items_synced INTEGER NOT NULL DEFAULT 0,
+            sync_status TEXT CHECK (sync_status IN ('success','partial','failed')) DEFAULT 'success',
+            sync_result TEXT, -- JSON with details
+            error_message TEXT,
+            duration_ms INTEGER,
+            synced_by INTEGER,
+            synced_at TEXT NOT NULL,
+            FOREIGN KEY (praxis_id) REFERENCES praxis(id) ON DELETE CASCADE,
+            FOREIGN KEY (synced_by) REFERENCES users(id) ON DELETE SET NULL
+        )
+    `).run();
+}
+
 function createIndexes() {
     console.log("🔍 Creating database indexes...");
     
@@ -653,7 +722,21 @@ function createIndexes() {
         "CREATE INDEX IF NOT EXISTS idx_audit_praxis_id ON audit_log(praxis_id)",
         "CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_log(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)",
-        "CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_log(created_at)"
+        "CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_log(created_at)",
+        
+        // NEW: Client Analyses
+        "CREATE INDEX IF NOT EXISTS idx_analyses_client ON client_analyses(client_id)",
+        "CREATE INDEX IF NOT EXISTS idx_analyses_user ON client_analyses(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_analyses_created ON client_analyses(created_at)",
+        
+        // NEW: Integration Settings
+        "CREATE INDEX IF NOT EXISTS idx_integration_praxis ON integration_settings(praxis_id)",
+        "CREATE INDEX IF NOT EXISTS idx_integration_system ON integration_settings(system_name)",
+        
+        // NEW: Sync History
+        "CREATE INDEX IF NOT EXISTS idx_sync_praxis ON sync_history(praxis_id)",
+        "CREATE INDEX IF NOT EXISTS idx_sync_system ON sync_history(system_name)",
+        "CREATE INDEX IF NOT EXISTS idx_sync_date ON sync_history(synced_at)"
     ];
 
     indexes.forEach(indexSQL => {
@@ -696,7 +779,7 @@ function initializeSettings() {
         
         // AI settings
         { category: 'ai', key: 'enabled', value: 'true', value_type: 'boolean', description: 'Enable AI features' },
-        { category: 'ai', key: 'model_default', value: 'gpt-3.5-turbo', description: 'Default AI model' },
+        { category: 'ai', key: 'model_default', value: 'claude-3-5-sonnet-20241022', description: 'Default AI model' },
         { category: 'ai', key: 'max_tokens', value: '2000', value_type: 'number', description: 'Maximum tokens per AI request' },
         { category: 'ai', key: 'temperature', value: '0.7', value_type: 'number', description: 'AI response creativity (0-1)' },
         
@@ -1656,6 +1739,471 @@ function setSetting(key, value, category = 'app', description = null, praxisId =
     }
 }
 
+// ========================================
+// === NEW FUNCTIONS FOR DATEI-ANALYSE === //
+// ========================================
+
+/**
+ * Speichert eine KI-Analyse einer Datei zu einem Klienten
+ */
+function addClientAnalysis(analysisData) {
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO client_analyses (
+                client_id, user_id, file_name, file_type, file_size,
+                analysis_text, analysis_type, ai_model, confidence_score,
+                key_findings, emotional_assessment, recommendations,
+                is_sensitive, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        const result = stmt.run(
+            analysisData.client_id,
+            analysisData.user_id,
+            analysisData.file_name,
+            analysisData.file_type || null,
+            analysisData.file_size || null,
+            analysisData.analysis_text,
+            analysisData.analysis_type || 'image',
+            analysisData.ai_model || 'claude-3-5-sonnet-20241022',
+            analysisData.confidence_score || null,
+            analysisData.key_findings ? JSON.stringify(analysisData.key_findings) : null,
+            analysisData.emotional_assessment || null,
+            analysisData.recommendations || null,
+            analysisData.is_sensitive !== undefined ? analysisData.is_sensitive : 1,
+            analysisData.created_at || new Date().toISOString()
+        );
+        
+        logAction(
+            analysisData.praxis_id || null,
+            analysisData.user_id,
+            'CREATE',
+            'client_analysis',
+            result.lastInsertRowid,
+            null,
+            analysisData,
+            `File analysis created: ${analysisData.file_name}`
+        );
+        
+        console.log("✅ Client analysis saved:", analysisData.file_name);
+        return result;
+    } catch (error) {
+        console.error("❌ Error saving client analysis:", error);
+        throw error;
+    }
+}
+
+/**
+ * Ruft alle Analysen für einen Klienten ab
+ */
+function getClientAnalyses(clientId, limit = 50, userPraxisId = null) {
+    try {
+        // Verify client access
+        const client = getClientById(clientId, userPraxisId);
+        if (!client) {
+            throw new Error('Client not found or access denied');
+        }
+        
+        const stmt = db.prepare(`
+            SELECT 
+                ca.*,
+                u.name as analyst_name
+            FROM client_analyses ca
+            LEFT JOIN users u ON ca.user_id = u.id
+            WHERE ca.client_id = ?
+            ORDER BY ca.created_at DESC
+            LIMIT ?
+        `);
+        
+        const analyses = stmt.all(clientId, limit);
+        
+        // Parse JSON fields
+        return analyses.map(analysis => ({
+            ...analysis,
+            key_findings: analysis.key_findings ? JSON.parse(analysis.key_findings) : null
+        }));
+    } catch (error) {
+        console.error("❌ Error fetching client analyses:", error);
+        return [];
+    }
+}
+
+/**
+ * Ruft eine einzelne Analyse ab
+ */
+function getClientAnalysisById(id, userPraxisId = null) {
+    try {
+        const stmt = db.prepare(`
+            SELECT 
+                ca.*,
+                c.praxis_id,
+                c.name as client_name,
+                u.name as analyst_name
+            FROM client_analyses ca
+            JOIN clients c ON ca.client_id = c.id
+            LEFT JOIN users u ON ca.user_id = u.id
+            WHERE ca.id = ?
+        `);
+        
+        const analysis = stmt.get(id);
+        
+        if (!analysis) {
+            return null;
+        }
+        
+        if (userPraxisId) {
+            validatePraxisAccess(analysis.praxis_id, userPraxisId);
+        }
+        
+        // Parse JSON fields
+        if (analysis.key_findings) {
+            analysis.key_findings = JSON.parse(analysis.key_findings);
+        }
+        
+        return analysis;
+    } catch (error) {
+        console.error("❌ Error fetching analysis:", error);
+        return null;
+    }
+}
+
+/**
+ * Löscht eine Analyse
+ */
+function deleteClientAnalysis(id, userPraxisId = null, userId = null) {
+    try {
+        const analysis = getClientAnalysisById(id, userPraxisId);
+        if (!analysis) {
+            throw new Error('Analysis not found or access denied');
+        }
+        
+        const stmt = db.prepare('DELETE FROM client_analyses WHERE id = ?');
+        const result = stmt.run(id);
+        
+        logAction(
+            analysis.praxis_id,
+            userId,
+            'DELETE',
+            'client_analysis',
+            id,
+            analysis,
+            null,
+            `Analysis deleted: ${analysis.file_name}`
+        );
+        
+        console.log("✅ Analysis deleted:", id);
+        return result;
+    } catch (error) {
+        console.error("❌ Error deleting analysis:", error);
+        throw error;
+    }
+}
+
+// ========================================
+// === NEW FUNCTIONS FOR SYSTEM-INTEGRATION === //
+// ========================================
+
+/**
+ * Speichert oder aktualisiert Integration-Settings
+ */
+function saveIntegrationSettings(praxisId, systemName, settings, userId = null) {
+    try {
+        // In Production: Hier sollten die Settings verschlüsselt werden!
+        const settingsJson = JSON.stringify(settings);
+        
+        const stmt = db.prepare(`
+            INSERT INTO integration_settings (
+                praxis_id, system_name, settings_json, is_active, updated_at
+            ) VALUES (?, ?, ?, 1, ?)
+            ON CONFLICT(praxis_id, system_name) 
+            DO UPDATE SET 
+                settings_json = excluded.settings_json,
+                updated_at = excluded.updated_at
+        `);
+        
+        const result = stmt.run(
+            praxisId,
+            systemName,
+            settingsJson,
+            new Date().toISOString()
+        );
+        
+        logAction(
+            praxisId,
+            userId,
+            'UPDATE',
+            'integration_settings',
+            result.lastInsertRowid || 0,
+            null,
+            { system: systemName },
+            `Integration settings updated: ${systemName}`
+        );
+        
+        console.log("✅ Integration settings saved:", systemName);
+        return result;
+    } catch (error) {
+        console.error("❌ Error saving integration settings:", error);
+        throw error;
+    }
+}
+
+/**
+ * Ruft Integration-Settings ab
+ */
+function getIntegrationSettings(praxisId, systemName = null) {
+    try {
+        let stmt, result;
+        
+        if (systemName) {
+            stmt = db.prepare(`
+                SELECT * FROM integration_settings 
+                WHERE praxis_id = ? AND system_name = ?
+            `);
+            result = stmt.get(praxisId, systemName);
+            
+            if (result) {
+                result.settings = JSON.parse(result.settings_json);
+                delete result.settings_json;
+            }
+        } else {
+            stmt = db.prepare(`
+                SELECT * FROM integration_settings 
+                WHERE praxis_id = ?
+                ORDER BY system_name ASC
+            `);
+            result = stmt.all(praxisId).map(row => ({
+                ...row,
+                settings: JSON.parse(row.settings_json)
+            }));
+            
+            result.forEach(row => delete row.settings_json);
+        }
+        
+        return result;
+    } catch (error) {
+        console.error("❌ Error fetching integration settings:", error);
+        return systemName ? null : [];
+    }
+}
+
+/**
+ * Aktualisiert Test-Status einer Integration
+ */
+function updateIntegrationTestResult(praxisId, systemName, testResult) {
+    try {
+        const stmt = db.prepare(`
+            UPDATE integration_settings 
+            SET last_tested = ?,
+                test_result = ?
+            WHERE praxis_id = ? AND system_name = ?
+        `);
+        
+        return stmt.run(
+            new Date().toISOString(),
+            testResult,
+            praxisId,
+            systemName
+        );
+    } catch (error) {
+        console.error("❌ Error updating test result:", error);
+        throw error;
+    }
+}
+
+/**
+ * Aktiviert/Deaktiviert eine Integration
+ */
+function toggleIntegration(praxisId, systemName, isActive) {
+    try {
+        const stmt = db.prepare(`
+            UPDATE integration_settings 
+            SET is_active = ?
+            WHERE praxis_id = ? AND system_name = ?
+        `);
+        
+        return stmt.run(isActive ? 1 : 0, praxisId, systemName);
+    } catch (error) {
+        console.error("❌ Error toggling integration:", error);
+        throw error;
+    }
+}
+
+/**
+ * Speichert Sync-History Eintrag
+ */
+function addSyncHistory(syncData) {
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO sync_history (
+                praxis_id, system_name, sync_type, items_synced,
+                sync_status, sync_result, error_message, duration_ms,
+                synced_by, synced_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        const result = stmt.run(
+            syncData.praxis_id,
+            syncData.system_name,
+            syncData.sync_type || 'manual',
+            syncData.items_synced || 0,
+            syncData.sync_status || 'success',
+            syncData.sync_result ? JSON.stringify(syncData.sync_result) : null,
+            syncData.error_message || null,
+            syncData.duration_ms || null,
+            syncData.synced_by || null,
+            syncData.synced_at || new Date().toISOString()
+        );
+        
+        console.log("✅ Sync history recorded:", syncData.system_name);
+        return result;
+    } catch (error) {
+        console.error("❌ Error adding sync history:", error);
+        throw error;
+    }
+}
+
+/**
+ * Ruft Sync-History ab
+ */
+function getSyncHistory(praxisId, systemName = null, limit = 50) {
+    try {
+        let stmt;
+        
+        if (systemName) {
+            stmt = db.prepare(`
+                SELECT 
+                    sh.*,
+                    u.name as synced_by_name
+                FROM sync_history sh
+                LEFT JOIN users u ON sh.synced_by = u.id
+                WHERE sh.praxis_id = ? AND sh.system_name = ?
+                ORDER BY sh.synced_at DESC
+                LIMIT ?
+            `);
+            return stmt.all(praxisId, systemName, limit).map(row => ({
+                ...row,
+                sync_result: row.sync_result ? JSON.parse(row.sync_result) : null
+            }));
+        } else {
+            stmt = db.prepare(`
+                SELECT 
+                    sh.*,
+                    u.name as synced_by_name
+                FROM sync_history sh
+                LEFT JOIN users u ON sh.synced_by = u.id
+                WHERE sh.praxis_id = ?
+                ORDER BY sh.synced_at DESC
+                LIMIT ?
+            `);
+            return stmt.all(praxisId, limit).map(row => ({
+                ...row,
+                sync_result: row.sync_result ? JSON.parse(row.sync_result) : null
+            }));
+        }
+    } catch (error) {
+        console.error("❌ Error fetching sync history:", error);
+        return [];
+    }
+}
+
+/**
+ * Ruft letzte Sync-Zeit für ein System ab
+ */
+function getLastSyncTime(praxisId, systemName) {
+    try {
+        const stmt = db.prepare(`
+            SELECT synced_at, sync_status 
+            FROM sync_history 
+            WHERE praxis_id = ? AND system_name = ?
+            ORDER BY synced_at DESC
+            LIMIT 1
+        `);
+        return stmt.get(praxisId, systemName);
+    } catch (error) {
+        console.error("❌ Error fetching last sync time:", error);
+        return null;
+    }
+}
+
+/**
+ * Löscht alte Sync-History Einträge (älter als X Tage)
+ */
+function cleanupSyncHistory(daysToKeep = 90) {
+    try {
+        const stmt = db.prepare(`
+            DELETE FROM sync_history 
+            WHERE synced_at < date('now', '-${daysToKeep} days')
+        `);
+        
+        const result = stmt.run();
+        console.log(`✅ Cleaned up ${result.changes} old sync history entries`);
+        return result;
+    } catch (error) {
+        console.error("❌ Error cleaning up sync history:", error);
+        throw error;
+    }
+}
+
+// ========================================
+// === EXTENDED STATISTICS === //
+// ========================================
+
+/**
+ * Erweitert getStatistics() um neue Metriken
+ */
+function getExtendedStatistics(praxisId) {
+    try {
+        const baseStats = getStatistics(praxisId);
+        
+        // Datei-Analysen
+        const analysesCount = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM client_analyses ca
+            JOIN clients c ON ca.client_id = c.id
+            WHERE c.praxis_id = ?
+        `).get(praxisId).count;
+        
+        const analysesThisMonth = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM client_analyses ca
+            JOIN clients c ON ca.client_id = c.id
+            WHERE c.praxis_id = ? AND ca.created_at >= date('now', 'start of month')
+        `).get(praxisId).count;
+        
+        // Integration Status
+        const activeIntegrations = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM integration_settings 
+            WHERE praxis_id = ? AND is_active = 1
+        `).get(praxisId).count;
+        
+        // Letzte Syncs
+        const recentSyncs = db.prepare(`
+            SELECT system_name, MAX(synced_at) as last_sync, sync_status
+            FROM sync_history
+            WHERE praxis_id = ?
+            GROUP BY system_name
+        `).all(praxisId);
+        
+        return {
+            ...baseStats,
+            totalAnalyses: analysesCount,
+            analysesThisMonth: analysesThisMonth,
+            activeIntegrations: activeIntegrations,
+            integrationStatus: recentSyncs.reduce((acc, sync) => {
+                acc[sync.system_name] = {
+                    last_sync: sync.last_sync,
+                    status: sync.sync_status
+                };
+                return acc;
+            }, {})
+        };
+    } catch (error) {
+        console.error("❌ Error calculating extended statistics:", error);
+        return getStatistics(praxisId); // Fallback to base stats
+    }
+}
+
 // === MAINTENANCE FUNCTIONS === //
 
 function vacuum() {
@@ -1768,11 +2316,15 @@ function cleanupOldData() {
         `);
         const auditResult = auditCleanup.run();
         
-        console.log(`✅ Cleanup completed: ${loginResult.changes} login attempts, ${auditResult.changes} audit logs removed`);
+        // Clean up old sync history (90 days)
+        const syncResult = cleanupSyncHistory(90);
+        
+        console.log(`✅ Cleanup completed: ${loginResult.changes} login attempts, ${auditResult.changes} audit logs, ${syncResult.changes || 0} sync history removed`);
         
         return {
             loginAttempts: loginResult.changes,
-            auditLogs: auditResult.changes
+            auditLogs: auditResult.changes,
+            syncHistory: syncResult.changes || 0
         };
     } catch (error) {
         console.error("❌ Cleanup failed:", error);
@@ -1889,10 +2441,27 @@ module.exports = {
     
     // Statistics
     getStatistics,
+    getExtendedStatistics,
     
     // Settings management
     getSetting,
     setSetting,
+    
+    // NEW: Datei-Analyse Functions
+    addClientAnalysis,
+    getClientAnalyses,
+    getClientAnalysisById,
+    deleteClientAnalysis,
+    
+    // NEW: System-Integration Functions
+    saveIntegrationSettings,
+    getIntegrationSettings,
+    updateIntegrationTestResult,
+    toggleIntegration,
+    addSyncHistory,
+    getSyncHistory,
+    getLastSyncTime,
+    cleanupSyncHistory,
     
     // Placeholders for additional features
     addAnamnese: (data) => ({ lastInsertRowid: Date.now() }),
@@ -1908,3 +2477,5 @@ module.exports = {
     hashString,
     validatePraxisAccess
 };
+
+console.log('✅ DB Module loaded with System-Integration & Datei-Analyse features');
